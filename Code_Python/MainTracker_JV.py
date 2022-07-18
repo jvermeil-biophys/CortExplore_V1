@@ -97,16 +97,6 @@ expDf = jvu.getExperimentalConditions(experimentalDataDir, save = True, sep = ';
 
 # %% Small things
 
-#### Plot last traj
-
-# fig, ax = plt.subplots(1,1)
-# X1, Y1 = listTrajDicts[0]['X'], listTrajDicts[0]['Y']
-# X2, Y2 = listTrajDicts[1]['X'], listTrajDicts[1]['Y']
-# ax.plot(X1, Y1, 'r-')
-# ax.plot(X2, Y2, 'b-')
-
-# fig.show()
-
 #### close all
 plt.close('all')
 

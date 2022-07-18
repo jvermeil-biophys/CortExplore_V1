@@ -290,7 +290,7 @@ class PincherTimeLapse:
         self.excludedFrames_outward += self.totalActivationImages
         
         # 3. Field that are just initialized for now and will be filled by calling different methods.
-        self.threshold = 0
+
         self.listFrames = []
         self.listTrajectories = []
 
@@ -644,98 +644,17 @@ class PincherTimeLapse:
             I8 = util.img_as_ubyte(self.I[:end_z])
             threshold = factorT*jvu.max_entropy_threshold(I8)*(bitDepth/(2**8))
         self.threshold = threshold
-
-
-    def testThresholding(self):
-        """
-        Display the 3rd slice of the time lapse, thresholded.
-        Why the 3rd you ask ? Because it will often be a 'top' image from a triplet
-        {'bottom', 'middle', 'top'} and usually it is the one with the least intensity.
-        CURRENTLY NOT USED IN THE MAIN FUNCTION.
-        """
-        I_test = self.I[self.nS//2]
-        I_thresh = I_test > self.threshold
-        fig, ax = plt.subplots(1,1)
-        ax.imshow(I_thresh, cmap = 'gray')
-        fig.show()
-
-
-    def uiThresholding(self, method, factorT, loopInterval = 2):
-        """
-        Interactive thresholding function to replace IJ.
-        Compute an auto thresholding on a global 3D image with a method from this list:
-        > 'otsu', 'max_entropy', (add the method you want ! here are the options : https://scikit-image.org/docs/stable/api/skimage.filters.html )
-        Then display a figure for the user to assess the threshold fitness, and according to the user choice,
-        confirm the threshold or recompute it with new parameters in a recursive way.
-        """
-        threshold = 0
-        end_z = 2*self.loop_mainSize
-        if method == 'otsu':
-            threshold = factorT*filters.threshold_otsu(self.I[:end_z])
-        elif method == 'max_entropy':
-            bitDepth = util.dtype_limits(self.I[:end_z])[1]+1
-            I8 = util.img_as_ubyte(self.I[:end_z])
-            threshold = factorT*jvu.max_entropy_threshold(I8)*(bitDepth/(2**8))
-
-        # New version of the plot
-        loopSize = self.loop_mainSize
-        N = min(4, ((self.nS//loopSize)//loopInterval)-1)
-        L_I_plot = [self.I[loopSize * loopInterval * k + 2] for k in range(N)]
-        L_I_thresh = [I_plot > threshold for I_plot in L_I_plot]
-        for i in range(N):
-            I_plot = L_I_plot[i]
-            I_thresh = L_I_thresh[i]
-            I_plot = util.img_as_ubyte(I_plot)
-            I_plot = color.gray2rgb(I_plot)
-            pStart, pStop = np.percentile(I_plot, (1, 99))
-            I_plot = exposure.rescale_intensity(I_plot, in_range=(pStart, pStop))
-            red_multiplier = [255, 0, 0]
-            I_plot[I_thresh] = red_multiplier
-            L_I_plot[i] = I_plot
-
-        I_thresh_all = self.I > threshold
-        I_thresh_max = np.max(I_thresh_all, axis = 0)
-
-        fig = plt.figure(tight_layout=True)
-        gs = GridSpec(2, 4, figure=fig)
-        ax = []
-        for i in range(N):
-            ax.append(fig.add_subplot(gs[i//2, i%2]))
-            ax[-1].imshow(L_I_plot[i])
-            ax[-1].set_title('Frame ' + str(loopSize*loopInterval*i + 2) + '/' + str(self.nS), fontsize = 8)
-            ax[-1].axes.xaxis.set_ticks([])
-            ax[-1].axes.yaxis.set_ticks([])
-        ax.append(fig.add_subplot(gs[:, 2:]))
-        ax[-1].imshow(I_thresh_max, cmap = 'gray')
-        ax[-1].set_title('Max projection', fontsize = 10)
-        ax[-1].axes.xaxis.set_ticks([])
-        ax[-1].axes.yaxis.set_ticks([])
-        fig.suptitle(str(threshold), fontsize = 12)
-        fig.show()
-        mngr = plt.get_current_fig_manager()
-        mngr.window.setGeometry(50, 380, 1800, 650)
-
-
-        QA = pyautogui.confirm(
-                    text='Is the threshold satisfying?',
-                    title='Confirm threshold',
-                    buttons=['Yes', '10% Lower', '5% Lower', '1% Lower', '1% Higher', '5% Higher', '10% Higher'])
-        plt.close(fig)
-        increment = 0.1 * ('10%' in QA) + 0.05 * ('5%' in QA) + 0.01 * ('1%' in QA)
-        if 'Lower' in QA:
-            self.uiThresholding(method = method, factorT = factorT - increment)
-        elif 'Higher' in QA:
-            self.uiThresholding(method = method, factorT = factorT + increment)
-        elif QA == 'Yes':
-            self.threshold = threshold
+        
 
     def saveMetaData(self, path):
         """
         Save the computed threshold along with a few other data.
+        
+        Currently not used.
         """
         dMD = {}
         dMD['cellID'] = self.cellID
-        dMD['threshold'] = self.threshold
+        # dMD['threshold'] = self.threshold
         dMD['NB'] = self.NB
         f = open(path, 'w')
         for k in dMD.keys():
@@ -748,6 +667,8 @@ class PincherTimeLapse:
     def readMetaData(self, path, infoType):
         """
         Read the metadata file, containing the computed threshold along with a few other data.
+        
+        Currently not used.
         """
         f = open(path, 'r')
         f_lines = f.readlines()
@@ -763,6 +684,7 @@ class PincherTimeLapse:
                     dMD[splitLine[0]] = splitLine[1]
         f.close()
         return(dMD[infoType])
+
 
     def makeFramesList(self):
         """
@@ -820,7 +742,7 @@ class PincherTimeLapse:
         """
         Save the 'PTL.detectBeadsResult' DataFrame.
         """
-        self.detectBeadsResult.to_csv(path, sep='\t')
+        self.detectBeadsResult.to_csv(path, sep='\t', index = False)
 
     def importBeadsDetectResult(self, path=''):
         """
@@ -831,76 +753,6 @@ class PincherTimeLapse:
             if 'Unnamed' in c:
                 df.drop([c], axis = 1, inplace=True)
         self.detectBeadsResult = df
-
-    def findBestStd_V0(self):
-        """
-        This ugly function is my best attempt to implement sth very simple in a robust way.
-        In the 'status_frame' field, -1 means excluded image, 0 means image that isn't part of a N-uplet of images, and k>0 means position in the N-uplet of images.
-        For each image in the N-uplet, I want to reconsititute this N-uplet (meaning the list of Nuplet consecutive images numbered from 1 to Nuplet, minus the images eventually with no beads detected).
-        Then for each N-uplet of images, i want to find the max standard deviation and report its position because it's for the max std that the X and Y detection is the most precise.
-        An exemple: with these inputs:
-        Nuplet = 3
-        status_frame = [1,2,3,0,0,0,1,2, 3, 1, 2, 3, 1, 2]
-            iS = [0,1,2,3,4,5,6,7,11,12,13,14,15,16]
-           std = [1,5,9,5,5,5,1,5, 8, 2, 6, 9, 2, 6]
-        The function will return bestStd, a list of boolean with the same length.
-        Where status_frame = 0, bestStd = True (the image is not part of a N-uplet, thus it need to be analysed regardless of its std).
-        Where satus > 0, the function will cut the lists in N-uplet of max size 3:
-        status_frame -> [1,2,3] ; [1,2] ; [ 3] ; [ 1, 2, 3] ; [ 1, 2]
-            iS -> [0,1,2] ; [6,7] ; [11] ; [12,13,14] ; [15,16]
-           std -> [1,5,9] ; [1,5] ; [ 8] ; [ 2, 6, 9] ; [ 2, 6]
-             i -> [0,1,2] ; [6,7] ; [ 8] ; [ 9,10,11] ; [12,13]
-        and then will find the best std in each of those fragment and put a True at that position (list 'i') in bestStd, so in this example, at i = 2, 7, 8, 11 ,13
-        So the output is: bestStd = [False, False, True, True, True, True, False, True, True, False, False, True, False, True]
-        """
-
-        Nuplet = self.Nuplet
-        status_frame = self.listTrajectories[0].dict['status_frame']
-        iS = self.listTrajectories[0].dict['iS']
-        nT = self.listTrajectories[0].nT
-        std = np.zeros(nT)
-        for i in range(0,self.NB):
-            std += np.array(self.listTrajectories[i].dict['StdDev'])
-
-        bestStd = np.zeros(nT, dtype = bool)
-
-        current_Nup_status = []
-        current_Nup_iS = []
-        current_Nup_std = []
-        current_Nup_i = []
-        for i in range(nT):
-            if status_frame[i] == 0:
-                bestStd[i] = True
-            else:
-                if len(current_Nup_i) == 0:
-                    current_Nup_status = [status_frame[i]]
-                    current_Nup_iS = [iS[i]]
-                    current_Nup_std = [std[i]]
-                    current_Nup_i = [i]
-                else:
-                    if status_frame[i] > current_Nup_status[-1] and (iS[i]-current_Nup_iS[-1]) < Nuplet:
-                        current_Nup_status.append(status_frame[i])
-                        current_Nup_iS.append(iS[i])
-                        current_Nup_std.append(std[i])
-                        current_Nup_i.append(i)
-                    else:
-    #                     print(current_Nup_status, current_Nup_iS, current_Nup_std, current_Nup_i)
-                        i_bestStdInCurrentNuplet = int(np.argmax(np.array(current_Nup_std)))
-    #                     print(i_bestStdInCurrentNuplet)
-                        i_bestStd = int(current_Nup_i[i_bestStdInCurrentNuplet])
-                        bestStd[i_bestStd] = True
-                        # then:
-                        current_Nup_status = [status_frame[i]]
-                        current_Nup_iS = [iS[i]]
-                        current_Nup_std = [std[i]]
-                        current_Nup_i = [i]
-
-        # Need to do it one last time at the end
-        i_bestStdInCurrentNuplet = int(np.argmax(np.array(current_Nup_std)))
-        i_bestStd = int(current_Nup_i[i_bestStdInCurrentNuplet])
-        bestStd[i_bestStd] = True
-
-        return(bestStd)
 
     def findBestStd(self):
         """
@@ -1510,119 +1362,6 @@ class Frame:
                 ax.plot([B.x], [B.y], c='orange', marker='+', markersize = 15)
         fig.show()
 
-    def detectBeads(self, plot):
-        F_bin = self.F > self.threshold
-        F_lab, nObj = ndi.label(F_bin)
-        props = measure.regionprops(F_lab)
-        listValidLabels = []
-        areas = np.zeros(nObj+1)
-
-        if plot >= 1:
-            A_plot = np.zeros(nObj+1)
-            P_plot = np.zeros(nObj+1)
-            C_plot = np.zeros(nObj+1)
-            Valid_Plot = np.zeros(nObj+1)
-            Plot_Labels = []
-
-        for k in range(1, nObj+1):
-#             try:
-            bb = props[k-1].bbox
-            Valid = not (min(bb) == 0 or bb[2] == self.ny or bb[3] == self.nx) # Remove objects touching the edges of the frame
-
-#             # OPTION 1 - Compute the metrics on the filled shape ; NB: takes a lot of time
-#             F_fh = ndi.binary_fill_holes((F_lab == k).astype(int))
-#             tmp_props = measure.regionprops(F_fh.astype(int))
-#             A = tmp_props[0].area
-#             P = tmp_props[0].perimeter
-#             Circ = (4 * np.pi * A) / (P * P)
-#             Valid = Valid and A >= 100 and Circ >= 0.75 # Area and circularity criterion
-
-            # OPTION 2 - Lower the criterion in circularity - NB: less selective
-            A = props[k-1].area
-            P = props[k-1].perimeter
-            Circ = (4 * np.pi * A) / (P * P)
-            if A >= 75 and Circ >= 0.7 and A < 1200:
-                pass
-            elif A >= 300 and A < 1200 and Circ < 0.7 and Circ > 0.3:
-                F_fh = ndi.binary_fill_holes((F_lab == k).astype(int))
-                tmp_props = measure.regionprops(F_fh.astype(int))
-                A = tmp_props[0].area
-                P = tmp_props[0].perimeter
-                Circ = (4 * np.pi * A) / (P * P)
-
-            Valid = (Valid and A >= 75 and A < 1200 and Circ >= 0.65) # Area and circularity criterion
-
-#             # OPTION 3 -
-#             A = props[k-1].area
-#             P = props[k-1].perimeter
-#             Circ = (4 * np.pi * A) / (P * P)
-#             if A >= 80:µ
-#                 ObjFilled = props[k-1].image_filled
-#                 propsObjFilled = measure.regionprops(ObjFilled)
-#                 A = propsObjFilled.area
-#                 P = propsObjFilled.perimeter
-#                 Circ = (4 * np.pi * A) / (P * P)
-
-#             Valid = (Valid and A >= 100 and Circ >= 0.65)
-
-            if plot >= 1:
-                A_plot[k] = A
-                C_plot[k] = Circ
-                P_plot[k] = P
-                Valid_Plot[k] = Valid
-                Plot_Labels.append(k)
-
-
-#             except:
-#                 Valid = False
-
-            if Valid:
-                listValidLabels.append(k)
-                areas[k] = A
-
-
-#         F_labValid, nObjValid = ndi.label(F_lab)
-#         fig, ax = plt.subplots(1,1)
-#         ax.imshow(F_labValid)
-#         fig.show()
-
-        if plot >= 1:
-            centroids_plot = np.array([ndi.center_of_mass(self.F, labels=F_lab, index=m) for m in Plot_Labels])
-            color = np.where(Valid_Plot == True, 'green', 'red')
-            fig, ax = plt.subplots(1,1)
-            ax.imshow(F_lab)
-            for m in Plot_Labels:
-                ax.plot(centroids_plot[m-1,1], centroids_plot[m-1,0], marker = '+', color = color[m])
-                S = 'A = {:.2f} ; P = {:.2f} \nC = {:.2f}'.format(A_plot[m], P_plot[m], C_plot[m])
-                ax.text(centroids_plot[m-1,1], centroids_plot[m-1,0], S, color = color[m])
-            fig.suptitle(str(self.iS))
-            fig.show()
-
-        centroids = np.array([ndi.center_of_mass(self.F, labels=F_lab, index=i) for i in listValidLabels])
-        try:
-            if centroids.ndim == 2:
-                resDict = {}
-                resDict['Area'] = np.array([areas[i] for i in listValidLabels]).astype(int)
-                resDict['StdDev'] = np.array([ndi.standard_deviation(self.F, labels=F_lab, index=i) for i in listValidLabels])
-                resDict['XM'] = centroids[:,1]
-                resDict['YM'] = centroids[:,0]
-                resDict['Slice'] = np.array([self.iS+1 for i in listValidLabels]).astype(int)
-            elif centroids.ndim == 1 and len(centroids) >= 2:
-                resDict = {}
-                resDict['Area'] = np.array([areas[i] for i in listValidLabels]).astype(int)
-                resDict['StdDev'] = np.array([ndi.standard_deviation(self.F, labels=F_lab, index=i) for i in listValidLabels])
-                resDict['XM'] = centroids[1]
-                resDict['YM'] = centroids[0]
-                resDict['Slice'] = np.array([self.iS+1 for i in listValidLabels]).astype(int)
-            else:
-                resDict = {}
-        except:
-            print(centroids)
-
-        self.resDf = pd.DataFrame(resDict)
-
-#         print(self.resDict)
-
     def makeListBeads(self):
         self.NBdetected = self.resDf.shape[0]
         for i in range(self.NBdetected):
@@ -1645,102 +1384,8 @@ class Frame:
             A[i] = b.std
         return(A)
 
-    def detectDiameter(self, plot = 0):
-        for i in range(len(self.listBeads)):
-            B = self.listBeads[i]
-            B.detectDiameter(self.nx, self.ny, self.scale, plot)
-#             B = self.listBeads[i]
-#             roughSize = np.floor(5*SCALE_100X)
-#             roughSize += roughSize%2
-#             x1_roughROI = max(int(np.floor(B.x) - roughSize*0.5) - 1, 0)
-#             x2_roughROI = min(int(np.floor(B.x) + roughSize*0.5), self.nx)
-#             y1_roughROI = max(int(np.floor(B.y) - roughSize*0.5) - 1, 0)
-#             y2_roughROI = min(int(np.floor(B.y) + roughSize*0.5), self.ny)
-#             F_roughRoi = self.F[y1_roughROI:y2_roughROI, x1_roughROI:x2_roughROI]
-#             if plot == 1:
-#                 figh, axh = plt.subplots(1,1, figsize = (4,4))
-#                 axh.hist(F_roughRoi.ravel(), bins=256, histtype='step', color='black')
-#             counts, binEdges = np.histogram(F_roughRoi.ravel(), bins=256)
-#             peaks, peaksProp = find_peaks(counts, height=100, threshold=None, distance=None, prominence=None, \
-#                                width=None, wlen=None, rel_height=0.5, plateau_size=None)
-#             peakThreshVal = 750
-#             if counts[peaks[0]] > peakThreshVal:
-#                 B.D = 4.5
-#             else:
-#                 B.D = 2.7
-#             if plot == 1:
-#                 print(B.D)
-#                 B.show()
-            pass
 
-    def detectNeighbours(self, iB, beadType = 'detect'):
-        BoI = self.listBeads[iB]
-        listD = []
-        for B in self.listBeads:
-            if B.D not in listD:
-                listD.append(B.D)
-        Dmax = max(listD)*self.scale
-        DBoI = BoI.D*self.scale
-        x, y = BoI.x, BoI.y
-#         print('Bead in (x,y) = (' + str(x) + ', ' + str(y) + ')')
 
-        def makeRoI(x01, x02, y01, y02, nx, ny):
-            x1, x2, y1, y2 = int(x01), int(x02), int(y01), int(y02)
-            Lx = [x1, x2]
-            Ly = [y1, y2]
-            for x in Lx:
-                if x < 0:
-                    x = 0
-                if x > nx:
-                    x = nx
-            for y in Ly:
-                if y < 0:
-                    y = 0
-                if y > ny:
-                    y = ny
-            return([Lx, Ly])
-
-        def areThereBeadsInRoI(listBeads, RoI):
-            beadsFound = []
-            Lx, Ly = RoI[0], RoI[1]
-#             print(RoI)
-            for B in listBeads:
-#                 print(B.x, B.y)
-                if B.x > Lx[0] and B.x < Lx[1] and B.y > Ly[0] and B.y < Ly[1]:
-                    beadsFound.append(B)
-            return(beadsFound)
-
-        RoI_left = makeRoI(x-(0.5*DBoI+Dmax), x-(0.5*DBoI), y-0.55*Dmax, y+0.55*Dmax, self.nx, self.ny)
-        RoI_right = makeRoI(x+(0.5*DBoI), x+(0.5*DBoI+Dmax), y-0.55*Dmax, y+0.55*Dmax, self.nx, self.ny)
-
-        beadsFound_left = areThereBeadsInRoI(self.listBeads, RoI_left)
-        beadsFound_right = areThereBeadsInRoI(self.listBeads, RoI_right)
-
-        if len(beadsFound_left) >= 1:
-            if beadType == 'detect':
-                beadsFound_left[0].detectDiameter(self.nx, self.ny, self.scale, plot = 0)
-                D = beadsFound_left[0].D
-                if D == 4.5:
-                    BoI.Neighbour_L = 'M450'
-                elif D == 2.7:
-                    BoI.Neighbour_L = 'M270'
-            else:
-                BoI.Neighbour_L = beadType
-
-        if len(beadsFound_right) >= 1:
-            if beadType == 'detect':
-                beadsFound_right[0].detectDiameter(self.nx, self.ny, self.scale, plot = 0)
-                D = beadsFound_right[0].D
-                if D == 4.5:
-                    BoI.Neighbour_R = 'M450'
-                elif D == 2.7:
-                    BoI.Neighbour_R = 'M270'
-            else:
-                BoI.Neighbour_R = beadType
-
-        return(BoI.Neighbour_L, BoI.Neighbour_R)
-
-    #
 
 # %%%% Bead
 
@@ -1757,37 +1402,6 @@ class Bead:
         self.Neighbour_R = ''
         self.F = F
 
-    def detectDiameter(self, nx, ny, scale, plot = 0):
-        F = self.F
-        roughSize = np.floor(5*scale)
-        roughSize += roughSize%2
-        x1_roughROI = max(int(np.floor(self.x) - roughSize*0.5) - 1, 0)
-        x2_roughROI = min(int(np.floor(self.x) + roughSize*0.5), nx)
-        y1_roughROI = max(int(np.floor(self.y) - roughSize*0.5) - 1, 0)
-        y2_roughROI = min(int(np.floor(self.y) + roughSize*0.5), ny)
-
-        F_roughRoi = F[y1_roughROI:y2_roughROI, x1_roughROI:x2_roughROI]
-
-        if plot == 1:
-            figh, axh = plt.subplots(1,1, figsize = (4,4))
-            axh.hist(F_roughRoi.ravel(), bins=256, histtype='step', color='black')
-
-        counts, binEdges = np.histogram(F_roughRoi.ravel(), bins=256)
-
-        peaks, peaksProp = find_peaks(counts, height=100, threshold=None, distance=None, prominence=None, \
-                           width=None, wlen=None, rel_height=0.5, plateau_size=None)
-
-        peakThreshVal = 750
-
-        if counts[peaks[0]] > peakThreshVal:
-            self.D = 4.5
-
-        else:
-            self.D = 2.7
-
-        if plot == 1:
-            print(self.D)
-            self.show()
 
     def show(self, strech = True):
         fig, ax = plt.subplots(1,1)
@@ -2225,72 +1839,6 @@ class Trajectory:
         self.dict = dictBestStd
         self.nT = nT
 
-    def detectNeighbours(self, frequency, beadType = 'detect'):
-        init = True
-        listNeighbours = []
-        for i in range(len(self.dict['iF'])):
-            iS = self.dict['iS'][i]
-            if frequency%iS == 0 or init:
-                iF = self.dict['iF'][i]
-                iB = self.dict['iB_inFrame'][i]
-                Frame = self.listFrames[iF]
-                Neighbour_L, Neighbour_R = Frame.detectNeighbours(iB, beadType)
-                listNeighbours.append([Neighbour_L, Neighbour_R])
-                init = False
-            else:
-                self.dict['Bead'][i].Neighbour_L = Neighbour_L
-                self.dict['Bead'][i].Neighbour_R = Neighbour_R
-                listNeighbours.append([Neighbour_L, Neighbour_R])
-        arrayNeighbours = np.array(listNeighbours)
-        self.dict['Neighbour_L'] = arrayNeighbours[:,0]
-        self.dict['Neighbour_R'] = arrayNeighbours[:,1]
-#         print(self.dict['Neighbour_L'], self.dict['Neighbour_R'])
-
-
-
-    def detectNeighbours_ui_V0(self, Nimg, frequency, beadType): # NOT VERY WELL MADE FOR NOW
-        # Plots to help the user to see the neighbour of each bead
-        ncols = 4
-        nrows = ((Nimg-1) // ncols) + 1
-
-        fig, ax = plt.subplots(nrows, ncols)
-        for i in range(Nimg):
-            pos = np.searchsorted(self.dict['iS'], i*frequency, 'left')
-            iS = self.dict['iS'][pos]
-            iF = self.dict['iF'][pos]
-            ax[i//ncols,i%ncols].imshow(self.I[iS], cmap = 'gray')
-            ax[i//ncols,i%ncols].set_title('Loop ' + str(i+1))
-            ax[i//ncols,i%ncols].plot([self.dict['X'][pos]],[self.dict['Y'][pos]], 'ro')
-
-        # Ask the question
-        mngr = plt.get_current_fig_manager()
-        mngr.window.setGeometry(720, 50, 1175, 1000)
-        QA = pyautogui.confirm(
-            text='Neighbours of the selected bead?',
-            title='',
-            buttons=['Left','Right', 'Left and right'])
-
-        # According to the question's answer:
-        if QA == 'Left':
-            Neighbour_L = beadType
-            Neighbour_R = ''
-        elif QA == 'Right':
-            Neighbour_L = ''
-            Neighbour_R = beadType
-        elif QA == 'Left and right':
-            Neighbour_L, Neighbour_R = beadType, beadType
-
-        plt.close(fig)
-        listNeighbours = []
-
-        for i in range(len(self.dict['iF'])):
-            self.dict['Bead'][i].Neighbour_L = Neighbour_L
-            self.dict['Bead'][i].Neighbour_R = Neighbour_R
-            listNeighbours.append([Neighbour_L, Neighbour_R])
-
-        arrayNeighbours = np.array(listNeighbours)
-        self.dict['Neighbour_L'] = arrayNeighbours[:,0]
-        self.dict['Neighbour_R'] = arrayNeighbours[:,1]
 
     def detectNeighbours_ui(self, Nimg, frequency, beadType): # NOT VERY WELL MADE FOR NOW
         # Plots to help the user to see the neighbour of each bead
@@ -2392,10 +1940,9 @@ class Trajectory:
 # %%%% Main
 
 def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, timeSeriesDataDir,
-                dates, manips, wells, cells, depthoNames, expDf, methodT, factorT, 
-                redoAllSteps = False, MatlabStyle = False, trackAll = False, sourceField = 'default',
-                ownCloudDir = '', ownCloud_figureDir = '', ownCloud_timeSeriesDataDir = '',
-                NB = 2):
+                dates, manips, wells, cells, depthoNames, expDf, NB = 2,
+                sourceField = 'default', redoAllSteps = False, MatlabStyle = False, trackAll = False, 
+                ownCloudDir = '', ownCloud_figureDir = '', ownCloud_timeSeriesDataDir = ''):
     
     start = time.time()
 
@@ -2437,24 +1984,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
             manipDict = {}
             for c in expDf_line.columns.values:
                 manipDict[c] = expDf_line[c].values[0]
-        
-
-#         # Extract some data from exp data
-#         StrBeadTypes = str(manipDict['bead type'])
-#         if '_' in StrBeadTypes:
-#             beadTypes = [bT for bT in StrBeadTypes.split('_')]
-#         else:
-#             beadTypes = [StrBeadTypes]
-
-#         StrBeadDiameters = str(manipDict['bead diameter'])
-#         if '_' in StrBeadDiameters:
-#             beadDiameters = [int(bD) for bD in StrBeadDiameters.split('_')]
-#         else:
-#             beadDiameters = [int(StrBeadDiameters)]
-
-#         dictBeadDiameters = {}
-#         for k in range(len(beadTypes)):
-#             dictBeadDiameters[beadTypes[k]] = beadDiameters[k]
+    
 
         #### 0.4 - Load image and init PTL
         I = io.imread(fP) # Approx 0.5s per image
@@ -2517,21 +2047,6 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
 
         PTL.saveLog(display = False, save = (not logFileImported), path = logFilePath)
 
-        #### 0.9 - Import or determine global threshold
-        MDpath = fP[:-4] + '_MetaDataPY.txt'
-        if MatlabStyle:
-            PTL.computeThreshold(method = methodT, factorT = factorT)
-        elif redoAllSteps:
-            PTL.uiThresholding(method = methodT, factorT = factorT, loopInterval = 1)
-        else:
-            try:
-                PTL.threshold = PTL.readMetaData(MDpath, 'threshold')
-            except:
-                PTL.uiThresholding(method = methodT, factorT = factorT, loopInterval = 1) # Approx 3s per image
-
-
-        #### 0.10 - Save some metadata
-        PTL.saveMetaData(MDpath)
 
         #### 0.11 - Create list of Frame objects
         PTL.makeFramesList()
@@ -2660,18 +2175,6 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
                 B.D = D
 
         #### 3.2 - Detect neighbours
-
-        # Previous way, automatic detection,
-        # not robust enough
-
-        # for iB in range(PTL.NB):
-        #     traj = PTL.listTrajectories[iB]
-        #     beadType = ''
-        #     if len(PTL.beadTypes) == 1:
-        #         beadType = PTL.beadTypes[0] # M270 or M450
-        #     else:
-        #         beadType = 'detect'
-        #     traj.detectNeighbours(frequency = PTL.loop_mainSize, beadType = beadType)
 
         # Current way, with user input
         if redoAllSteps or not trajFilesImported:
@@ -2909,244 +2412,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
 
 # %%%% Stand-alone functions
 
-# Tracker stand-Alone Functions
 
-# 1. XYZtracking do the tracking on any image, given
-def XYZtracking(I, cellID, NB, manipDict, depthoDir, depthoNames):
-
-    PTL = PincherTimeLapse(I, cellID, manipDict, NB = NB)
-    PTL.determineFramesStatus_R40()
-    PTL.uiThresholding(method = 'max_entropy', factorT = 1)#, increment = 0.05)
-    PTL.makeFramesList()
-    PTL.detectBeads(resFileImported = False, display = 1)
-    issue = PTL.buildTrajectories()
-    XYZtracking_assignBeadSizes(PTL)
-    for iB in range(PTL.NB):
-        traj = PTL.listTrajectories[iB]
-        beadType = ''
-        if len(PTL.beadTypes) == 1:
-            beadType = PTL.beadTypes[0] # M270 or M450
-        else:
-            beadType = 'detect'
-        traj.detectNeighbours(frequency = PTL.loop_mainSize, beadType = beadType)
-    XYZtracking_computeZ(PTL, depthoDir, depthoNames, plot = 1)
-    return(PTL)
-
-# Subfuctions of XYZtracking
-def XYZtracking_assignBeadSizes(PTL):
-    if len(PTL.beadTypes) == 1:
-            if 'M450' in PTL.beadTypes[0]:
-                D = 4.5
-            elif 'M270' in PTL.beadTypes[0]:
-                D = 2.7
-            for B in PTL.listFrames[0].listBeads:
-                B.D = D
-    else:
-        PTL.listFrames[0].detectDiameter(plot = 0)
-
-    # Propagate it across the trajectories
-    for iB in range(PTL.NB):
-        traj = PTL.listTrajectories[iB]
-        B0 = traj.dict['Bead'][0]
-        D = B0.D
-        traj.D = D
-        for B in traj.dict['Bead']:
-            B.D = D
-
-def XYZtracking_computeZ(PTL, depthoDir, depthoNames, plot = 0):
-    HDZfactor = 10
-    if len(PTL.beadTypes) == 1:
-        depthoPath = os.path.join(depthoDir, depthoNames)
-#             depthoExist = os.path.exists(depthoPath+'_Deptho.tif')
-        deptho = io.imread(depthoPath+'_Deptho.tif')
-        depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
-        depthoStep = depthoMetadata.loc[0,'step']
-        depthoZFocus = depthoMetadata.loc[0,'focus']
-
-        # increase the resolution of the deptho with interpolation
-        nX, nZ = deptho.shape[1], deptho.shape[0]
-        XX, ZZ = np.arange(0, nX, 1), np.arange(0, nZ, 1)
-        fd = interpolate.interp2d(XX, ZZ, deptho, kind='cubic')
-        ZZ_HD = np.arange(0, nZ, 1/HDZfactor)
-        depthoHD = fd(XX, ZZ_HD)
-        depthoStepHD = depthoStep/HDZfactor
-        depthoZFocusHD = depthoZFocus*HDZfactor
-        #
-        for iB in range(PTL.NB):
-            traj = PTL.listTrajectories[iB]
-            traj.deptho = depthoHD
-            traj.depthoPath = depthoPath
-            traj.depthoStep = depthoStepHD
-            traj.depthoZFocus = depthoZFocusHD
-            plt.imshow(depthoHD)
-
-    if len(PTL.beadTypes) > 1:
-        for dN in depthoNames:
-            depthoPath = os.path.join(depthoDir, dN)
-            deptho = io.imread(depthoPath+'_Deptho.tif')
-            depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
-            depthoStep = depthoMetadata.loc[0,'step']
-            depthoZFocus = depthoMetadata.loc[0,'focus']
-
-            # increase the resolution of the deptho with interpolation
-            nX, nZ = deptho.shape[1], deptho.shape[0]
-            XX, ZZ = np.arange(0, nX, 1), np.arange(0, nZ, 1)
-            fd = interpolate.interp2d(XX, ZZ, deptho, kind='cubic')
-            ZZ_HD = np.arange(0, nZ, 1/HDZfactor)
-            depthoHD = fd(XX, ZZ_HD)
-            depthoStepHD = depthoStep/HDZfactor
-            depthoZFocusHD = depthoZFocus*HDZfactor
-            #
-            if 'M450' in dN:
-                depthoD = 4.5
-            elif 'M270' in dN:
-                depthoD = 2.7
-            for iB in range(PTL.NB):
-                traj = PTL.listTrajectories[iB]
-                if traj.D == depthoD:
-                    traj.deptho = depthoHD
-                    traj.depthoPath = depthoPath
-                    traj.depthoStep = depthoStepHD
-                    traj.depthoZFocus = depthoZFocusHD
-
-    # Compute z for each traj
-    matchingDirection = 'downward'
-
-    for iB in range(PTL.NB):
-        np.set_printoptions(threshold=np.inf)
-
-        print('Computing Z in traj  {:.0f}...'.format(iB+1))
-
-        Tz = time.time()
-        traj = PTL.listTrajectories[iB]
-        traj.computeZ(matchingDirection, plot)
-        print('OK! dT = {:.3f}'.format(time.time()-Tz))
-
-    # Keep only the best std data in the trajectories
-    for iB in range(PTL.NB):
-        print('Picking the images with the best StdDev in traj  {:.0f}...'.format(iB+1))
-
-        Tstd = time.time()
-        traj = PTL.listTrajectories[iB]
-        traj.keepBestStdOnly()
-        print('OK! dT = {:.3f}'.format(time.time()-Tstd))
-
-
-
-
-# def structureTester(mainDataDir, rawDataDir, depthoDir, 
-#                     interDataDir, figureDir, timeSeriesDataDir,
-#                     date, manip, well, cell, expDf,
-#                     sourceField = 'default'):
-    
-#     start = time.time()
-
-#     #### 0. Load different data sources & Preprocess : fluo, black images, sort slices (ct/ramp ; down/middle/up)
-#         #### 0.1 - Make list of files to analyse
-
-#     imagesToAnalyse = []
-#     imagesToAnalyse_Paths = []
-#     if not isinstance(date, str):
-#         rawDirList = [os.path.join(rawDataDir, d) for d in date]
-#     else:
-#         rawDirList = [os.path.join(rawDataDir, date)]
-#     for rd in rawDirList:
-#         fileList = os.listdir(rd)
-#         for f in fileList:
-#             if isFileOfInterest(f, manip, well, cell): # See Utility Functions > isFileOfInterest
-#                 fPath = os.path.join(rd, f)
-#                 if os.path.isfile(fPath[:-4] + '_Field.txt'):
-#                     imagesToAnalyse.append(f)
-#                     imagesToAnalyse_Paths.append(os.path.join(rd, f))    
-    
-    
-#     i = 0
-    
-#     f, fP = imagesToAnalyse[i], imagesToAnalyse_Paths[i]
-#     manipID = findInfosInFileName(f, 'manipID') # See Utility Functions > findInfosInFileName
-#     cellID = findInfosInFileName(f, 'cellID') # See Utility Functions > findInfosInFileName
-
-#     print('\n')
-#     print(BLUE + 'Analysis of file {:.0f}/{:.0f} : {}'.format(i+1, len(imagesToAnalyse), f))
-#     print('Loading image and experimental data...' + NORMAL)
-
-#     #### 0.3 - Load exp data
-#     if manipID not in expDf['manipID'].values:
-#         print(RED + 'Error! No experimental data found for: ' + manipID + NORMAL)
-#         return()
-#     else:
-#         expDf_line = expDf.loc[expDf['manipID'] == manipID]
-#         manipDict = {}
-#         for c in expDf_line.columns.values:
-#             manipDict[c] = expDf_line[c].values[0]
-
-#     #### 0.4 - Load image and init PTL
-#     I = io.imread(fP) # Approx 0.5s per image
-#     PTL = PincherTimeLapse(I, cellID, manipDict, 2)
-
-#     #### 0.5 - Load field file
-#     fieldFilePath = fP[:-4] + '_Field.txt'
-#     if sourceField == 'default':
-#         fieldCols = ['B_set', 'T_abs', 'B', 'Z']
-#         fieldDf = pd.read_csv(fieldFilePath, sep = '\t', names = fieldCols) # '\t'
-#     elif sourceField == 'fastImagingVI':
-#         fieldCols = ['B_set', 'B', 'T_abs']
-#         fieldDf = pd.read_csv(fieldFilePath, sep = '\t', names = fieldCols) # '\t'
-    
-#     #### Find index of first activation
-#     optoMetaPath = fP[:-4] + '_OptoMetadata.txt'
-#     PTL.makeOptoMetadata(fieldDf, display = 1, save = True, path = optoMetaPath)
-    
-#     #### 0.6 - Check if a log file exists and load it if required
-#     logFilePath = fP[:-4] + '_LogPY.txt'
-#     logFileImported = False
-
-
-#     print(BLUE + 'OK!')
-
-#     print(BLUE + 'Pretreating the image...' + NORMAL)
-#     print(PTL.nLoop)
-#     #### 0.7 - Detect fluo & black images
-#     current_date = findInfosInFileName(f, 'date')
-#     current_date = current_date.replace("-", ".")
-#     fluoDirPath = os.path.join(rawDataDir, current_date + '_Fluo', f[:-4])
-
-#     PTL.checkIfBlackFrames()
-#     PTL.saveFluoAside(fluoDirPath, f)
-
-
-#     #### 0.8 - Sort slices
-#     #### ! Exp type dependance here !
-#     print(f)
-#     if not logFileImported:
-#         if 'R40' in f or 'thickness' in f:
-#             PTL.determineFramesStatus_R40()
-#         elif 'L40' in f:
-#             PTL.determineFramesStatus_L40()
-#         elif 'sin' in f:
-#             PTL.determineFramesStatus_Sinus()
-#         elif 'brokenRamp' in f:
-#             PTL.determineFramesStatus_BR()
-#         elif 'disc20um' in f:
-#             PTL.determineFramesStatus_optoGen()
-#             pass
-
-#     PTL.saveLog(display = False, save = (not logFileImported), path = logFilePath)
-
-#     MDpath = fP[:-4] + '_MetaDataPY.txt'
-
-#     #### 0.10 - Save some metadata
-#     PTL.saveMetaData(MDpath)
-
-#     #### 0.11 - Create list of Frame objects
-#     PTL.makeFramesList()
-    
-#     # Check the good number
-    
-#     print(len(PTL.listFrames)/PTL.nLoop, int(len(PTL.listFrames)/PTL.nLoop), 
-#           'Correct struct for listFrame : ' + str((len(PTL.listFrames)/PTL.nLoop) == int(len(PTL.listFrames)/PTL.nLoop)))
-
-#     print(BLUE + 'OK!' + NORMAL)
 
 # %% (3) Depthograph making classes & functions
 
