@@ -1,0 +1,3 @@
+WARNING
+Do not modify this file. It is for consultation only.
+For the modifiable version go to: D://MagneticPincherData\Data_Experimental

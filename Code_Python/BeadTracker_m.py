@@ -1473,9 +1473,9 @@ class Trajectory:
             
             while iF <= max(self.dict['iF']):
             #### Enable plots of Z detection  here
-                plot = 0
-                if (iF >= 0 and iF <= 30) or (iF > 400 and iF <= 440):
-                    plot = 1
+                # plot = 0
+                # if (iF >= 0 and iF <= 30) or (iF > 400 and iF <= 440):
+                #     plot = 1
             # ###################################################################
 
                 if iF not in self.dict['iF']: # this index isn't in the trajectory list => the frame was removed for some reason.
@@ -2232,7 +2232,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
                 traj.depthoPath = depthoPath
                 traj.depthoStep = depthoStepHD
                 traj.depthoZFocus = depthoZFocus
-                traj.HDZfactor = HDZfactor
+                # traj.HDZfactor = HDZfactor
 
         if len(PTL.beadTypes) > 1:
             for dN in depthoNames:

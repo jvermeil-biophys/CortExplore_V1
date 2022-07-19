@@ -34,59 +34,20 @@ from datetime import date
 from scipy.optimize import curve_fit
 from matplotlib.gridspec import GridSpec
 
-# from statannot import add_stat_annotation
-# pd.set_option('mode.chained_assignment',None)
-# pd.set_option('display.max_columns', None)
+#### Local Imports
 
+import sys
+import CortexPaths as cp
+sys.path.append(cp.DirRepoPython)
 
-#### Paths
-
-COMPUTERNAME = os.environ['COMPUTERNAME']
-if COMPUTERNAME == 'ORDI-JOSEPH':
-    mainDir = "C://Users//JosephVermeil//Desktop//ActinCortexAnalysis"
-    rawDir = "D://MagneticPincherData"
-    ownCloudDir = "C://Users//JosephVermeil//ownCloud//ActinCortexAnalysis"
-    experimentalDataDir = os.path.join(mainDir, "Data_Experimental_JV")
-elif COMPUTERNAME == 'LARISA':
-    mainDir = "C://Users//Joseph//Desktop//ActinCortexAnalysis"
-    rawDir = "F:\JosephVermeil\MagneticPincherData"    
-    ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
-    experimentalDataDir = os.path.join(mainDir, "Data_Experimental_JV")
-elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
-    experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
-elif COMPUTERNAME == '':
-    mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
-    ownCloudDir = "C://Users//josep//ownCloud//ActinCortexAnalysis"
-    experimentalDataDir = os.path.join(mainDir, "Data_Experimental_JV")
-
-
-# experimentalDataDir = os.path.join(mainDir, "Data_Experimental")
-dataDir = os.path.join(mainDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(dataDir, "TimeSeriesData")
-
-
-figDir = os.path.join(dataDir, "Figures")
-todayFigDir = os.path.join(figDir, "Historique//" + str(date.today()))
-
-
-figDirLocal = os.path.join(rawDir, "Figures")
-todayFigDirLocal = os.path.join(figDirLocal, "Historique//" + str(date.today()))
-
-
-ownCloudFigDir = os.path.join(ownCloudDir, "Data_Analysis", "Figures")
-ownCloudTodayFigDir = os.path.join(ownCloudFigDir, "Historique//" + str(date.today()))
-
-#### Local imports
-sys.path.append(mainDir + "//Code_Python")
-import PincherAnalysis_JV as jva
-import MechanicsAnalysis_AJ as aja
-import utilityFunctions_JV as jvu
+import GraphicStyles as gs
+import UtilityFunctions as ufun
+import TrackAnalyser as taka
 
 #### Potentially useful lines of code
 # get_ipython().run_line_magic('load_ext', 'autoreload')
 # get_ipython().run_line_magic('autoreload', '2')
-# todayFigDirLocal
+# cp.DirDataFigToday
 
 #### Pandas
 pd.set_option('display.max_columns', None)
@@ -120,108 +81,6 @@ from bokeh.palettes import Category10
 from bokeh.layouts import gridplot
 output_notebook()
 
-#### Markers
-my_default_marker_list = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
-markerList10 = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
-
-#### Colors
-# prop_cycle = plt.rcParams['axes.prop_cycle']
-# colors = prop_cycle.by_key()['color']
-my_default_color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
-                         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-my_default_color_cycle = cycler(color=my_default_color_list)
-plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
-
-pairedPalette = sns.color_palette("tab20")
-pairedPalette = pairedPalette.as_hex()
-pairedPalette
-
-# clist = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a']
-# sns.color_palette(clist)
-colorList10 = my_default_color_list
-sns.color_palette(my_default_color_list)
-
-
-bigPalette1 = sns.color_palette("tab20b")
-bigPalette1_hex = bigPalette1.as_hex()
-bigPalette1
-
-bigPalette2 = sns.color_palette("tab20c")
-bigPalette2_hex = bigPalette2.as_hex()
-bigPalette2
-
-customPalette_hex = []
-for ii in range(2, -1, -1):
-    customPalette_hex.append(bigPalette2_hex[4*0 + ii]) # blue
-    customPalette_hex.append(bigPalette2_hex[4*1 + ii]) # orange
-    customPalette_hex.append(bigPalette2_hex[4*2 + ii]) # green
-    customPalette_hex.append(bigPalette1_hex[4*3 + ii]) # red
-    customPalette_hex.append(bigPalette2_hex[4*3 + ii]) # purple
-    customPalette_hex.append(bigPalette1_hex[4*2 + ii]) # yellow-brown
-    customPalette_hex.append(bigPalette1_hex[4*4 + ii]) # pink
-    customPalette_hex.append(bigPalette1_hex[4*0 + ii]) # navy    
-    customPalette_hex.append(bigPalette1_hex[4*1 + ii]) # yellow-green
-    customPalette_hex.append(bigPalette2_hex[4*4 + ii]) # gray
-    
-# customPalette = sns.color_palette(customPalette_hex)
-colorList30 = customPalette_hex
-
-customPalette_hex = []
-for ii in range(3, -1, -1):
-    customPalette_hex.append(bigPalette2_hex[4*0 + ii]) # blue
-    customPalette_hex.append(bigPalette2_hex[4*1 + ii]) # orange
-    customPalette_hex.append(bigPalette2_hex[4*2 + ii]) # green
-    customPalette_hex.append(bigPalette1_hex[4*3 + ii]) # red
-    customPalette_hex.append(bigPalette2_hex[4*3 + ii]) # purple
-    customPalette_hex.append(bigPalette1_hex[4*2 + ii]) # yellow-brown
-    customPalette_hex.append(bigPalette1_hex[4*4 + ii]) # pink
-    customPalette_hex.append(bigPalette1_hex[4*0 + ii]) # navy    
-    customPalette_hex.append(bigPalette1_hex[4*1 + ii]) # yellow-green
-    customPalette_hex.append(bigPalette2_hex[4*4 + ii]) # gray
-    
-
-# customPalette = sns.color_palette(customPalette_hex)
-colorList40 = customPalette_hex
-
-# TEST to get a darker list
-# colorList40_darker = []
-# for i in range(len(colorList40)):
-#     c = colorList40[i]
-#     print(c)
-#     c_darker = jvu.lighten_color(c, 1.25)
-#     colorList40_darker.append(c_darker)
-
-# colorList40_darker = colorList40_darker.as_hex()
-# %% Test the colors
-
-# N = len(my_default_marker_list)
-# X = np.arange(1, N+1)
-# Y = np.arange(1, N+1)
-# fig, ax = plt.subplots(1, 1, figsize = (3, 3))
-# for i in range(N):
-#     for j in range(N):
-#         ax.plot([X[i]], [Y[-1-j]], color = my_default_color_list[i], marker = my_default_marker_list[j], 
-#                 ls = '', markersize = 10, markeredgecolor = 'k')
-# ax.set_xticks([])
-# ax.set_yticks([])
-# ax.set_xticklabels([])
-# ax.set_yticklabels([])
-# plt.show()
-
-N = len(colorList40)
-M = len(markerList10)
-X = np.arange(1, N+1)
-Y = np.arange(1, M+1)
-fig, ax = plt.subplots(1, 1, figsize = (0.3*N, 0.3*M))
-for i in range(N):
-    for j in range(M):
-        ax.plot([X[i]], [Y[-1-j]], color = colorList40[i], marker = markerList10[j], 
-                ls = '', markersize = 10, markeredgecolor = 'k')
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_xticklabels([])
-ax.set_yticklabels([])
-plt.show()
 
 # %% Reminders
 
@@ -243,24 +102,24 @@ plt.show()
 
 
 # %%% List files
-allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) \
-                          if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
+                          if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
 print(allTimeSeriesDataFiles)
 
 
 # %%% Get a time series
 
-df = jva.getCellTimeSeriesData('22-02-09_M1_P1_C7')
+df = taka.getCellTimeSeriesData('22-02-09_M1_P1_C7')
 
 
 # %%% Plot a time series
 
-# jva.plotCellTimeSeriesData('21-02-10_M1_P1_C2')
-jva.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_1Hz')
+# taka.plotCellTimeSeriesData('21-02-10_M1_P1_C2')
+taka.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_1Hz')
 
 # %%% Plot a time series
 
-jva.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_2Hz')
+taka.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_2Hz')
 
 # %%% Variation on the plotCellTimeSeriesData function
 
@@ -270,7 +129,7 @@ jva.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_2Hz')
 # X = 'T'
 # Y = np.array(['B', 'F'])
 # units = np.array([' (mT)', ' (pN)'])
-# timeSeriesDataFrame = jva.getCellTimeSeriesData(cellID, fromPython)
+# timeSeriesDataFrame = taka.getCellTimeSeriesData(cellID, fromPython)
 # print(timeSeriesDataFrame.shape)
 # if not timeSeriesDataFrame.size == 0:
 # #         plt.tight_layout()
@@ -301,7 +160,7 @@ fromPython = True
 X = 'T'
 Y = np.array(['B', 'F'])
 units = np.array([' (mT)', ' (pN)'])
-tSDF = jva.getCellTimeSeriesData(cellID, fromPython)
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
 
 defaultColorCycle = plt.rcParams['axes.prop_cycle']
 customColorCycle = cycler(color=['purple', 'red'])
@@ -344,7 +203,7 @@ fromPython = True
 X = 'T'
 Y = np.array(['B', 'F'])
 units = np.array([' (mT)', ' (pN)'])
-tSDF = jva.getCellTimeSeriesData(cellID, fromPython)
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
 
 # defaultColorCycle = plt.rcParams['axes.prop_cycle']
 # customColorCycle = cycler(color=['green', 'red'])
@@ -357,14 +216,14 @@ if not tSDF.size == 0:
 #         fig.show() # figsize=(20,20)
     tsDFplot = tSDF[(tSDF['T']>=3.04) & (tSDF['T']<=6.05)]
     
-    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = colorList40[30], label = 'Thickness')
-    ax.set_ylabel('Thickness (nm)', color = colorList40[30])
+    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = gs.colorList40[30], label = 'Thickness')
+    ax.set_ylabel('Thickness (nm)', color = gs.colorList40[30])
     ax.set_ylim([0, 350])
     ax.set_xlabel('Time (s)')
 
     axR = ax.twinx()
-    axR.plot(tsDFplot['T'], tsDFplot['F'], color = colorList40[23], label = 'Force')
-    axR.set_ylabel('Force (pN)', color = colorList40[23])
+    axR.plot(tsDFplot['T'], tsDFplot['F'], color = gs.colorList40[23], label = 'Force')
+    axR.set_ylabel('Force (pN)', color = gs.colorList40[23])
     axR.set_ylim([0, 150])
 
     # axes = tSDF[(tSDF['T']>=20) & (tSDF['T']<=60)].plot(x=X, y=Y, kind='line', 
@@ -400,7 +259,7 @@ fromPython = True
 X = 'T'
 Y = np.array(['B', 'F'])
 units = np.array([' (mT)', ' (pN)'])
-tSDF = jva.getCellTimeSeriesData(cellID, fromPython)
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
 
 # defaultColorCycle = plt.rcParams['axes.prop_cycle']
 # customColorCycle = cycler(color=['green', 'red'])
@@ -413,14 +272,14 @@ if not tSDF.size == 0:
 #         fig.show() # figsize=(20,20)
     tsDFplot = tSDF[(tSDF['T']>=31) & (tSDF['T']<=34)]
     
-    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = colorList40[30], label = 'Thickness')
-    ax.set_ylabel('Thickness (nm)', color = colorList40[30])
+    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = gs.colorList40[30], label = 'Thickness')
+    ax.set_ylabel('Thickness (nm)', color = gs.colorList40[30])
     ax.set_ylim([0, 1200])
     ax.set_xlabel('Time (s)')
 
     axR = ax.twinx()
-    axR.plot(tsDFplot['T'], tsDFplot['F'], color = colorList40[23], label = 'Force')
-    axR.set_ylabel('Force (pN)', color = colorList40[23])
+    axR.plot(tsDFplot['T'], tsDFplot['F'], color = gs.colorList40[23], label = 'Force')
+    axR.set_ylabel('Force (pN)', color = gs.colorList40[23])
     axR.set_ylim([0, 1500])
 
     # axes = tSDF[(tSDF['T']>=20) & (tSDF['T']<=60)].plot(x=X, y=Y, kind='line', 
@@ -448,15 +307,15 @@ else:
 
 # %%% Plot multiple time series
 
-allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
 for f in allTimeSeriesDataFiles:
     if '22-02-09_M3' in f:
-        jva.plotCellTimeSeriesData(f[:-4])
+        taka.plotCellTimeSeriesData(f[:-4])
 
-allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
 for f in allTimeSeriesDataFiles:
     if '22-02-09_M2' in f:
-        jva.plotCellTimeSeriesData(f[:-4])
+        taka.plotCellTimeSeriesData(f[:-4])
 
 
 # %%% Close all
@@ -466,17 +325,17 @@ plt.close('all')
 
 # %%% Functions acting on the trajectories
 
-listeTraj = jva.getCellTrajData('21-12-16_M1_P1_C10', Ntraj = 2)
+listeTraj = taka.getCellTrajData('21-12-16_M1_P1_C10', Ntraj = 2)
 listeTraj[1]['pos']
 
 def testTraj(D0):
-    trajDir = os.path.join(timeSeriesDataDir, 'Trajectories')
-    allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) 
-                              if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) 
+    trajDir = os.path.join(cp.DirDataAnalysisTimeseries, 'Trajectories')
+    allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
+                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
                                   and f.endswith(".csv"))]
     cellIDList = []
     for f in allTimeSeriesDataFiles:
-        cellID = jvu.findInfosInFileName(f, 'cellID')
+        cellID = ufun.findInfosInFileName(f, 'cellID')
         if '21-12-08' in cellID:
             cellIDList.append(cellID)
 
@@ -490,7 +349,7 @@ def testTraj(D0):
     ax[1].axis([-width,width,-width,width])
 
     for C in (cellIDList):
-        listeTraj = jva.getCellTrajData(C)
+        listeTraj = taka.getCellTrajData(C)
         iOut = (listeTraj[1]['pos'] == 'out')
         iIn = 1 - iOut
         dfIn, dfOut = listeTraj[iIn]['df'], listeTraj[iOut]['df']
@@ -531,7 +390,7 @@ testTraj(1.5)
 
 # %%% Experimental conditions
 
-jvu.getExperimentalConditions(experimentalDataDir, save=True , sep = ';')
+ufun.getExperimentalConditions(cp.DirRepoExp, save=True , sep = ';')
 
 
 
@@ -542,17 +401,17 @@ jvu.getExperimentalConditions(experimentalDataDir, save=True , sep = ';')
 
 # %%%% Update the table
 
-# jva.computeGlobalTable_ctField(task='updateExisting', save=False)
+# taka.computeGlobalTable_ctField(task='updateExisting', save=False)
 
 
 # %%%% Refresh the whole table
 
-# jva.computeGlobalTable_ctField(task = 'updateExisting', fileName = 'Global_CtFieldData_Py', save = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_ctField(task = 'updateExisting', fileName = 'Global_CtFieldData_Py', save = True, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Display
 
-df = jva.getGlobalTable_ctField().head()
+df = taka.getGlobalTable_ctField().head()
 
 
 
@@ -564,70 +423,70 @@ df = jva.getGlobalTable_ctField().head()
 
 # %%%% Update the table
 
-# jva.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py', 
+# taka.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py', 
 #                             save = False, PLOT = False, source = 'Matlab') # task = 'updateExisting'
 
 
 # %%%% Refresh the whole table
 
-# jva.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py2', 
+# taka.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 # %%%% Drugs
 
 drugTask = '22-03-30'
-# jva.computeGlobalTable_meca(task = drugTask, fileName = 'Global_MecaData_Drugs_Py', 
+# taka.computeGlobalTable_meca(task = drugTask, fileName = 'Global_MecaData_Drugs_Py', 
 #                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Non-Lin
 
 nonLinTask = '21-12-08 & 22-01-12 & 22-02-09'
-# jva.computeGlobalTable_meca(task = nonLinTask, fileName = 'Global_MecaData_NonLin_Py', 
+# taka.computeGlobalTable_meca(task = nonLinTask, fileName = 'Global_MecaData_NonLin_Py', 
 #                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 # %%%% MCA
 
 MCAtask = '21-01-18 & 21-01-21'
-# jva.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA', 
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA', 
 #                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% HoxB8
 
 HoxB8task = '22-05-03_M2' #' & 22-05-04 & 22-05-05'
-jva.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8', 
+taka.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8', 
                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 # %%%% Demo for Duya
 
 Demo = '22-06-16' #' & 22-05-04 & 22-05-05'
-jva.computeGlobalTable_meca(task = Demo, fileName = 'Global_MecaData_Demo', 
+taka.computeGlobalTable_meca(task = Demo, fileName = 'Global_MecaData_Demo', 
                             save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Precise dates (to plot)
 
-# jva.computeGlobalTable_meca(task = '22-02-09', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = '21-01-18', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = '21-01-21', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = '22-02-09_M1', fileName = 'Global_MecaData_NonLin2_Py', 
+# taka.computeGlobalTable_meca(task = '22-02-09', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '21-01-18', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '21-01-21', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '22-02-09_M1', fileName = 'Global_MecaData_NonLin2_Py', 
 #                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-# jva.computeGlobalTable_meca(task = '21-01-18_M2_P1_C3', fileName = 'Global_MecaData_NonLin2_Py', 
+# taka.computeGlobalTable_meca(task = '21-01-18_M2_P1_C3', fileName = 'Global_MecaData_NonLin2_Py', 
 #                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
-jva.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
+taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Display
 
-df = jva.getGlobalTable_meca('Global_MecaData_Py2').tail()
+df = taka.getGlobalTable_meca('Global_MecaData_Py2').tail()
 
 
 
@@ -637,7 +496,7 @@ df = jva.getGlobalTable_meca('Global_MecaData_Py2').tail()
 
 # %%%% Display
 
-df = jva.getFluoData().head()
+df = taka.getFluoData().head()
 
 
 
@@ -649,59 +508,59 @@ df = jva.getFluoData().head()
 
 #### Display
 
-# df1 = jvu.getExperimentalConditions().head()
-# df2 = jva.getGlobalTable_ctField().head()
-# df3 = jva.getGlobalTable_meca().head()
-# df4 = jva.getFluoData().head()
+# df1 = ufun.getExperimentalConditions().head()
+# df2 = taka.getGlobalTable_ctField().head()
+# df3 = taka.getGlobalTable_meca().head()
+# df4 = taka.getFluoData().head()
 
 
 #### GlobalTable_ctField
 
-GlobalTable_ctField = jva.getGlobalTable(kind = 'ctField')
+GlobalTable_ctField = taka.getGlobalTable(kind = 'ctField')
 GlobalTable_ctField.head()
 
 
 #### GlobalTable_ctField_Py
 
-GlobalTable_ctField_Py = jva.getGlobalTable(kind = 'ctField_py')
+GlobalTable_ctField_Py = taka.getGlobalTable(kind = 'ctField_py')
 GlobalTable_ctField_Py.head()
 
 
 #### GlobalTable_meca
 
-GlobalTable_meca = jva.getGlobalTable(kind = 'meca_matlab')
+GlobalTable_meca = taka.getGlobalTable(kind = 'meca_matlab')
 GlobalTable_meca.tail()
 
 
 #### GlobalTable_meca_Py
 
-GlobalTable_meca_Py = jva.getGlobalTable(kind = 'meca_py')
+GlobalTable_meca_Py = taka.getGlobalTable(kind = 'meca_py')
 GlobalTable_meca_Py.tail()
 
 
 #### GlobalTable_meca_Py2
 
-GlobalTable_meca_Py2 = jva.getGlobalTable(kind = 'meca_py2')
+GlobalTable_meca_Py2 = taka.getGlobalTable(kind = 'meca_py2')
 GlobalTable_meca_Py2.head()
 
 
 #### Global_MecaData_NonLin_Py
 
-# GlobalTable_meca_nonLin = jva.getGlobalTable(kind = 'meca_nonLin')
-GlobalTable_meca_nonLin = jva.getGlobalTable(kind = 'Global_MecaData_NonLin2_Py')
+# GlobalTable_meca_nonLin = taka.getGlobalTable(kind = 'meca_nonLin')
+GlobalTable_meca_nonLin = taka.getGlobalTable(kind = 'Global_MecaData_NonLin2_Py')
 GlobalTable_meca_nonLin.head()
 
 
 #### Global_MecaData_MCA
 
-# GlobalTable_meca_MCA = jva.getGlobalTable(kind = 'meca_MCA')
-GlobalTable_meca_MCA = jva.getGlobalTable(kind = 'Global_MecaData_MCA2')
+# GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
+GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'Global_MecaData_MCA2')
 GlobalTable_meca_MCA.head()
 
 #### Global_MecaData_MCA
 
-# GlobalTable_meca_MCA = jva.getGlobalTable(kind = 'meca_MCA')
-GlobalTable_meca_MCA = jva.getGlobalTable(kind = 'Global_MecaData_MCA2')
+# GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
+GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'Global_MecaData_MCA2')
 GlobalTable_meca_MCA.head()
 
 
@@ -714,7 +573,7 @@ GlobalTable_meca_MCA.head()
 #                                                  'EChadwick', 'H0Chadwick', 'surroundingThickness', 'ctFieldThickness']]
 # GlobalTable_meca_Py_expJ = GlobalTable_meca_Py_expJ.reset_index()
 # GlobalTable_meca_Py_expJ = GlobalTable_meca_Py_expJ.drop('index', axis=1)
-# savePath = os.path.join(dataDir, 'mecanicsData_3T3.csv')
+# savePath = os.path.join(cp.DirDataAnalysis, 'mecanicsData_3T3.csv')
 # GlobalTable_meca_Py_expJ.to_csv(savePath, sep=';')
 
 
@@ -767,11 +626,11 @@ styleDict1 =  {'none & BSA coated glass':{'color':'#ff9896','marker':'^'},
                'BSA coated glass & doxycyclin':{'color':'#d62728','marker':'^'},               
                '20um fibronectin discs & none':{'color':'#aec7e8','marker':'o'},               
                '20um fibronectin discs & doxycyclin':{'color':'#1f77b4','marker':'o'},               
-               'aSFL':{'color':'colorList40[10]','marker':'o'},               
+               'aSFL':{'color':'gs.colorList40[10]','marker':'o'},               
                'aSFL-6FP':{'color':'#2ca02c','marker':'o'},               
                'aSFL-A8':{'color':'#ff7f0e','marker':'o'},                
-               'aSFL & none':{'color':'colorList40[10]','marker':'o'},               
-               'aSFL & doxycyclin':{'color':'colorList40[30]','marker':'o'},               
+               'aSFL & none':{'color':'gs.colorList40[10]','marker':'o'},               
+               'aSFL & doxycyclin':{'color':'gs.colorList40[30]','marker':'o'},               
                'aSFL-6FP & none':{'color':'#98df8a','marker':'o'},               
                'aSFL-6FP & doxycyclin':{'color':'#2ca02c','marker':'o'},               
                'aSFL-A8 & none':{'color':'#ffbb78','marker':'o'},              
@@ -898,7 +757,7 @@ def D1Plot(data, fig = None, ax = None, CondCol=[], Parameters=[], Filters=[],
         ax[k].tick_params(axis='x', labelrotation = 10)
         ax[k].yaxis.grid(True)           
     
-    plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+    plt.rcParams['axes.prop_cycle'] = gs.my_default_color_cycle
     return(fig, ax)
 
 
@@ -948,11 +807,11 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
     # Colors and markers
     if len(co_order) > 0:
         Conditions = co_order
-        colorList, mL = getStyleLists(co_order, styleDict1)
+        gs.colorList, mL = getStyleLists(co_order, styleDict1)
     else:
         co_order = Conditions
-        colorList = colorList10
-    markerList = markerList10
+        gs.colorList = gs.colorList10
+    markerList = gs.markerList10
         
         
     for k in range(NPlots):
@@ -966,7 +825,7 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
             sub_data_f_agg = data_f_agg.loc[data_f_agg[CondCol] == c]
             Ncells = sub_data_f_agg.shape[0]
             
-            color = colorList[i]
+            color = gs.colorList[i]
             
             if showManips:
                 allManipID = list(sub_data_f_agg['manipID'].unique())
@@ -1041,7 +900,7 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
             addStat_df(ax[k], data_f_agg.rename(columns = renameDict), 
                     box_pairs, Parameters[k], CondCol, test = statMethod)
         
-    plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+    plt.rcParams['axes.prop_cycle'] = gs.my_default_color_cycle
     return(fig, ax)
 
 
@@ -1086,7 +945,7 @@ def D1PlotPaired(data, Parameters=[], Filters=[], Boxplot=True, cellID='cellID',
     print('Number of values : {:.0f}'.format(NValues))
     
     for i in range(NParms):
-        color = my_default_color_list[i]
+        color = gs.gs.my_default_color_list[i]
         
         ax.plot([posParms[i] for k in range(NValues)], parmsValues[i,:], 
                 color = color, marker = 'o', markeredgecolor = 'k', markersize = markersize,
@@ -1239,14 +1098,14 @@ def D2Plot_wFit(data, fig = None, ax = None,
     
     if len(co_order) > 0:
         try:
-            colorList, markerList = getStyleLists(co_order, styleDict1)
+            gs.colorList, markerList = getStyleLists(co_order, styleDict1)
         except:
-            colorList, markerList = colorList30, markerList10
+            gs.colorList, markerList = gs.colorList30, gs.markerList10
     else:
         co_order = Conditions
-        colorList, markerList = colorList30, markerList10
+        gs.colorList, markerList = gs.colorList30, gs.markerList10
         
-    colorList = [colorList40[32]]
+    gs.colorList = [gs.colorList40[32]]
     
     if fig == None:
         fig, ax = plt.subplots(1, 1, figsize = (8*figSizeFactor,5))
@@ -1275,7 +1134,7 @@ def D2Plot_wFit(data, fig = None, ax = None,
     
     for i in range(len(co_order)):
         c = co_order[i]
-        color = colorList[i]
+        color = gs.colorList[i]
 #         marker = my_default_marker_list[i]
         Xraw = data_filtered[data_filtered[CondCol] == c][XCol].values
         Yraw = data_filtered[data_filtered[CondCol] == c][YCol].values
@@ -1295,7 +1154,7 @@ def D2Plot_wFit(data, fig = None, ax = None,
             if modelFit:
                 print('Fitting condition ' + c + ' with model ' + modelType)
                 if modelType == 'y=ax+b':
-                    params, results = jvu.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
                     pval = results.pvalues[1] # pvalue on the param 'a'
                     eqnText += " ; Y = {:.1f} X + {:.1f}".format(params[1], params[0])
                     eqnText += " ; p-val = {:.3f}".format(pval)
@@ -1312,7 +1171,7 @@ def D2Plot_wFit(data, fig = None, ax = None,
                             color = color, zorder = 4)
 
                 elif modelType == 'y=A*exp(kx)':
-                    params, results = jvu.fitLine(X, np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(X, np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
                     pval = results.pvalues[1] # pvalue on the param 'k'
                     eqnText += " ; Y = {:.1f}*exp({:.1f}*X)".format(params[0], params[1])
                     eqnText += " ; p-val = {:.3f}".format(pval)
@@ -1331,7 +1190,7 @@ def D2Plot_wFit(data, fig = None, ax = None,
                 elif modelType == 'y=k*x^a':
                     posValues = ((X > 0) & (Y > 0))
                     X, Y = X[posValues], Y[posValues]
-                    params, results = jvu.fitLine(np.log(X), np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(np.log(X), np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
                     k = np.exp(params[0])
                     a = params[1]
                     R2 = results.rsquared
@@ -2040,7 +1899,7 @@ def buildStyleDictMCA():
 # fig.suptitle('3T3aSFL: E(h)')
 # ax.legend(loc = 'upper right')
 
-# # jvu.archiveFig(fig, ax, name='E(h)_3T3aSFL_Dec21_M450-5-13_vs_M270-14-54', figDir = todayFigDirLocal + '//' + figSubDir)
+# # ufun.archiveFig(fig, ax, name='E(h)_3T3aSFL_Dec21_M450-5-13_vs_M270-14-54', figDir = cp.DirDataFigToday + '//' + figSubDir)
 # plt.show()
 
 
@@ -2133,7 +1992,7 @@ def buildStyleDictMCA():
 
 # %%%%% Import
 
-rawMecaTable = jva.getGlobalTable_meca('Global_MecaData')
+rawMecaTable = taka.getGlobalTable_meca('Global_MecaData')
 
 # rawMecaTable.head()
 
@@ -2188,7 +2047,7 @@ rD = {'DictyDB_M270':'M270', 'DictyDB_M450':'M450',
       'EChadwick' : 'Elastic modulus (Pa)'}
 renameAxes(ax01, rD)
 fig.suptitle('Two sizes of beads\nDictyostelium cortices')
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//BeadSizes', name='BeadSizeDicty', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSizeDicty', dpi = 100)
 plt.show()
 
 # %%%%% 1s compressions, dictys, sizes of beads
@@ -2214,7 +2073,7 @@ rD = {'DictyDB_M270':'M270', 'DictyDB_M450':'M450',
       'EChadwick' : 'Elastic modulus (Pa)'}
 renameAxes(ax01, rD)
 fig.suptitle('Two sizes of beads\nDictyostelium cortices')
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//BeadSizes', name='BeadSizeDicty_2', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSizeDicty_2', dpi = 100)
 plt.show()
 
 # %%% MDA project - Matlab processing
@@ -2301,7 +2160,7 @@ Filters = [(GlobalTable_ctField['validated'] == True),
 fig, ax = D2Plot_wFit(GlobalTable_ctField, XCol='medianThickness',YCol='fluctuAmpli',
                  CondCol = ['drug'], Filters=Filters, modelFit=False)
 fig.suptitle('3T3aSFL - Dh = f(H)')
-# jvu.archiveFig(fig, ax, name='aSFL_Dh(h)_drug', figDir = todayFigDirLocal + '//' + 'ThicknessPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_Dh(h)_drug', figDir = cp.DirDataFigToday + '//' + 'ThicknessPlots')
 plt.show()
 
 
@@ -2315,7 +2174,7 @@ Filters = [(GlobalTable_ctField['validated'] == True),
 fig, ax = D2Plot_wFit(GlobalTable_ctField, XCol='medianThickness',YCol='fluctuAmpli',
                  CondCol = ['drug'], Filters=Filters, modelFit=False)
 fig.suptitle('3T3aSFL - Dh = f(H)')
-# jvu.archiveFig(fig, ax, name='aSFL_Dh(h)_drug_wo2LastPoints', figDir = todayFigDirLocal + '//' + 'ThicknessPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_Dh(h)_drug_wo2LastPoints', figDir = cp.DirDataFigToday + '//' + 'ThicknessPlots')
 plt.show()
 
 
@@ -2331,7 +2190,7 @@ fig, ax = D2Plot_wFit(GlobalTable_meca, XCol='SurroundingThickness',YCol='EChadw
 fig.suptitle('3T3aSFL: E(h)')
 renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_01', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_01', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -2350,7 +2209,7 @@ fig.suptitle('3T3aSFL: E(h)')
 renameAxes(ax,renameDict1)
 ax.set_xlim([90, 1500])
 ax.legend(loc='upper right')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_00_allComp', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_00_allComp', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -2367,7 +2226,7 @@ fig, ax = D2Plot_wFit(GlobalTable_meca, XCol='SurroundingThickness',YCol='EChadw
 fig.suptitle('3T3aSFL: E(h)')
 renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_02', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_02', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -2384,7 +2243,7 @@ fig, ax = D2Plot_wFit(GlobalTable_meca, XCol='SurroundingThickness',YCol='EChadw
 fig.suptitle('3T3aSFL: E(h)')
 renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_02_allComp', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate_02_allComp', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -2452,7 +2311,7 @@ fig, ax = D1Plot(data, CondCol=['substrate','drug'],Parameters=['SurroundingThic
 
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL non-adherent: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFLonBSA_drug_SurroundingThickness&EChadwick_allComp', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFLonBSA_drug_SurroundingThickness&EChadwick_allComp', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2473,7 +2332,7 @@ fig, ax = D1Plot(GlobalTable_meca, CondCol=['substrate','drug'],
 
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on diverse substrates: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2493,7 +2352,7 @@ fig, ax = D1Plot(data, CondCol=['substrate','drug'],Parameters=['surroundingThic
 
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on diverse substrates: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2518,7 +2377,7 @@ fig, ax = D1Plot(data, CondCol=['drug'],Parameters=['ctFieldThickness','EChadwic
 ax[0].set_ylim([0, ax[0].get_ylim()[1]])
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on fibronectin discs: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2537,7 +2396,7 @@ ax[0].set_ylim([0,600])
 ax[1].set_ylim([0,600])
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on patterns: Constant Field')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_drug_medianThickness', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_drug_medianThickness', figSubDir = figSubDir)
 
 plt.show()
 
@@ -2569,7 +2428,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2591,7 +2450,7 @@ fig, ax = D2Plot_wFit(data, XCol='meanFluoPeakAmplitude', YCol='EChadwick',
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL expressing linker: E(fluo)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)_woLastPoint', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)_woLastPoint', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2605,7 +2464,7 @@ fig, ax = D2Plot(GlobalTable_meca, XCol='meanFluoPeakAmplitude',YCol='Surroundin
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL expressing linker: H(fluo)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_H(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_H(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2619,7 +2478,7 @@ fig, ax = D2Plot(GlobalTable_ctField, XCol='meanFluoPeakAmplitude',YCol='medianT
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL expressing linker: medianH(fluo)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_medianH(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_medianH(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2638,7 +2497,7 @@ box_pairs=[('aSFL & none', 'aSFL & doxycyclin'),
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype','drug'],Parameters=['ctFieldThickness','ctFieldFluctuAmpli'],                 Filters=Filters,AvgPerCell=True,stats=True,co_order=co_order,box_pairs=box_pairs,figSizeFactor=1)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on patterns: H and DH from meca expe')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_drug_medianThickness_fromMeca_PYTHONTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_drug_medianThickness_fromMeca_PYTHONTABLE', figSubDir = figSubDir)
 
 plt.show()
 
@@ -2651,7 +2510,7 @@ co_order = makeOrder(['aSFL','aSFL-6FP'],['none','doxycyclin'])
 fig, ax = D1Plot(GlobalTable_meca, CondCol=['cell subtype','drug'],Parameters=['SurroundingThickness','EChadwick'],                 Filters=Filters,AvgPerCell=True,cellID='CellName',co_order=co_order,stats=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL short vs long linker: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2668,7 +2527,7 @@ box_pairs=[('aSFL & none', 'aSFL & doxycyclin'),
 fig, ax = D1Plot(GlobalTable_meca, CondCol=['cell subtype','drug'],Parameters=['SurroundingThickness','EChadwick'],                 Filters=Filters,AvgPerCell=True,cellID='CellName',co_order=co_order,box_pairs=box_pairs,stats=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - All linker types: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2685,7 +2544,7 @@ box_pairs=[('aSFL & none', 'aSFL & doxycyclin'),
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype','drug'],Parameters=['ctFieldThickness','EChadwick'],                 Filters=Filters,AvgPerCell=True,cellID='cellID',co_order=co_order,box_pairs=box_pairs,stats=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - All linker types: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_ctFThickness&EChadwick_PYTHONTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&drug_ctFThickness&EChadwick_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2697,7 +2556,7 @@ co_order = makeOrder(['aSFL','aSFL-A8','aSFL-6FP'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype'],Parameters=['meanFluoPeakAmplitude'],                 Filters=Filters,AvgPerCell=True,cellID='cellID',co_order=co_order,stats=True,figSizeFactor=1.25)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL different cell lines\nLinker expression quantif by fluo')
-jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -2708,7 +2567,7 @@ Filters = [(GlobalTable_meca_Py['validatedFit'] == True), ((GlobalTable_meca_Py[
 fig, ax = D2Plot(GlobalTable_meca_Py, XCol='meanFluoPeakAmplitude', YCol='EChadwick', CondCol = ['cell subtype'],                  Filters=Filters, cellID = 'cellID', AvgPerCell=True, modelFit=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL & aSFL-A8 expressing linker: E(fluo)')
-# jvu.archiveFig(fig, ax, name='aSFL&A8_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL&A8_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2720,7 +2579,7 @@ Filters = [(GlobalTable_meca_Py['validatedFit'] == True), (GlobalTable_meca_Py['
 fig, ax = D2Plot(GlobalTable_meca_Py, XCol='meanFluoPeakAmplitude', YCol='EChadwick', CondCol = ['cell subtype'],                  Filters=Filters, cellID = 'cellID', AvgPerCell=True, modelFit=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL & aSFL-A8 expressing linker: E(fluo)')
-# jvu.archiveFig(fig, ax, name='aSFL&A8_iMC_E(fluo)_fluo-1200_&_E+2000', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL&A8_iMC_E(fluo)_fluo-1200_&_E+2000', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2731,7 +2590,7 @@ Filters = [(GlobalTable_meca['Validated'] == True), (GlobalTable_meca['cell subt
 fig, ax = D2Plot(GlobalTable_meca, XCol='meanFluoPeakAmplitude', YCol='EChadwick', CondCol = ['cell subtype', 'drug'],                  Filters=Filters, cellID = 'CellName', AvgPerCell=True, modelFit=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL-6FP expressing long linker: E(fluo)')
-# jvu.archiveFig(fig, ax, name='aSFL-6FP_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL-6FP_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2743,7 +2602,7 @@ Filters = [(GlobalTable_meca['Validated'] == True), (GlobalTable_meca['cell subt
 fig, ax = D2Plot(GlobalTable_meca, XCol='meanFluoPeakAmplitude', YCol='EChadwick', CondCol = ['cell subtype', 'drug'],                  Filters=Filters, cellID = 'CellName', AvgPerCell=True, modelFit=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL-6FP expressing long linker: E(fluo)')
-# jvu.archiveFig(fig, ax, name='aSFL-6FP_iMC_E(fluo)_woLastPoint', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL-6FP_iMC_E(fluo)_woLastPoint', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2754,7 +2613,7 @@ Filters = [(GlobalTable_meca['Validated'] == True), (GlobalTable_meca['cell subt
 fig, ax = D2Plot(GlobalTable_meca, XCol='meanFluoPeakAmplitude', YCol='SurroundingThickness', CondCol = ['cell subtype', 'drug'],                 Filters=Filters, cellID = 'CellName',AvgPerCell=True)
 renameAxes(ax,renameDict1)
 fig.suptitle('aSFL-6FP expressing long linker: H(fluo)')
-# jvu.archiveFig(fig, ax, name='aSFL-6FP_iMC_H(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL-6FP_iMC_H(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2766,7 +2625,7 @@ plt.show()
 Filters = [(GlobalTable_ctField['validated'] == True), (GlobalTable_ctField['cell subtype'] == 'aSFL')]
 fig, ax = D2Plot(GlobalTable_ctField, XCol='medianThickness',YCol='fluctuAmpli',CondCol = ['cell subtype', 'drug'],                 Filters=Filters, modelFit=True, figSizeFactor = 0.8)
 fig.suptitle('3T3aSFL - Dh = f(H)')
-# jvu.archiveFig(fig, ax, name='aSFL_Dh(h)_drug', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='ThicknessPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_Dh(h)_drug', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='ThicknessPlots')
 plt.show()
 
 
@@ -2777,7 +2636,7 @@ plt.show()
 Filters = [(GlobalTable_ctField['validated'] == True), (GlobalTable_ctField['cell subtype'] == 'aSFL'),           (GlobalTable_ctField['medianThickness'] <= 700)]
 fig, ax = D2Plot(GlobalTable_ctField, XCol='medianThickness',YCol='fluctuAmpli',CondCol = ['cell subtype', 'drug'],                 Filters=Filters, modelFit=True, figSizeFactor = 0.8)
 fig.suptitle('3T3aSFL - Dh = f(H)')
-# jvu.archiveFig(fig, ax, name='aSFL_Dh(h)_drug_wo2LastPoints', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='ThicknessPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_Dh(h)_drug_wo2LastPoints', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='ThicknessPlots')
 plt.show()
 
 
@@ -2787,7 +2646,7 @@ plt.show()
 Filters = [(GlobalTable_meca['Validated'] == True), (GlobalTable_meca['cell subtype'] == 'aSFL')]
 fig, ax = D2Plot(GlobalTable_meca, XCol='SurroundingThickness',YCol='EChadwick',CondCol = ['substrate','drug'],           Filters=Filters, cellID = 'CellName', AvgPerCell=True, modelFit=False, modelType='y=A*exp(kx)')
 fig.suptitle('3T3aSFL: E(h)')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='')
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='')
 plt.show()
 
 
@@ -2825,7 +2684,7 @@ co_order = makeOrder(['dmso', 'smifh2', 'dmso. doxycyclin', 'smifh2. doxycyclin'
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['drug'],                 Parameters=['ctFieldThickness','EChadwick'], Filters=Filters,                 AvgPerCell=True, cellID='cellID', co_order=co_order, figSizeFactor = 1.8, orientation = 'v')
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL smifh2')
-jvu.archiveFig(fig, ax, name='3T3aSFL_smifh2&doxy_Thickness&EChadwick', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_smifh2&doxy_Thickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 # 'ctFieldThickness', 'surroundingThickness', 'none', 'doxycyclin', 
 
@@ -2862,7 +2721,7 @@ pd.reset_option('max_rows')
 # ax[0].set_ylim([0, ax[0].get_ylim()[1]])
 # renameAxes(ax,renameDict1)
 # fig.suptitle('3T3aSFL 6FP-2')
-# jvu.archiveFig(fig, ax, name='3T3aSFL-6FP-2_Thickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL-6FP-2_Thickness&EChadwick', figSubDir = figSubDir)
 # plt.show()
 # # 'ctFieldThickness', 'surroundingThickness', 'none', 'doxycyclin', 
 
@@ -2880,7 +2739,7 @@ fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype', 'drug'],         
 ax[0].set_ylim([0, ax[0].get_ylim()[1]])
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL 6FP-2')
-jvu.archiveFig(fig, ax, name='3T3aSFL-6FP-2_Thickness&EChadwick', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-6FP-2_Thickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 # 'ctFieldThickness', 'surroundingThickness', 'none', 'doxycyclin', 
 
@@ -2898,7 +2757,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2917,7 +2776,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2936,7 +2795,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -2965,7 +2824,7 @@ plt.show()
 # ax[0].set_ylim([0, ax[0].get_ylim()[1]])
 # renameAxes(ax,renameDict1)
 # fig.suptitle('3T3aSFL A8-2')
-# # jvu.archiveFig(fig, ax, name='3T3aSFL-A8-2_Thickness&EChadwick', figSubDir = figSubDir)
+# # ufun.archiveFig(fig, ax, name='3T3aSFL-A8-2_Thickness&EChadwick', figSubDir = figSubDir)
 # plt.show()
 # # 'ctFieldThickness', 'surroundingThickness', 'none', 'doxycyclin', 
 
@@ -2988,7 +2847,7 @@ fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype', 'drug'],         
 ax[0].set_ylim([0, ax[0].get_ylim()[1]])
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL A8-2')
-jvu.archiveFig(fig, ax, name='3T3aSFL-A8-2_Thickness&EChadwick', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-A8-2_Thickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 # 'ctFieldThickness', 'surroundingThickness', 'none', 'doxycyclin', 
 
@@ -3008,7 +2867,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-jvu.archiveFig(fig, ax, name='aSFL-A8-2_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+ufun.archiveFig(fig, ax, name='aSFL-A8-2_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -3027,7 +2886,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -3046,7 +2905,7 @@ yt = ax.get_yticks()
 ax.set_yticklabels((yt/1000).astype(int))
 ax.set_ylabel('E Chadwick (kPa)')
 
-# jvu.archiveFig(fig, ax, name='aSFL_A11+A8-2_iMC_E(fluo)', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='FluoPlots')
+# ufun.archiveFig(fig, ax, name='aSFL_A11+A8-2_iMC_E(fluo)', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='FluoPlots')
 plt.show()
 
 
@@ -3065,7 +2924,7 @@ box_pairs=[('aSFL', 'aSFL-A8'),
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype'],Parameters=['meanFluoPeakAmplitude'],                 Filters=Filters,AvgPerCell=True,cellID='cellID',co_order=co_order,box_pairs=box_pairs,stats=True,figSizeFactor=1.75)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - different cell lines expressing the linker\nLinker expression quantification by fluo')
-jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion', figSubDir = figSubDir)
 plt.show()
 
 
@@ -3080,7 +2939,7 @@ co_order = makeOrder(['aSFL','aSFL-A8','aSFL-6FP','aSFL-A8-2','aSFL-6FP-2'], ['n
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype', 'drug'],Parameters=['meanFluoPeakAmplitude'],                 Filters=Filters,AvgPerCell=True,cellID='cellID',co_order=co_order,stats=False,figSizeFactor=1.05)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL different cell lines\nLinker expression quantif by fluo')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion_2', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion_2', figSubDir = figSubDir)
 plt.show()
 
 
@@ -3098,7 +2957,7 @@ fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['cell subtype', 'drug'],Parameter
                  figSizeFactor=0.95)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - different cell lines\nLinker expression quantification by fluo')
-jvu.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion_2', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_likerType&_fluoExp_NewVersion_2', figSubDir = figSubDir)
 plt.show()
 
 
@@ -3148,7 +3007,7 @@ ax[0].set_ylim([0, 850])
 # ax[0].legend(loc = 'upper right', fontsize = 8)
 # ax[1].legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3 aSFL - Jan 21 - Compression experiments')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_simple', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_simple', figSubDir = figSubDir)
 plt.show()
 
 
@@ -3170,7 +3029,7 @@ ax[0].legend(loc = 'upper right', fontsize = 8)
 ax[1].legend(loc = 'upper right', fontsize = 8)
 ax[0].set_ylim([0, 850])
 ax[1].set_ylim([1, 2e5])
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_detailed', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_detailed', figSubDir = figSubDir)
 plt.show()
 
 
@@ -3190,7 +3049,7 @@ renameAxes(ax,renameDict1)
 ax[0].set_ylim([0,600])
 ax[1].set_ylim([0,600])
 fig.suptitle('3T3aSFL on patterns: Constant Field')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
 
 plt.show()
 
@@ -3276,14 +3135,14 @@ for S in listeS:
     else:
         axes[kk].set_ylabel(None)
         axes[kk].set_yticklabels([])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
     
     kk+=1
 
 renameAxes(axes,{'none':'ctrl', 'doxycyclin':'iMC'})
 fig.tight_layout()
 fig.suptitle('Tangeantial modulus of aSFL 3T3 - control vs iMC linker')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals', figSubDir = figSubDir)
 plt.show()
 
 # %%%%% Many tangeantial moduli of aSFL 3T3 - control vs iMC linker - Plot by plot
@@ -3309,7 +3168,7 @@ for S in listeS:
     # ax[1].legend(loc = 'lower right', fontsize = 6)
     ax[0].set_ylim([0,1200])
     ax[1].set_ylim([1e2, 3e4])
-#     jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_H0-K_'+textForFileName, figSubDir = figSubDir)
+#     ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_H0-K_'+textForFileName, figSubDir = figSubDir)
     plt.show()
     
 
@@ -3335,7 +3194,7 @@ for S in listeS:
     ax[0].set_ylim([0,1200])
     ax[1].legend(loc = 'lower right', fontsize = 6)
     ax[1].set_ylim([1e2, 3e4])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_H0-K_'+textForFileName, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_H0-K_'+textForFileName, figSubDir = figSubDir)
     plt.show()
     
 
@@ -3411,7 +3270,7 @@ ax.yaxis.grid(True)
 ax.legend(loc = 'upper right')
 
 ax.set_title('Jan 21 - Extremal stress values vs. thickness, all compressions, ctrl vs. iMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
 print(Ncomp)
 plt.show()
 
@@ -3444,7 +3303,7 @@ for S in listeS:
     renameAxes(ax,{'none':'ctrl', 'doxycyclin':'iMC'})
     fig.set_size_inches(6,4)
     fig.tight_layout()
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_E(h)_' + textForFileName, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_E(h)_' + textForFileName, figSubDir = figSubDir)
     
     
     # one big fig
@@ -3494,7 +3353,7 @@ for S in listeS:
 #     else:
 #         axes[kk].set_ylabel(None)
 #         axes[kk].set_yticklabels([])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
     
     kk+=1
 
@@ -3612,8 +3471,8 @@ fig.tight_layout()
 plt.show()
 
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 # %%%%% Only One Stress Range - K(stress), ctrl vs doxy
 
@@ -3665,8 +3524,8 @@ fig.tight_layout()
 plt.show()
 
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 
 
@@ -3720,7 +3579,7 @@ renameAxes(axes,{'none':'ctrl', 'doxycyclin':'iMC'})
 fig.tight_layout()
 fig.suptitle('Tangeantial modulus of aSFL 3T3 - control vs iMC linker')
 plt.show()
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_200-300nm', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_200-300nm', figSubDir = figSubDir)
 
 # %%%%% All stress ranges - K(stress), ctrl vs doxy -- With bestH0 distributions and E(h)
 
@@ -3810,8 +3669,8 @@ renameAxes(axes.flatten(),{'none':'ctrl', 'doxycyclin':'iMC', 'bestH0' : 'Best H
 plt.show()
 
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 # %%%%% All stress ranges - K(stress), ctrl vs doxy -- With bestH0 distributions and E(h) - effect of windows width
 
@@ -3919,8 +3778,8 @@ for ii in range(len(fitW)):
     plt.show()
 
 
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 # %%%%% All stress ranges - K(stress), ctrl vs doxy -- effect of windows width -> 5width
 
@@ -4033,8 +3892,8 @@ for ii in range(len(fitW)):
     plt.show()
 
 
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 
 
@@ -4109,7 +3968,7 @@ ax.yaxis.grid(True)
 ax.legend(loc = 'upper right')
 
 ax.set_title('Jan 21 - Extremal stress values vs. thickness, all compressions, ctrl vs. iMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
 print(Ncomp)
 plt.show()
 
@@ -4186,7 +4045,7 @@ ax.yaxis.grid(True)
 ax.legend(loc = 'upper right')
 
 ax.set_title('Jan 21 - Extremal stress values vs. thickness, all compressions, ctrl vs. iMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_StressRanges', figSubDir = figSubDir)
 print(Ncomp)
 plt.show()
 
@@ -4265,9 +4124,9 @@ for axis in multiAxes:
 
 fig.suptitle('3T3aSFL on patterns - Several thickness metrics', fontsize = 14)
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_3metricsThicknessFromMECA', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = 'ProjectAMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_3metricsThicknessFromMECA', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//MCAproject', name='ThreeThickMetrics', dpi = 100)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_3metricsThicknessFromMECA', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_3metricsThicknessFromMECA', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//MCAproject', name='ThreeThickMetrics', dpi = 100)
 
 
 plt.show()
@@ -4297,7 +4156,7 @@ renameAxes(ax,rD)
 # ax[1].set_ylim([0,600])
 fig.suptitle('3T3aSFL on patterns\nBest H0 from fits\nB~5mT', fontsize = 12)
 fig.tight_layout()
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
 
 plt.show()
 
@@ -4318,7 +4177,7 @@ renameAxes(ax,renameDict1)
 # ax[1].set_ylim([0,600])
 fig.suptitle('3T3aSFL on patterns\nBest H0 from fits\nB~5mT', fontsize = 12)
 fig.tight_layout()
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_medianThickness', figSubDir = figSubDir)
 
 plt.show()
 
@@ -4351,7 +4210,7 @@ for S in listeS:
     renameAxes(ax,{'none':'ctrl', 'doxycyclin':'iMC'})
     fig.set_size_inches(6,4)
     fig.tight_layout()
-#     jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_E(h)_' + textForFileName, figSubDir = figSubDir)
+#     ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_ctrlVsLinker_E(h)_' + textForFileName, figSubDir = figSubDir)
     
     
     # one big fig
@@ -4401,7 +4260,7 @@ for S in listeS:
 #     else:
 #         axes[kk].set_ylabel(None)
 #         axes[kk].set_yticklabels([])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
     
     kk+=1
 
@@ -4475,8 +4334,8 @@ for axis in multiAxes:
 
 fig.suptitle('3T3aSFL on patterns - K_eff', fontsize = 14)
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = 'ProjectAMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
 
 
 plt.show()
@@ -4546,8 +4405,8 @@ for axis in multiAxes:
 
 fig.suptitle('3T3aSFL on patterns - k_eff', fontsize = 14)
 
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = 'ProjectAMC')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = 'ProjectAMC')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_effectiveShellSpring', figDir = ownCloudTodayFigDir, figSubDir = 'ProjectAMC')
 
 
 plt.show()
@@ -4624,7 +4483,7 @@ regionFitsNames = [str(fitMin[ii]) + '<s<' + str(fitMax[ii]) for ii in range(len
 
 fig, ax = plt.subplots(2,1, figsize = (9,12))
 conditions = ['none', 'doxycyclin']
-cD = {'none':[colorList40[10], colorList40[11]], 'doxycyclin':[colorList40[30], colorList40[31]]}
+cD = {'none':[gs.colorList40[10], gs.colorList40[11]], 'doxycyclin':[gs.colorList40[30], gs.colorList40[31]]}
 oD = {'none': [-15, 1.02] , 'doxycyclin': [5, 0.97] }
 lD = {'none': 'Control' , 'doxycyclin': 'iMC linker' }
 
@@ -4703,7 +4562,7 @@ for drug in conditions:
 
 plt.show()
 
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//MCAproject', name='aSFL_ctrl-vs-doxy_K(s)', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//MCAproject', name='aSFL_ctrl-vs-doxy_K(s)', dpi = 100)
 
 #### Local zoom
 
@@ -4723,7 +4582,7 @@ data2_f = data2_f[globalExtraFilter]
 
 fig, ax = plt.subplots(2,1, figsize = (7,12))
 conditions = ['none', 'doxycyclin']
-# cD = {'none':[colorList30[10], colorList30[11]], 'doxycyclin':[colorList30[20], colorList30[21]]}
+# cD = {'none':[gs.colorList30[10], gs.colorList30[11]], 'doxycyclin':[gs.colorList30[20], gs.colorList30[21]]}
 # oD = {'none': 1.04 , 'doxycyclin': 0.96 }
 # lD = {'none': 'Control' , 'doxycyclin': 'iMC linker' }
 
@@ -4805,7 +4664,7 @@ for drug in conditions:
 
 plt.show()
 
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//MCAproject', name='aSFL_ctrl-vs-doxy_K(s)_localZoom', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//MCAproject', name='aSFL_ctrl-vs-doxy_K(s)_localZoom', dpi = 100)
 
 
 
@@ -4877,11 +4736,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([500,2e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -4901,7 +4760,7 @@ for kk in range(len(N)):
 
 fig.suptitle('K(sigma)')
 ax.set_title('From all compressions pooled\n22-02-09 experiment, 36 cells, 232 compression')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_V2', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_V2', figSubDir = 'NonLin')
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -4988,11 +4847,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([500,2e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -5012,7 +4871,7 @@ for kk in range(len(N)):
 
 fig.suptitle('K(sigma)')
 ax.set_title('Only compressions including the [100, 800]Pa range')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to800', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to800', figSubDir = 'NonLin')
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -5099,11 +4958,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([500,2e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -5123,7 +4982,7 @@ for kk in range(len(N)):
 
 fig.suptitle('K(sigma)')
 ax.set_title('Only compressions including the [100, 600]Pa range')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to600', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to600', figSubDir = 'NonLin')
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -5141,7 +5000,7 @@ Kavg_ref, Kste_ref, N_ref, fitCenters_ref = Kavg, Kste, N, fitCenters2
 # %%%%%
 
 
-rawMecaTable = jva.getGlobalTable_meca()
+rawMecaTable = taka.getGlobalTable_meca()
 # rawMecaTable.head()
 
 
@@ -5160,7 +5019,7 @@ co_order = makeOrder(['M270', 'M270_M450', 'M450_M270', 'M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['bead type'],                 Parameters=['surroundingThickness','EChadwick'],Filters=Filters,                 AvgPerCell=False, cellID='cellID', co_order=co_order, figSizeFactor = 2, orientation = 'v', useHue = False)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL asym bead pairs - all comps')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_asymBeadsAllComp_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_asymBeadsAllComp_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -5173,7 +5032,7 @@ co_order = makeOrder(['M270', 'M270_M450', 'M450_M270', 'M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['bead type'],                 Parameters=['surroundingThickness','EChadwick'],Filters=Filters,                 AvgPerCell=True, cellID='cellID', co_order=co_order, figSizeFactor = 2, orientation = 'v', useHue = True)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL asym bead pairs - avg per cell')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_asymBeadsPerCell_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_asymBeadsPerCell_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -5185,7 +5044,7 @@ Filters = [(rawMecaTable['Validated'] == 1), ((rawMecaTable['ExpType'] == 'Dicty
 fig, ax = D1Plot(rawMecaTable, CondCol=['ExpType'],Parameters=['SurroundingThickness','EChadwick'],                 Filters=Filters,AvgPerCell=True,cellID='CellName', useHue = False)
 fig.suptitle('M450 vs M270 pour compressions de 1s')
 renameAxes(ax,renameDict1)
-jvu.archiveFig(fig, ax, name='Dictys_beadTypes_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='Dictys_beadTypes_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 # rawMecaTable[Filters[0] & Filters[1] & Filters[2]]
 
@@ -5210,8 +5069,8 @@ fig, ax = D1Plot(data, CondCol=['bead type'],Parameters=['ctFieldThickness','ECh
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Oct 21 experiment, bead types')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='3T3aSFL_Oct21_M450-1-10_vs_M270-5-40')
 plt.show()
 
@@ -5232,8 +5091,8 @@ fig, ax = D1Plot(data, CondCol=['bead type'],Parameters=['ctFieldThickness','ECh
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Oct 21 experiment, bead types, 200-400nm')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='3T3aSFL_Oct21_M450-1-10_vs_M270-5-40_h=200-400nm')
 plt.show()
 
@@ -5255,8 +5114,8 @@ fig, ax = D1Plot(data, CondCol=['bead type'],Parameters=['ctFieldThickness','ECh
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Oct 21 experiment, bead types, 400-600nm')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='3T3aSFL_Oct21_M450-1-10_vs_M270-5-40_h=400-600nm')
 plt.show()
 
@@ -5279,8 +5138,8 @@ fig, ax = D1Plot(data, CondCol=['bead type'],Parameters=['ctFieldThickness','ECh
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Oct 21 experiment, bead types, 600-1000nm')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='3T3aSFL_Oct21_M450-1-10_vs_M270-5-40_h=600-1000nm')
 plt.show()
 
@@ -5298,7 +5157,7 @@ fig, ax = D2Plot(data, XCol='ctFieldThickness',YCol='EChadwick_f<150pN',CondCol 
                  modelType='y=A*exp(kx)',xscale = 'log', yscale = 'log')
 
 fig.suptitle('3T3aSFL: E(h)')
-# jvu.archiveFig(fig, ax, name='E(h)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='E(h)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5315,7 +5174,7 @@ fig, ax = D2Plot(data, XCol='surroundingDz',YCol='surroundingDx',CondCol = ['bea
                  xscale = 'lin', yscale = 'lin')
 
 fig.suptitle('3T3aSFL: dz(dx) - all compressions')
-# jvu.archiveFig(fig, ax, name='dz(dx)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='dz(dx)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5332,7 +5191,7 @@ fig, ax = D2Plot(data, XCol='ctFieldDZ',YCol='ctFieldDX',CondCol = ['bead type']
                  xscale = 'lin', yscale = 'lin')
 
 fig.suptitle('3T3aSFL: dz(dx) - median per cell')
-# jvu.archiveFig(fig, ax, name='DZ(DX)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='DZ(DX)_3T3aSFL_Oct21_M450-1-10_vs_M270-5-40', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5346,8 +5205,8 @@ B_M450 = 8.5
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5367,7 +5226,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nTest', fontsize = 16)
-#jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Test2', figDir = todayFigDirLocal + '//' + figSubDir)
+#ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Test2', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5379,8 +5238,8 @@ B_M450 = 5
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5399,7 +5258,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nValue used for standard experiments : 5mT', fontsize = 16)
-#jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_5mT-vs-M270_5mT', figDir = todayFigDirLocal + '//' + figSubDir)
+#ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_5mT-vs-M270_5mT', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5411,8 +5270,8 @@ B_M450 = 1
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5432,7 +5291,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nValues used for october 2021 experiment', fontsize = 16)
-#jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_1mT-vs-M270_5mT', figDir = todayFigDirLocal + '//' + figSubDir)
+#ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_1mT-vs-M270_5mT', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5444,8 +5303,8 @@ B_M450 = 5
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5464,7 +5323,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nProposition of values for a future experiment', fontsize = 16)
-# jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_5mT-vs-M270_14mT', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_5mT-vs-M270_14mT', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5476,8 +5335,8 @@ B_M450 = 13
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5496,7 +5355,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nProposition of values for a future experiment', fontsize = 16)
-# jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_13mT-vs-M270_54mT', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_13mT-vs-M270_54mT', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5508,8 +5367,8 @@ B_M450 = 1
 anglefactor = 2
 V_M270 = (4/3)*np.pi*(2690/2)**3 # volume [nm^3]
 V_M450 = (4/3)*np.pi*(4503/2)**3 # volume [nm^3]
-m_M270 = jvu.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
-m_M450 = jvu.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
+m_M270 = ufun.computeMag_M270computeMag_M270(B_M270) * 1e-9 * V_M270
+m_M450 = ufun.computeMag_M270computeMag_M450(B_M450) * 1e-9 * V_M450
 D3nm_270 = np.arange(1, h0, 1, dtype = float) + 2690
 D3nm_450 = np.arange(1, h0, 1, dtype = float) + 4503
 F_270 = 3e5*anglefactor*m_M270**2/D3nm_270**4
@@ -5528,7 +5387,7 @@ ax[1].plot(D3nm_450[:-20]-4503, s_450, 'r', label = 'M450 - B='+str(B_M450)+'mT'
 ax[1].legend()
 ax[1].set_ylabel('sigma for h0=' + str(h0) + 'nm (Pa)')
 fig.suptitle('Understanding the stress range mismatch\nProposition of values for a future experiment', fontsize = 16)
-# jvu.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_13mT-vs-M270_54mT', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='Mismatch_3T3aSFL_Oct21_M450_13mT-vs-M270_54mT', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5609,8 +5468,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFiel
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Dec 21 experiment, bead types')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5629,8 +5488,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFiel
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Dec 21 experiment, bead types')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5650,8 +5509,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFiel
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL, Dec 21 - Matching ranges of stress for 2 bead types\nB{M270}=14>54mT ; B{M450}=5>13mT')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5673,8 +5532,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFiel
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL, Dec 21 - Matching ranges of stress for 2 bead types\nB{M270}=14>54mT ; B{M450}=5>13mT')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5696,8 +5555,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFiel
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL, Dec 21 - Matching ranges of stress for 2 bead types\nB{M270}=14>54mT ; B{M450}=5>13mT')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5715,8 +5574,8 @@ ax.set_ylabel('EChadwick (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5734,8 +5593,8 @@ ax.set_ylabel('EChadwick (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 # plt.show()
@@ -5756,8 +5615,8 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type', 'date'],Parameters=
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL, Dec 21 - Matching ranges of stress for 2 bead types\nB{M270}=14>54mT ; B{M450}=5>13mT')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 # plt.show()
@@ -5776,8 +5635,8 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 # plt.show()
@@ -5798,8 +5657,8 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right')
 
-# jvu.archiveFig(fig, ax, 
-#                os.path.join(todayFigDirLocal, 'BigVsSmallPlots'), 
+# ufun.archiveFig(fig, ax, 
+#                os.path.join(cp.DirDataFigToday, 'BigVsSmallPlots'), 
 #                name='')
 
 plt.show()
@@ -5943,7 +5802,7 @@ co_order = makeOrder(['M270','M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['bead type'],Parameters=['ctFieldThickness','EChadwick'],                 Filters=Filters,AvgPerCell=True,cellID='cellID',co_order=co_order,stats=True, useHue = True)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL - Different bead diameters')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Simple1DPlot', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Simple1DPlot', figSubDir = figSubDir)
 plt.show()
 
 
@@ -5959,7 +5818,7 @@ ax.set_ylabel('EChadwick (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -5975,7 +5834,7 @@ ax.set_ylabel('EChadwick (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -6019,7 +5878,7 @@ renameAxes(ax, rD)
 ax[0].set_ylim([0, 1000])
 ax[1].set_ylim([2e2, 2e4])
 
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//BeadSizes', name='BeadSize_MatchDetailed', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSize_MatchDetailed', dpi = 100)
 plt.show()
 
 
@@ -6032,7 +5891,7 @@ renameAxes(ax, rD)
 ax[0].set_ylim([0, 1000])
 ax[1].set_ylim([2e2, 2e4])
 
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//BeadSizes', name='BeadSize_MatchAllComps', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSize_MatchAllComps', dpi = 100)
 plt.show()
 
 
@@ -6045,7 +5904,7 @@ renameAxes(ax, rD)
 ax[0].set_ylim([0, 1000])
 ax[1].set_ylim([2e2, 2e4])
 
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//BeadSizes', name='BeadSize_MatchAvg', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSize_MatchAvg', dpi = 100)
 plt.show()
 
 
@@ -6067,7 +5926,7 @@ box_pairs=[('21-12-08 & M270', '21-12-08 & M450'),
 fig, ax = D1PlotDetailed(data, CondCol=['date', 'bead type'], Parameters=['surroundingThickness', 'EChadwick'], Filters=Filters, 
                 Boxplot=True, cellID='cellID', co_order=[], stats=True, statMethod='Mann-Whitney', 
                box_pairs=box_pairs, figSizeFactor = 0.9, markersizeFactor=1, orientation = 'v', showManips = True)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot_all3exp', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot_all3exp', figSubDir = figSubDir)
 plt.show()
 
 
@@ -6216,7 +6075,7 @@ ax[2].yaxis.set_major_locator(locator)
 ax[2].yaxis.grid(True)
 
 ax[2].set_title('Jan 22 - Extremal stress values vs. thickness, for each compression')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_StressRanges', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_StressRanges', figSubDir = figSubDir)
 plt.show()
 
 
@@ -6370,7 +6229,7 @@ for k in range(len(listBT)):
 
     for i in range(len(dictPlot['cellID'])):
         c = dictPlot['cellID'][i]
-#         color = colorList10[i%10]
+#         color = gs.colorList10[i%10]
     #     ax.errorbar(fitCenters, dictPlot['Kavg'][i], yerr = dictPlot['Kstd'][i], color = color)
         if i == 0:
             ax.plot(fitCenters, dictPlot['Kavg'][i], color = color[k], label = BT)
@@ -6390,7 +6249,7 @@ for k in range(len(listBT)):
     ax.set_ylim([1e2, 1e5])
     ax.legend(loc='lower right')
     fig.suptitle('K(sigma) - on each cell\n21-12 & 22-01 experiments')
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)allCells', figSubDir = 'NonLin')
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)allCells', figSubDir = 'NonLin')
 plt.show()
 
 
@@ -6499,7 +6358,7 @@ ax.errorbar(fitCenters_ref, Kavg_ref, yerr = q_ref*Kste_ref, marker = 'o', color
 
 fig.suptitle('K(sigma) - 2 types of beads experiments')
 ax.legend(loc = 'lower right')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg', figSubDir = 'NonLin')
 plt.show()
 
 df_val = pd.DataFrame(d_val)
@@ -6578,11 +6437,11 @@ df_val
 # fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # # ax[0]
-# ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+# ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 # ax.set_ylim([500,2e4])
 
-# # ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# # ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 # #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # # ax[1].set_ylim([500,1e6])
 
@@ -6602,7 +6461,7 @@ df_val
 
 # fig.suptitle('K(sigma)')
 # ax.set_title('From all compressions pooled\n22-02-09 experiment, 36 cells, 232 compression')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_V2', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_V2', figSubDir = 'NonLin')
 # plt.show()
 
 # # df_val = pd.DataFrame(d_val)
@@ -6701,7 +6560,7 @@ for k in range(len(listBT)):
                    ecolor = ecolor[k], elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error\n'+listBT[k])
     ax.set_ylim([500,2e4])
 
-    # ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+    # ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
     #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
     # ax[1].set_ylim([500,1e6])
 
@@ -6729,7 +6588,7 @@ ax.errorbar(fitCenters_ref, Kavg_ref, yerr = q_ref*Kste_ref, marker = 'o', color
 fig.suptitle('K(sigma)')
 ax.set_title('Only compressions including the [{:.0f}, {:.0f}]Pa range'.format(mini, maxi))
 ax.legend(loc = 'lower right')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to800', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to800', figSubDir = 'NonLin')
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -6816,11 +6675,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([500,2e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -6840,7 +6699,7 @@ for kk in range(len(N)):
 
 fig.suptitle('K(sigma)')
 ax.set_title('Only compressions including the [100, 600]Pa range')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to600', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to600', figSubDir = 'NonLin')
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -6891,7 +6750,7 @@ for S in listeS:
     else:
         axes[kk].set_ylabel(None)
         axes[kk].set_yticklabels([])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
     
     kk+=1
 
@@ -6899,7 +6758,7 @@ renameAxes(axes,{'none':'ctrl', 'doxycyclin':'iMC'})
 fig.tight_layout()
 fig.suptitle('Tangeantial modulus of aSFL 3T3 - 0.5>50mT lowStartCompressions - avg per cell')
 plt.show()
-jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLinK_multipleIntervals', figSubDir = 'NonLin')
+ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLinK_multipleIntervals', figSubDir = 'NonLin')
     
 warnings.filterwarnings('always')
 
@@ -6936,7 +6795,7 @@ for S in listeS:
     renameAxes(ax,{'bestH0':'best H0 (nm)', 'doxycyclin':'iMC'})
     fig.set_size_inches(6,4)
     fig.tight_layout()
-#     jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
+#     ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
     
     
     # one big fig
@@ -6977,7 +6836,7 @@ for i in range(len(ax)):
     xTicks = ax[i].get_xticklabels()
     for j in range(len(xTicks)):
         xTicks[j].set_fontsize(9)
-jvu.archiveFig(fig, ax, name='3T3aSFL-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -6990,7 +6849,7 @@ renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
 ax.set_xlabel('Time since start of experiment (min)')
 fig.suptitle('3T3aSFL - Compressions - Evolution with time')
-jvu.archiveFig(fig, ax, name='3T3aSFL-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7005,7 +6864,7 @@ for i in range(len(ax)):
     xTicks = ax[i].get_xticklabels()
     for j in range(len(xTicks)):
         xTicks[j].set_fontsize(9)
-jvu.archiveFig(fig, ax, name='3T3aSFL-A8-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-A8-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7018,7 +6877,7 @@ renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
 ax.set_xlabel('Time since start of experiment (min)')
 fig.suptitle('3T3aSFL-A8 - Compressions - Evolution with time')
-jvu.archiveFig(fig, ax, name='3T3aSFL-A8-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-A8-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7033,7 +6892,7 @@ for i in range(len(ax)):
     xTicks = ax[i].get_xticklabels()
     for j in range(len(xTicks)):
         xTicks[j].set_fontsize(9)
-jvu.archiveFig(fig, ax, name='3T3aSFL-6FP-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-6FP-Compressions-DifferencesWithManip_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7046,7 +6905,7 @@ renameAxes(ax,renameDict1)
 ax.legend(loc='upper right')
 ax.set_xlabel('Time since start of experiment (min)')
 fig.suptitle('3T3aSFL-6FP - Compressions - Evolution with time')
-jvu.archiveFig(fig, ax, name='3T3aSFL-6FP-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL-6FP-Compressions-EvolWithTime_PYTHONTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7062,7 +6921,7 @@ fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['substrate','drug'],             
                  useHue = False, orientation = 'h')
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on diverse substrates: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7078,7 +6937,7 @@ fig, ax = D1Plot(GlobalTable_meca_Py2, CondCol=['substrate','drug'],            
                  useHue = False, orientation = 'h')
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL on diverse substrates: Compressions')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_substrate&drug_SurroundingThickness&EChadwick_NEWTABLE', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7195,7 +7054,7 @@ co_order = makeOrder(['M270', 'M270_M450', 'M450_M270', 'M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['bead type'],                 Parameters=['surroundingThickness','EChadwick_f<100pN'],Filters=Filters,                 AvgPerCell=True, cellID='cellID', co_order=co_order, figSizeFactor = 2, orientation = 'v', useHue = False)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL asym bead pairs - all comps - f<100pN')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_asymBeadsAllComp_SurroundingThickness&EChadwick', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_asymBeadsAllComp_SurroundingThickness&EChadwick', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7211,7 +7070,7 @@ co_order = makeOrder(['M270', 'M270_M450', 'M450_M270', 'M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['bead type'],                 Parameters=['surroundingThickness','EChadwick'],Filters=Filters,                 AvgPerCell=True, cellID='cellID', co_order=co_order, figSizeFactor = 2, orientation = 'v', useHue = False)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL asym bead pairs')
-jvu.archiveFig(fig, ax, name='3T3aSFL_asymBeads_SurroundingThickness&EChadwick_allDates', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_asymBeads_SurroundingThickness&EChadwick_allDates', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7228,7 +7087,7 @@ co_order = makeOrder(['M270', 'M270_M450', 'M450_M270', 'M450'])
 fig, ax = D1Plot(GlobalTable_meca_Py, CondCol=['bead type'],                 Parameters=['surroundingThickness','EChadwick'],Filters=Filters,                 AvgPerCell=True, cellID='cellID', co_order=co_order, figSizeFactor = 2, orientation = 'v', useHue = False)
 renameAxes(ax,renameDict1)
 fig.suptitle('3T3aSFL asym bead pairs')
-jvu.archiveFig(fig, ax, name='3T3aSFL_asymBeads_SurroundingThickness&EChadwick_21-07-08', figSubDir = figSubDir)
+ufun.archiveFig(fig, ax, name='3T3aSFL_asymBeads_SurroundingThickness&EChadwick_21-07-08', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7242,7 +7101,7 @@ Filters = [(GlobalTable_meca_Py['validatedFit_f<100pN'] == True), (GlobalTable_m
            (GlobalTable_meca_Py['bead type'].apply(lambda x : x in ['M270', 'M450']))]
 fig, ax = D2Plot(GlobalTable_meca_Py, XCol='surroundingThickness',YCol='EChadwick_f<100pN', CondCol = ['bead type'],           Filters=Filters, cellID = 'cellID', AvgPerCell=True, modelFit=False, modelType='y=A*exp(kx)')
 fig.suptitle('3T3aSFL: E(h)')
-# jvu.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir='')
+# ufun.archiveFig(fig, ax, name='aSFL_E(h)_drug&substrate', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir='')
 plt.show()
 
 
@@ -7257,7 +7116,7 @@ Filters = [(GlobalTable_meca_Py['validatedFit_f<150pN'] == True), (GlobalTable_m
            (GlobalTable_meca_Py['bead type'].apply(lambda x : x in ['M270', 'M450_M270', 'M270_M450', 'M450']))]
 fig, ax = D2Plot(GlobalTable_meca_Py, XCol='surroundingThickness',YCol='EChadwick_f<150pN', CondCol = ['bead type'],           Filters=Filters, cellID = 'cellID', AvgPerCell=False, modelFit=False, modelType='y=A*exp(kx)')
 fig.suptitle('3T3aSFL: E(h) _f<150pN_21-07-08')
-jvu.archiveFig(fig, ax, name='aSFL_beadTypes01_E(h)_21-07-08', figDir = todayFigDirLocal + '//' + figSubDir)
+ufun.archiveFig(fig, ax, name='aSFL_beadTypes01_E(h)_21-07-08', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7272,7 +7131,7 @@ Filters = [(GlobalTable_meca_Py['validatedFit_f<150pN'] == True), (GlobalTable_m
            (GlobalTable_meca_Py['bead type'].apply(lambda x : x in ['M270', 'M450']))]
 fig, ax = D2Plot(GlobalTable_meca_Py, XCol='surroundingThickness',YCol='EChadwick_f<150pN', CondCol = ['bead type'],           Filters=Filters, cellID = 'cellID', AvgPerCell=False, modelFit=False, modelType='y=A*exp(kx)')
 fig.suptitle('3T3aSFL: E(h) _f<150pN_21-07-08')
-jvu.archiveFig(fig, ax, name='aSFL_beadTypes02_E(h)_21-07-08', figDir = todayFigDirLocal + '//' + figSubDir)
+ufun.archiveFig(fig, ax, name='aSFL_beadTypes02_E(h)_21-07-08', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7446,7 +7305,7 @@ ax.yaxis.set_major_locator(locator)
 ax.yaxis.grid(True)
 
 ax.set_title('Jan 21 & jan 22 - Extremal stress values vs. thickness, for each compression')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_StressRanges', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_StressRanges', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7470,7 +7329,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp')
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7497,7 +7356,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)', fontsize = 12)
 ax.set_xlabel('Thickness at low force (nm)', fontsize = 12)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp', fontsize = 14)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7524,7 +7383,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)', fontsize = 12)
 ax.set_xlabel('Thickness at low force (nm)', fontsize = 12)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp', fontsize = 14)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7551,7 +7410,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)', fontsize = 12)
 ax.set_xlabel('Thickness at low force (nm)', fontsize = 12)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp', fontsize = 14)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7578,7 +7437,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)', fontsize = 12)
 ax.set_xlabel('Thickness at low force (nm)', fontsize = 12)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + 'all' + ' // ' + fit + ' // All comp', fontsize = 14)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7602,7 +7461,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp')
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7626,7 +7485,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp')
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7650,7 +7509,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp')
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7674,7 +7533,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp', fontsize = 17)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7698,7 +7557,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp', fontsize = 17)
 ax.legend(loc = 'upper right', fontsize = 8)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7722,7 +7581,7 @@ ax.set_ylabel('EChadwick ['+ fit +']  (Pa)')
 ax.set_xlabel('Thickness at low force (nm)')
 ax.legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit + ' // All comp')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7745,7 +7604,7 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit[1:] + ' // All comp')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7768,7 +7627,7 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit[1:] + ' // All comp')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7791,7 +7650,7 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit[1:] + ' // All comp')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7825,7 +7684,7 @@ ax.set_xlabel('Thickness at low force (nm)')
 fig.suptitle('3T3aSFL: E(h)')
 ax.legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL: E(h) // dates = ' + dates[0][:5] + ' // ' + fit[1:] + ' // All comp')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = todayFigDirLocal + '//' + figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_E(h)_all3exp', figDir = cp.DirDataFigToday + '//' + figSubDir)
 plt.show()
 
 
@@ -7841,7 +7700,7 @@ Filters = [(data['validatedFit'] == True), (data['validatedThickness'] == True),
 fig, ax = D1PlotDetailed(data, CondCol=['bead type'], Parameters=['surroundingThickness', 'EChadwick'], Filters=Filters, 
                 Boxplot=True, cellID='cellID', co_order=[], stats=True, statMethod='Mann-Whitney', 
                box_pairs=[], figSizeFactor = 1.8, markersizeFactor=1, orientation = 'v', showManips = True)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7861,7 +7720,7 @@ box_pairs=[('21-12-08 & M270', '21-12-08 & M450'),
 fig, ax = D1PlotDetailed(data, CondCol=['date', 'bead type'], Parameters=['surroundingThickness', 'EChadwick'], Filters=Filters, 
                 Boxplot=True, cellID='cellID', co_order=[], stats=True, statMethod='Mann-Whitney', 
                box_pairs=box_pairs, figSizeFactor = 0.9, markersizeFactor=1, orientation = 'v', showManips = True)
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot_all3exp', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot_all3exp', figSubDir = figSubDir)
 plt.show()
 
 
@@ -7924,7 +7783,7 @@ ax.yaxis.set_major_locator(locator)
 ax.yaxis.grid(True)
 
 ax.set_title('Feb 22 - Extremal stress values vs. thickness, for each compression')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_StressRanges', figSubDir = 'NonLin')
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_StressRanges', figSubDir = 'NonLin')
 print(Ncomp)
 plt.show()
 
@@ -8012,7 +7871,7 @@ for c in data_f_agg.index:
 fig, ax = plt.subplots(1,1, figsize = (9,6))
 for i in range(len(dictPlot['cellID'])):
     c = dictPlot['cellID'][i]
-    color = colorList10[i%10]
+    color = gs.colorList10[i%10]
 #     ax.errorbar(fitCenters, dictPlot['Kavg'][i], yerr = dictPlot['Kstd'][i], color = color)
     ax.plot(fitCenters, dictPlot['Kavg'][i], color = color)
     low =  dictPlot['Kavg'][i] - (dictPlot['Kstd'][i] / (dictPlot['Kcount'][i]**0.5)) 
@@ -8028,7 +7887,7 @@ ax.set_ylabel('K (Pa)')
 ax.set_yscale('log')
 ax.set_ylim([1e2, 1e5])
 fig.suptitle('Stress stiffening - On each cell') #\n1 day, 3 expts, 36 cells, 232 compression
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_cellByCell', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_cellByCell', dpi = 100)
 plt.show()
 
 
@@ -8099,11 +7958,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 
 fig, ax = plt.subplots(2,1, figsize = (9,12))
 
-ax[0].errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax[0].errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax[0].set_ylim([50,1e5])
 
-ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 ax[1].set_ylim([500,1e6])
 
@@ -8116,7 +7975,7 @@ for k in range(2):
         ax[k].text(x=fitCenters[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
 
 fig.suptitle('Stress stiffening - All compressions pooled') # \n1 day, 3 expts, 36 cells, 232 compression
-# jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_twoErrorsTypes', dpi = 100)
+# ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_twoErrorsTypes', dpi = 100)
 plt.show()
 
 df_val = pd.DataFrame(d_val)
@@ -8193,7 +8052,7 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 # FIT ?
 X, Y = fitCenters, Kavg
 eqnText = "Linear Fit"
-params, results = jvu.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
+params, results = ufun.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
 pval = results.pvalues[1] # pvalue on the param 'a'
 eqnText += " ; Y = {:.1f} X + {:.1f}".format(params[1], params[0])
 eqnText += " ; p-val = {:.3f}".format(pval)
@@ -8208,7 +8067,7 @@ fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
 ax.errorbar(fitCenters, Kavg/1000, yerr = q*Kste/1000, 
-            marker = 'o', color = my_default_color_list[0],
+            marker = 'o', color = gs.my_default_color_list[0],
             markersize = 7.5, lw = 2,
             ecolor = 'k', elinewidth = 1.5, capsize = 5, 
             label = 'Weighted means\nWeighted ste 95% as error')
@@ -8218,7 +8077,7 @@ ax.set_xlim([0,1150])
 ax.plot([X[imin],X[imax]], [fitY[imin]/1000,fitY[imax]/1000], 
         ls = '--', lw = '1', color = 'darkorange', zorder = 1, label = eqnText)
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -8239,7 +8098,7 @@ for kk in range(len(N)):
 
 # fig.suptitle('K(sigma)')
 ax.set_title('Stress-stiffening of the actin cortex\nALL compressions pooled') #  '\n22-02-09 experiment, 36 cells, 232 compression')
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_lin', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_lin', dpi = 100)
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -8326,11 +8185,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([0,1.4e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -8350,7 +8209,7 @@ for kk in range(len(N)):
 
 # fig.suptitle('K(sigma)')
 ax.set_title('Stress stiffening\nOnly compressions including the [100, 800]Pa range')
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_100-800Pa_lin', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_100-800Pa_lin', dpi = 100)
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -8437,11 +8296,11 @@ d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D9
 fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
-ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = my_default_color_list[0], 
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([0,1.4e4])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -8461,7 +8320,7 @@ for kk in range(len(N)):
 
 # fig.suptitle('K(sigma)')
 ax.set_title('Stress stiffening\nOnly compressions including the [100, 700]Pa range')
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_100-700Pa_lin', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_100-700Pa_lin', dpi = 100)
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -8554,13 +8413,13 @@ fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
 
 # ax[0]
 ax.errorbar(fitCenters2, Kavg/1000, yerr = q*Kste/1000, 
-            marker = 'o', color = my_default_color_list[0],
+            marker = 'o', color = gs.my_default_color_list[0],
             markersize = 10, lw = 2,
             ecolor = 'k', elinewidth = 1.5, capsize = 5, 
             label = 'Weighted means\nWeighted ste 95% as error')
 ax.set_ylim([0,1.0e4/1000])
 
-# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = my_default_color_list[3], 
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
 #                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
 # ax[1].set_ylim([500,1e6])
 
@@ -8582,7 +8441,7 @@ ax.set_ylabel('Tangeantial Modulus (kPa)') # [tangeant modulus w/ Chadwick]
 # fig.suptitle('K(sigma)')
 ax.set_title('Stress-stiffening of the actin cortex')#'\nOnly compressions including the [100, 600]Pa range')
 
-jvu.archiveFig(fig, ax, todayFigDirLocal + '//NonLin', name='NonLin_K(s)_100-600Pa_lin', dpi = 100)
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//NonLin', name='NonLin_K(s)_100-600Pa_lin', dpi = 100)
 plt.show()
 
 # df_val = pd.DataFrame(d_val)
@@ -8628,7 +8487,7 @@ for S in listeS:
     else:
         axes[kk].set_ylabel(None)
         axes[kk].set_yticklabels([])
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan22_M450vsM270_CompressionsLowStart_Detailed1DPlot', figSubDir = figSubDir)
     
     kk+=1
 
@@ -8636,7 +8495,7 @@ renameAxes(axes,{'none':'ctrl', 'doxycyclin':'iMC'})
 fig.tight_layout()
 fig.suptitle('Tangeantial modulus of aSFL 3T3 - 0.5>50mT lowStartCompressions - avg per cell')
 plt.show()
-jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLinK_multipleIntervals', figSubDir = 'NonLin')
+ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLinK_multipleIntervals', figSubDir = 'NonLin')
 
 
 # %%%%% Multiple K(h)
@@ -8670,7 +8529,7 @@ for S in listeS:
     renameAxes(ax,{'bestH0':'best H0 (nm)', 'doxycyclin':'iMC'})
     fig.set_size_inches(6,4)
     fig.tight_layout()
-#     jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
+#     ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
     
     
     # one big fig
@@ -8723,7 +8582,7 @@ for S in listeS:
     renameAxes(ax,rD)
     fig.set_size_inches(8,7)
     fig.tight_layout()
-#     jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
+#     ufun.archiveFig(fig, ax, name='3T3aSFL_Feb22_nonLin_K(h)_' + textForFileName, figSubDir = 'NonLin')
     
     
     # one big fig
@@ -8855,8 +8714,8 @@ for ii in range(len(fitW)):
     plt.show()
 
 
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = todayFigDirLocal + '//' + figSubDir, figSubDir = figSubDir)
-    # jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = cp.DirDataFigToday + '//' + figSubDir, figSubDir = figSubDir)
+    # ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_K_multipleIntervals_250pa_lin', figDir = ownCloudTodayFigDir, figSubDir = figSubDir)
 
 
 # %%%%% All stress ranges - K(stress)
@@ -9014,7 +8873,7 @@ ax[0].set_ylim([0, 1000])
 # ax[0].legend(loc = 'upper right', fontsize = 8)
 # ax[1].legend(loc = 'upper right', fontsize = 8)
 fig.suptitle('3T3aSFL & drugs\nPreliminary data')
-# jvu.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_simple', figSubDir = figSubDir)
+# ufun.archiveFig(fig, ax, name='3T3aSFL_Jan21_drug_H&Echad_simple', figSubDir = figSubDir)
 plt.show()
 
 
@@ -9122,636 +8981,4 @@ p.title.text = 'aSFL-6FP expressing long linker: H(fluo)'
 p.title.text_font_size = '16pt'
 show(p)
 
-# %% Utility scripts
-
-# %%% Create a test table to test different fits
-
-# Script !
-
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-testFileName = 'testFitCompression.txt'
-testFilePath = os.path.join(testDir, testFileName)
-
-list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir)                   if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv")                   and ('R40' in f))] # Change to allow different formats in the future
-expDf = jvu.getExperimentalConditions()
-tableDictTest = {}
-
-for f in list_mecaFiles:
-    print(f)
-    tS_DataFilePath = os.path.join(timeSeriesDataDir, f)
-    tsDF = pd.read_csv(tS_DataFilePath, ';')
-    
-    split_f = f.split('_')
-    tsDF.dx, tsDF.dy, tsDF.dz, tsDF.D2, tsDF.D3 = tsDF.dx*1000, tsDF.dy*1000, tsDF.dz*1000, tsDF.D2*1000, tsDF.D3*1000
-    thisManipID = split_f[0] + '_' + split_f[1]
-    expDf['manipID'] = expDf['date'] + '_' + expDf['manip']
-    thisExpDf = expDf.loc[expDf['manipID'] == thisManipID]
-    DIAMETER = thisExpDf.at[thisExpDf.index.values[0], 'bead diameter']
-    thisCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
-    Ncomp = max(tsDF['idxCompression'])
-    
-    for i in range(1, Ncomp+1): #Ncomp+1):
-        thisCompHiD = thisCellID + '__' + str(i) + '__h'
-        thisCompFiD = thisCellID + '__' + str(i) + '__f'
-        print(thisCompHiD)
-        
-        thisCompDf = tsDF.loc[tsDF['idxCompression'] == i, :]
-        iStart = (jvu.findFirst(tsDF['idxCompression'], i))
-        iStop = iStart + thisCompDf.shape[0]
-        
-        # Delimit the start of the increase of B (typically the moment when the field decrease from 5 to 3)
-        # and the end of its decrease (typically when it goes back from 3 to 5)
-        
-        listB = thisCompDf.B.values
-        offsetStart, offsetStop = 0, 0
-        minB, maxB = min(listB), max(listB)
-        thresholdB = (maxB-minB)/50
-        k = 0
-        
-        while (listB[k] > minB+thresholdB) or (listB[-1-k] > minB+thresholdB):
-            offsetStart += int(listB[k] > minB+thresholdB)
-            k += 1
-        
-        jStart = offsetStart
-        jMax = np.argmax(thisCompDf.B)
-        
-        hCompr = (thisCompDf.D3.values[jStart:jMax+1] - DIAMETER)
-        fCompr = (thisCompDf.F.values[jStart:jMax+1])
-        
-        tableDictTest[thisCompHiD] = hCompr
-        tableDictTest[thisCompFiD] = fCompr
-        
-saveFile = open(testFilePath, 'w')
-for k in tableDictTest.keys():
-    saveFile.write(k)
-    for i in range(len(tableDictTest[k])):
-        saveFile.write(';')
-        saveFile.write(str(tableDictTest[k][i]))
-    saveFile.write('\n')
-saveFile.close()
-
-
-# %%% Create a test table to try statistical tests
-
-
-# Script !
-
-
-# %%%%
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-GlobalTable_meca = jva.getGlobalTable_meca()
-table_ExpConditions = jvu.getExperimentalConditions()
-table_fluo = jva.getFluoData()
-GlobalTable_meca = pd.merge(GlobalTable_meca, table_ExpConditions, how="inner", on='manipID',
-#     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-#     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-)
-GlobalTable_meca = pd.merge(GlobalTable_meca, table_fluo, how="left", left_on='CellName', right_on='cellID'
-#     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-#     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-)
-print('Merged table has ' + str(GlobalTable_meca.shape[0]) + ' lines and ' + str(GlobalTable_meca.shape[1]) + ' columns.')
-
-
-# %%%%
-
-
-# Table 1
-
-testFileName = 'testStats01_allComp.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-Filters = [(GlobalTable_meca['Validated'] == 1), (GlobalTable_meca['cell subtype'] == 'aSFL')]
-co_order = makeOrder([['BSA coated glass','20um fibronectin discs'],['none','doxycyclin']])
-data = GlobalTable_meca
-CondCol=['substrate','drug']
-Parameters=['SurroundingThickness','EChadwick']
-AvgPerCell=False
-cellID='CellName'
-
-data_filtered = data
-for fltr in Filters:
-    data_filtered = data_filtered.loc[fltr]
-
-NCond = len(CondCol)    
-if NCond == 1:
-    CondCol = CondCol[0]
-elif NCond > 1:
-    newColName = ''
-    for i in range(NCond):
-        newColName += CondCol[i]
-        newColName += ' & '
-    newColName = newColName[:-3]
-    data_filtered[newColName] = ''
-    for i in range(NCond):
-        data_filtered[newColName] += data_filtered[CondCol[i]].astype(str)
-        data_filtered[newColName] = data_filtered[newColName].apply(lambda x : x + ' & ')
-    data_filtered[newColName] = data_filtered[newColName].apply(lambda x : x[:-3])
-    CondCol = newColName
-    
-if AvgPerCell:
-    group = data_filtered.groupby(cellID)
-    dictAggMean = getDictAggMean(data_filtered)
-    data_filtered = group.agg(dictAggMean)
-
-data_filtered.sort_values(CondCol, axis=0, ascending=True, inplace=True)
-
-df_output = data_filtered[[cellID, 'CompNum', newColName] + Parameters]
-
-# df_output.to_csv(testFilePath)
-
-df_output
-
-
-# %%%%
-
-
-# Table 2
-
-testFileName = 'testStats02_avgPerCell.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-Filters = [(GlobalTable_meca['Validated'] == 1), (GlobalTable_meca['cell subtype'] == 'aSFL')]
-co_order = makeOrder([['BSA coated glass','20um fibronectin discs'],['none','doxycyclin']])
-data = GlobalTable_meca
-CondCol=['substrate','drug']
-Parameters=['SurroundingThickness','EChadwick']
-AvgPerCell=True
-cellID='CellName'
-
-data_filtered = data
-for fltr in Filters:
-    data_filtered = data_filtered.loc[fltr]
-
-NCond = len(CondCol)    
-if NCond == 1:
-    CondCol = CondCol[0]
-elif NCond > 1:
-    newColName = ''
-    for i in range(NCond):
-        newColName += CondCol[i]
-        newColName += ' & '
-    newColName = newColName[:-3]
-    data_filtered[newColName] = ''
-    for i in range(NCond):
-        data_filtered[newColName] += data_filtered[CondCol[i]].astype(str)
-        data_filtered[newColName] = data_filtered[newColName].apply(lambda x : x + ' & ')
-    data_filtered[newColName] = data_filtered[newColName].apply(lambda x : x[:-3])
-    CondCol = newColName
-    
-if AvgPerCell:
-    group = data_filtered.groupby(cellID)
-    dictAggMean = getDictAggMean(data_filtered)
-    data_filtered = group.agg(dictAggMean)
-
-data_filtered.sort_values(CondCol, axis=0, ascending=True, inplace=True)
-
-df_output = data_filtered[[cellID, 'CompNum', newColName] + Parameters]
-
-# df_output.to_csv(testFilePath)
-
-df_output
-
-
-# %%%%
-
-
-# Table 3
-# Fake data
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-
-testFileName = 'testStats03_FakeData.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-Npop = 10
-Npoints = 30
-minAvg = 100
-maxAvg = 600
-step = (maxAvg - minAvg)/(Npop-1)
-std = 250
-dictFakeData = {}
-np.random.seed(11)
-
-for i in [1, 2, 3, 10]:
-    dictFakeData['Distribution_' + str(i)] = np.random.normal(loc=minAvg + step*(i-1), scale=std, size=Npoints)
-
-dfFakeData = pd.DataFrame(dictFakeData)
-
-# dfFakeData.to_csv(testFilePath)
-
-dfFakeData
-
-
-# %%%%
-
-# Table 4
-# Fake data 2
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-
-testFileName = 'testStats04_FakeDataLarge.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-Npop = 10
-Npoints = 300
-minAvg = 100
-maxAvg = 600
-step = (maxAvg - minAvg)/(Npop-1)
-std = 250
-dictFakeData = {}
-np.random.seed(11)
-
-for i in [1, 2, 3, 10]:
-    dictFakeData['Distribution_' + str(i)] = np.random.normal(loc=minAvg + step*(i-1), scale=std, size=Npoints)
-
-dfFakeData = pd.DataFrame(dictFakeData)
-
-# dfFakeData.to_csv(testFilePath)
-
-dfFakeData
-
-
-# %%% Comparison of stat tests
-
-# %%%%  With the fake data
-
-# %%%%%
-
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-
-# Table 3
-# Fake data
-testFileName = 'testStats03_FakeData.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-dfFakeData = pd.read_csv(testFilePath)
-dfFakeData = dfFakeData.drop(columns=['Unnamed: 0'])
-
-Ncol = len(dfFakeData.columns)
-
-refCol = dfFakeData[dfFakeData.columns[0]]
-boxPlotMatrix = []
-
-for i in range(0,Ncol):
-    boxPlotMatrix.append(dfFakeData[dfFakeData.columns[i]].values)
-    if i > 0:
-        print('Comparison between distribution 1 and ' + str(i+1))
-        tTest = st.ttest_ind(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('tTest : ' + str(tTest.pvalue))
-        wilcox = st.wilcoxon(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('wilcox : ' + str(wilcox.pvalue))
-        mannwhitneyu = st.mannwhitneyu(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('mannwhitneyu : ' + str(mannwhitneyu.pvalue))
-        print('')
-
-fig, ax = plt.subplots(1,1)
-ax.boxplot(boxPlotMatrix,labels=dfFakeData.columns.values)
-ax.tick_params(axis='x', labelrotation = 15, labelsize = 7)
-plt.show()
-
-
-# %%%%%
-
-
-testDir = os.path.join(dataDir, 'TestDataSet')
-
-# Table 4
-# Fake data Large
-testFileName = 'testStats04_FakeDataLarge.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-dfFakeData = pd.read_csv(testFilePath)
-dfFakeData = dfFakeData.drop(columns=['Unnamed: 0'])
-
-Ncol = len(dfFakeData.columns)
-
-refCol = dfFakeData[dfFakeData.columns[0]]
-boxPlotMatrix = []
-
-for i in range(0,Ncol):
-    boxPlotMatrix.append(dfFakeData[dfFakeData.columns[i]].values)
-    if i > 0:
-        print('Comparison between distribution 1 and ' + str(i+1))
-        tTest = st.ttest_ind(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('tTest : ' + str(tTest.pvalue))
-        wilcox = st.wilcoxon(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('wilcox : ' + str(wilcox.pvalue))
-        mannwhitneyu = st.mannwhitneyu(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-        print('mannwhitneyu : ' + str(mannwhitneyu.pvalue))
-        print('')
-
-fig, ax = plt.subplots(1,1)
-ax.boxplot(boxPlotMatrix,labels=dfFakeData.columns.values)
-ax.tick_params(axis='x', labelrotation = 15, labelsize = 7)
-plt.show()
-
-
-# %%%%%
-
-
-# Summary of results: numpy.random.seed = 11
-    
-dictResultsFakeData = {}
-dictResultsFakeData['language'] = ['python'   , 'python', 'python'      , 'R'     , 'R'          , 'Matlab' , 'Matlab' ]
-dictResultsFakeData['test']     = ['ttest_ind', 'wilcox', 'mannwhitneyu', 't.test', 'wilcox.test', 'ttest2' , 'ranksum']
-dictResultsFakeData['1 vs 2']   = [0.2700     , 0.2711  , 0.1353        , 0.2701  , 0.2729       , 0.2700   , 0.2707   ]
-dictResultsFakeData['1 vs 3']   = [0.0714     , 0.0822  , 0.0452        , 0.0715  , 0.0906       , 0.0714   , 0.0905   ]
-dictResultsFakeData['1 vs 10']  = [1.33e-11   , 4.28e-06, 2.98e-09      , 1.44e-11, 5.799e-11    , 1.33e-11 , 5.96e-09 ]
-dfResultFakeData = pd.DataFrame(dictResultsFakeData)
-dfResultFakeData
-
-
-# %%%%%
-
-# Summary of results: numpy.random.seed = 11
-
-dictResultsFakeDataLarge = {}
-dictResultsFakeDataLarge['language'] = ['python'   , 'python', 'python'      , 'R'     , 'R'          , 'Matlab' , 'Matlab' ]
-dictResultsFakeDataLarge['test']     = ['ttest_ind', 'wilcox', 'mannwhitneyu', 't.test', 'wilcox.test', 'ttest2' , 'ranksum']
-dictResultsFakeDataLarge['1 vs 2']   = [0.0082     , 0.0049  , 0.0038        , 0.0082  , 0.0077       , 0.0082   , 0.0077   ]
-dictResultsFakeDataLarge['1 vs 3']   = [1.26e-06   , 9.29e-06, 1.37e-06      , 1.27e-06, 2.75e-06     , 1.26e-06 , 2.74e-06 ]
-dictResultsFakeDataLarge['1 vs 10']  = [1.74e-98   , 5.64e-48, 6.39e-74      , 2.2e-16 , 2.2e-16      , 1.74e-98 , 1.27e-73 ]
-dictResultsFakeDataLarge = pd.DataFrame(dictResultsFakeDataLarge)
-dictResultsFakeDataLarge
-
-
-# %%%%  With real data
-
-# %%%%%
-
-
-# testDir = os.path.join(dataDir, 'TestDataSet')
-
-# Table 1
-# Avg Per Cell
-testFileName = 'testStats01_AvgPerCell.csv'
-testFilePath = os.path.join(testDir, testFileName)
-
-dfAvgPerCell = pd.read_csv(testFilePath)
-# dfAvgPerCell = dfAvgPerCell.drop(columns=['Unnamed: 0'])
-dfAvgPerCell
-categories = list(dfAvgPerCell['substrate & drug'].unique())
-Ncat = len(categories)
-for i in range(Ncat):
-    for j in range(i,Ncat):
-        if j != i:
-            x = dfAvgPerCell.loc[dfAvgPerCell['substrate & drug'] == categories[i], 'EChadwick'].values
-            y = dfAvgPerCell.loc[dfAvgPerCell['substrate & drug'] == categories[j], 'EChadwick'].values
-            print('Comparison between ' + categories[i] + ' and ' + categories[j])
-            tTest = st.ttest_ind(x, y)
-            print('tTest : ' + str(tTest.pvalue))
-            mannwhitneyu = st.mannwhitneyu(x, y)
-            print('mannwhitneyu : ' + str(mannwhitneyu.pvalue))
-            print('')
-
-# refCol = dfFakeData[dfFakeData.columns[0]]
-# boxPlotMatrix = []
-
-# for i in range(0,Ncol):
-#     boxPlotMatrix.append(dfFakeData[dfFakeData.columns[i]].values)
-#     if i > 0:
-#         print('Comparison between distribution 1 and ' + str(i+1))
-#         tTest = st.ttest_ind(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-#         print('tTest : ' + str(tTest.pvalue))
-#         wilcox = st.wilcoxon(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-#         print('wilcox : ' + str(wilcox.pvalue))
-#         mannwhitneyu = st.mannwhitneyu(refCol.values, dfFakeData[dfFakeData.columns[i]].values)
-#         print('mannwhitneyu : ' + str(mannwhitneyu.pvalue))
-#         print('')
-
-# fig, ax = plt.subplots(1,1)
-# ax.boxplot(boxPlotMatrix,labels=dfFakeData.columns.values)
-# ax.tick_params(axis='x', labelrotation = 15, labelsize = 7)
-# plt.show()
-
-
-# %%%%%
-
-
-dictResultsAvgPerCell = {}
-order = ['language','test','c & NA vs iMC & A','c & NA vs c & A','iMC & NA vs iMC & A','c & NA vs iMC & NA','iMC & NA vs c & A','c & A vs iMC & A']
-dictResultsAvgPerCell['language']            = ['python_statAnot'   , 'python_statAnot' ,'python'   , 'python', 'R'      , 'R'          , 'Matlab' , 'Matlab' ]
-dictResultsAvgPerCell['test']                = ['ttest_ind', 'mannwhitneyu', 'ttest_ind', 'mannwhitneyu', 't.test' , 'wilcox.test', 'ttest2' , 'ranksum']
-dictResultsAvgPerCell['c & NA vs iMC & NA']  = [1.000e+00  , 5.669e-01     ,0.19226082553146542  , 0.047244130659518     , 0.1503   , 0.09502       , 0.1923       , 0.0945]
-dictResultsAvgPerCell['iMC & NA vs c & A']   = [9.673e-02  , 8.625e-03     ,0.016121864893694285  ,0.0007187494204219925     , 0.04082  , 0.0009726    , 0.0161     , 0.0014]
-dictResultsAvgPerCell['c & A vs iMC & A']    = [2.331e-02  , 1.376e-01     ,0.00388458593467288  , 0.01146586677766893     , 0.007326 , 0.02214      , 0.0039      , 0.0229]
-dictResultsAvgPerCell['c & NA vs c & A']     = [1.000e+00  , 1.000e+00     ,0.6977550928576132  , 0.2884535746840493     , 0.6948   , 0.5838       , 0.6978     , 0.5769]
-dictResultsAvgPerCell['iMC & NA vs iMC & A'] = [1.000e+00  , 1.000e+00     ,0.5573451346686198  , 0.41831870120029446,  0.5031  , 0.8387       , 0.5573      , 0.8366 ]
-dictResultsAvgPerCell['c & NA vs iMC & A']   = [9.726e-01  , 1.000e+00     ,0.16209530366557973  , 0.14893352365754048     , 0.04353  , 0.3043       , 0.1621       , 0.2979 ]
-dfResultsAvgPerCell = pd.DataFrame(dictResultsAvgPerCell)
-dfResultsAvgPerCell[order]
-
-# dfResultsAvgPerCell = dfResultsAvgPerCell.sort_values(by='test',ascending=False)
-# dfResultsAvgPerCell
-
-
-# %% Plot small stuff
-
-# %%%
-
-
-SMALLER_SIZE = 6
-SMALL_SIZE = 6
-MEDIUM_SIZE = 10
-BIGGER_SIZE = 10
-
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
-
-F0, F1 = 500, 250
-h0, h1 = 200, 50
-om = 2*np.pi
-delta = 1
-T = np.arange(0,3,0.01)
-F = F1 * np.sin(2*np.pi*T) + F0
-h = h1 * np.sin(2*np.pi*T - delta) + h0
-
-fig, ax = plt.subplots(figsize = (4,2))
-color = 'firebrick'
-ax.plot(T, F, color = color, lw = 1)
-ax.plot([np.min(T), np.max(T)], [F0, F0], 'k--', lw = 1)
-ax.set_xlabel('t (s)')
-ax.set_ylabel('F (pN)', color=color)
-ax.tick_params(axis='y', labelcolor=color)
-
-axbis = ax.twinx()
-color = 'blue'
-axbis.set_ylabel('h (nm)', color=color)
-axbis.plot(T, h, color=color, lw = 1)
-axbis.tick_params(axis='y', labelcolor=color)
-# axbis.set_yticks([0,500,1000,1500])
-# minh = np.min(tsDF['D3'].values-DIAMETER)
-# ratio = min(1/abs(minh/axM), 5)
-# #             print(ratio)
-#             (axmbis, axMbis) = ax1bis.get_ylim()
-#             ax1bis.set_ylim([0, max(axMbis*ratio, 3*max(tsDF['F'].values))])
-
-
-# %%% Experiment counter
-
-# %%%%
-
-
-# Experiment counter - Matlab table
-
-# count ct field cells
-cellID = 'cellID'
-GlobalTable_ctField_CountCell = GlobalTable_ctField.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_ctField_CountCell = GlobalTable_ctField_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - ctField'})
-
-# count meca compressions
-cellID = 'CellName'
-GlobalTable_meca_CountComp = GlobalTable_meca.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountComp = GlobalTable_meca_CountComp.loc[:, [cellID]].rename(columns={cellID : 'Count compressions'})
-
-# count valid meca compressions
-cellID = 'CellName'
-GlobalTable_meca_CountCompOK = GlobalTable_meca[GlobalTable_meca['Validated'] == True].groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCompOK = GlobalTable_meca_CountCompOK.loc[:, [cellID]].rename(columns={cellID : 'Count OK compressions'})
-
-# count meca cells
-cellID = 'CellName'
-group = GlobalTable_meca.groupby(cellID)
-dictAggMean = getDictAggMean(GlobalTable_meca)
-GlobalTable_meca_perCell = group.agg(dictAggMean)
-GlobalTable_meca_CountCell = GlobalTable_meca_perCell.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCell = GlobalTable_meca_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - meca'})
-
-
-# Fuse all the previous tables
-GlobalTable_CountAll = pd.concat([GlobalTable_ctField_CountCell, GlobalTable_meca_CountCell, GlobalTable_meca_CountComp, GlobalTable_meca_CountCompOK], axis=1)
-GlobalTable_CountAll = GlobalTable_CountAll.fillna(0)
-GlobalTable_CountAll = GlobalTable_CountAll.loc[:,:].astype(int)
-GlobalTable_CountAll
-
-
-# %%%%
-
-
-# Experiment counter - Python table
-
-# count ct field cells
-cellID = 'cellID'
-GlobalTable_ctField_CountCell = GlobalTable_ctField.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_ctField_CountCell = GlobalTable_ctField_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - ctField'})
-
-# count meca compressions
-cellID = 'cellID'
-GlobalTable_meca_CountComp = GlobalTable_meca_Py.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountComp = GlobalTable_meca_CountComp.loc[:, [cellID]].rename(columns={cellID : 'Count compressions'})
-
-# count valid meca compressions
-cellID = 'cellID'
-GlobalTable_meca_CountCompOK = GlobalTable_meca_Py[GlobalTable_meca_Py['validatedFit'] == True].groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCompOK = GlobalTable_meca_CountCompOK.loc[:, [cellID]].rename(columns={cellID : 'Count OK compressions'})
-
-# count meca cells
-cellID = 'cellID'
-group = GlobalTable_meca_Py.groupby(cellID)
-dictAggMean = getDictAggMean(GlobalTable_meca_Py)
-GlobalTable_meca_perCell = group.agg(dictAggMean)
-GlobalTable_meca_CountCell = GlobalTable_meca_perCell.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCell = GlobalTable_meca_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - meca'})
-
-
-# Fuse all the previous tables
-GlobalTable_CountAll = pd.concat([GlobalTable_ctField_CountCell, GlobalTable_meca_CountCell, GlobalTable_meca_CountComp, GlobalTable_meca_CountCompOK], axis=1)
-GlobalTable_CountAll = GlobalTable_CountAll.fillna(0)
-GlobalTable_CountAll = GlobalTable_CountAll.loc[:,:].astype(int)
-GlobalTable_CountAll
-
-
-# %%%% Experiment counter - Python table 2
-
-
-# 
-
-
-# count ct field cells
-cellID = 'cellID'
-GlobalTable_ctField_CountCell = GlobalTable_ctField.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_ctField_CountCell = GlobalTable_ctField_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - ctField'})
-
-# count meca compressions
-cellID = 'cellID'
-GlobalTable_meca_CountComp = GlobalTable_meca_Py2.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountComp = GlobalTable_meca_CountComp.loc[:, [cellID]].rename(columns={cellID : 'Count compressions'})
-
-# count valid meca compressions
-cellID = 'cellID'
-GlobalTable_meca_CountCompOK = GlobalTable_meca_Py2[GlobalTable_meca_Py2['validatedFit'] == True].groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCompOK = GlobalTable_meca_CountCompOK.loc[:, [cellID]].rename(columns={cellID : 'Count OK compressions'})
-
-# count meca cells
-cellID = 'cellID'
-group = GlobalTable_meca_Py2.groupby(cellID)
-dictAggMean = getDictAggMean(GlobalTable_meca_Py2)
-GlobalTable_meca_perCell = group.agg(dictAggMean)
-GlobalTable_meca_CountCell = GlobalTable_meca_perCell.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCell = GlobalTable_meca_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - meca'})
-
-
-# Fuse all the previous tables
-GlobalTable_CountAll = pd.concat([GlobalTable_ctField_CountCell, GlobalTable_meca_CountCell, GlobalTable_meca_CountComp, GlobalTable_meca_CountCompOK], axis=1)
-GlobalTable_CountAll = GlobalTable_CountAll.fillna(0)
-GlobalTable_CountAll = GlobalTable_CountAll.loc[:,:].astype(int)
-GlobalTable_CountAll
-
-# %%%% Experiment counter
-
-
-# Experiment counter - Python table 2
-cellID = 'cellID'
-data = GlobalTable_meca_Py2
-
-data_f = data[data['date'].apply(lambda x : x in ['21-12-08', '22-01-12'])]
-
-# count meca compressions
-
-GlobalTable_meca_CountComp = data_f.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountComp = GlobalTable_meca_CountComp.loc[:, [cellID]].rename(columns={cellID : 'Count compressions'})
-
-# count valid meca compressions
-
-GlobalTable_meca_CountCompOK = data_f[data_f['validatedThickness'] == True].groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCompOK = GlobalTable_meca_CountCompOK.loc[:, [cellID]].rename(columns={cellID : 'Count OK compressions'})
-
-# count meca cells
-
-group = data_f.groupby(cellID)
-dictAggMean = getDictAggMean(data_f)
-GlobalTable_meca_perCell = group.agg(dictAggMean)
-GlobalTable_meca_CountCell = GlobalTable_meca_perCell.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCell = GlobalTable_meca_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - meca'})
-
-
-# Fuse all the previous tables
-GlobalTable_CountAll = pd.concat([GlobalTable_meca_CountCell, GlobalTable_meca_CountComp, GlobalTable_meca_CountCompOK], axis=1)
-GlobalTable_CountAll = GlobalTable_CountAll.fillna(0)
-GlobalTable_CountAll = GlobalTable_CountAll.loc[:,:].astype(int)
-GlobalTable_CountAll
-
-
-# %%%%
-
-
-# Filters = [(GlobalTable_meca_Py['validatedFit'] == True), (GlobalTable_meca_Py['validatedThickness'] == True), (GlobalTable_meca_Py['cell subtype'] == 'aSFL-A8')]
-# GlobalTable_meca_PyF = GlobalTable_meca_Py
-# for fltr in Filters:
-#         GlobalTable_meca_PyF = GlobalTable_meca_PyF.loc[fltr]
-# # GlobalTable_mecaBis
-# cellID = 'cellID'
-# group = GlobalTable_meca_PyF.groupby(cellID)
-# dictAggMean = getDictAggMean(GlobalTable_meca_PyF)
-# GlobalTable_meca_PyF_perCell = group.agg(dictAggMean)
-# GlobalTable_meca_PyF_perCell
 
