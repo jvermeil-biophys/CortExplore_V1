@@ -69,9 +69,6 @@ plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
-
-
-
 # %% (1) Utility functions
 
 # NB: Please use this part of the code only for development purposes.
@@ -152,8 +149,6 @@ class PincherTimeLapse:
             self.dictBeadDiameters[self.beadTypes[k]] = self.beadDiameters[k]
 
         self.microscope = manipDict['microscope']
-
-         
 
 
         loopStruct = manipDict['loop structure'].split('_')
