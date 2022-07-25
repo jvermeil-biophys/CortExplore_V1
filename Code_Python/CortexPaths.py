@@ -19,33 +19,37 @@ COMPUTERNAME = os.environ['COMPUTERNAME']
 # 1.1 Init main directories
 
 if COMPUTERNAME == 'ORDI-JOSEPH':
+    suffix = '_JV'
     DirRepo = "C://Users//JosephVermeil//Desktop//CortExplore"
     DirData = "D://MagneticPincherData"
-    DirCloud = "C://Users//JosephVermeil//ownCloud//MagneticPincherData_JV"
+    DirCloud = "C://Users//JosephVermeil//ownCloud//MagneticPincherData" + suffix
     DirTempPlots = "C://Users//JosephVermeil//Desktop//TempPlots"
     CloudSaving = 'OwnCloud'
     
     
 elif COMPUTERNAME == 'LARISA':
+    suffix = '_JV'
     DirRepo = "C://Users//Joseph//Desktop//CortExplore"
     DirData = "F://JosephVermeil//MagneticPincherData"
-    DirCloud = "C://Users//Joseph//ownCloud//MagneticPincherData_JV"
+    DirCloud = "C://Users//Joseph//ownCloud//MagneticPincherData" + suffix
     DirTempPlots = 'C://Users//Joseph//Desktop//TempPlots'
     CloudSaving = 'OwnCloud'
     
     
 elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
+    suffix = '_AJ'
     DirRepo = "C://Users//anumi//OneDrive//Desktop//CortExplore"
     DirData = "D:/Anumita/MagneticPincherData"
-    DirCloud = ""
+    DirCloud = ""# + suffix
     DirTempPlots = 'C://Users//anumi//OneDrive//Desktop//TempPlots'
     CloudSaving = ''
     
     
 elif COMPUTERNAME =='DATA2JHODR':
+    suffix = '_DB'
     DirRepo = "C://Users//BioMecaCell//Desktop//CortExplore"
     DirData = "D:/Anumita/MagneticPincherData"
-    DirCloud = ""
+    DirCloud = ""# + suffix
     DirTempPlots = 'C://Users//BioMecaCell//Desktop//TempPlots'
     CloudSaving = ''
     
@@ -53,13 +57,14 @@ elif COMPUTERNAME =='DATA2JHODR':
 # 1.2 Init sub directories
 
 DirRepoPython = os.path.join(DirRepo, "Code_Python")
-DirRepoExp = os.path.join(DirRepo, ".Data_Experimental")
+DirRepoPythonPerso = os.path.join(DirRepoPython, "Code" + suffix)
+DirRepoExp = os.path.join(DirRepo, "Data_Experimental")
 
 DirDataRaw = os.path.join(DirData, "Raw")
 DirDataRawDeptho = os.path.join(DirDataRaw, 'DepthoLibrary')
 DirDataRawDepthoInter = os.path.join(DirDataRawDeptho, 'IntermediateSteps')
 
-DirDataExp = os.path.join(DirData, "Data_Experimental")
+# DirDataExp = os.path.join(DirData, "Data_Experimental")
 
 DirDataAnalysis = os.path.join(DirData, "Data_Analysis")
 DirDataTimeseries = os.path.join(DirDataAnalysis, "Data_Timeseries")
@@ -86,16 +91,19 @@ sys.path.append(DirRepoPython)
 # %% 2. Useful functions
 
 MainDirs = [DirRepo, DirData, DirTempPlots]
-RepoSubdirs = [DirRepoPython, DirRepoExp]
-DataSubdirs = [DirDataRaw, DirDataExp, DirDataAnalysis, DirDataFig,
+RepoSubdirs = [DirRepoPython, DirRepoPythonPerso, DirRepoExp]
+DataSubdirs = [DirDataRaw, DirDataAnalysis, DirDataFig,
                DirDataTimeseries, DirDataTimeseriesTraj, DirDataTimeseriesRawtraj]
-CloudDirs = [DirCloud, DirCloudExp, DirCloudFig, DirCloudAnalysis, DirCloudTimeseries]
+
+if not CloudSaving == '':
+    CloudDirs = [DirCloud, DirCloudExp, DirCloudFig, DirCloudAnalysis, DirCloudTimeseries]
 
 
 def checkDirArchi():
     valid_main = True
     for p in MainDirs:
         if not os.path.exists(p):
+            print(p)
             valid_main = False
     
     if not valid_main:
@@ -103,8 +111,10 @@ def checkDirArchi():
         
     else:
         valid_repo, valid_data, valid_cloud = True, True, True
+        
         for p in RepoSubdirs:
             if not os.path.exists(p):
+                print(p)
                 valid_repo = False
         if not valid_repo:
             print('One of the repository sub-directories is missing')
@@ -118,6 +128,7 @@ def checkDirArchi():
         if not CloudSaving == '':
             for p in CloudDirs:
                 if not os.path.exists(p):
+                    print(p)
                     valid_cloud = False
         if not valid_cloud:
             print('One of the cloud sub-directories is missing')
@@ -134,18 +145,6 @@ def makeDirArchi():
     for p in RepoSubdirs:
         if not os.path.exists(p):
             os.makedirs(p)
-    
-    if os.path.exists(DirRepoExp):
-        FILE_ATTRIBUTE_HIDDEN = 0x02
-        ret = ctypes.windll.kernel32.SetFileAttributesW(DirRepoExp, FILE_ATTRIBUTE_HIDDEN)
-    
-    warningRepoExp = os.path.join(DirRepoExp, 'Warning.txt')
-    if not os.path.exists(warningRepoExp):
-        f = open(warningRepoExp, "w")
-        text = 'WARNING\nDo not modify this file. It is for consultation only.\n'
-        text += 'For the modifiable version go to: ' + DirDataExp
-        f.write(text)
-        f.close()
             
     for p in DataSubdirs:
         if not os.path.exists(p):
@@ -160,7 +159,7 @@ def makeDirArchi():
         if not os.path.exists(warningCloudExp):
             f = open(warningCloudExp, "w")
             text = 'WARNING\nDo not modify this file. It is for consultation only.\n'
-            text += 'For the modifiable version go to: ' + DirDataExp
+            text += 'For the modifiable version go to: ' + DirRepoExp
             f.write(text)
             f.close()
 

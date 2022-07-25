@@ -17,6 +17,7 @@ import statsmodels.api as sm
 import os
 import re
 import time
+import shutil
 import pyautogui
 import matplotlib
 import traceback
@@ -67,6 +68,31 @@ dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}')
 
 # %% (1) Utility functions
 
+def copyFile(DirSrc, DirDst, filename):
+    """
+    Copy the file 'filename' from 'DirSrc' to 'DirDst'
+    """
+    PathSrc = os.path.join(DirSrc, filename)
+    PathDst = os.path.join(DirDst, filename)
+    shutil.copyfile(PathSrc, PathDst)
+    
+def copyFilesWithString(DirSrc, DirDst, stringInName):
+    """
+    Copy all the files from 'DirSrc' which names contains 'stringInName' to 'DirDst'
+    """
+    SrcFilesList = os.listdir(DirSrc)
+    for SrcFile in SrcFilesList:
+        if stringInName in SrcFile:
+            copyFile(DirSrc, DirDst, SrcFile)
+            
+def containsFilesWithExt(Dir, ext):
+    answer = False
+    FilesList = os.listdir(Dir)
+    for File in FilesList:
+        if File.endswith(ext):
+            answer = True
+    return(answer)
+
 
 def findActivation(fieldDf):
     maxZidx = fieldDf['Z'].argmax() #Finding the index of the max Z
@@ -74,7 +100,7 @@ def findActivation(fieldDf):
     return(maxZidx, maxZ)
     
 
-def getExperimentalConditions(DirDataExp = cp.DirDataExp, save = False, sep = ';', suffix = ''):
+def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', suffix = ''):
     """
     Import the table with all the conditions in a clean way.
     It is a tedious function to read because it's doing a boring job:
@@ -90,7 +116,7 @@ def getExperimentalConditions(DirDataExp = cp.DirDataExp, save = False, sep = ';
     else:
         experimentalDataFile = 'ExperimentalConditions' + suffix + '.csv'
         
-    experimentalDataFilePath = os.path.join(DirDataExp, experimentalDataFile)
+    experimentalDataFilePath = os.path.join(DirExp, experimentalDataFile)
     expDf = pd.read_csv(experimentalDataFilePath, sep=sep, header=0)
     print(gs.BLUE + 'Importing Experimental Conditions' + gs.NORMAL)
     print(gs.BLUE + 'Extracted a table with ' + str(expDf.shape[0]) + ' lines and ' + str(expDf.shape[1]) + ' columns' + gs.NORMAL)
@@ -160,11 +186,8 @@ def getExperimentalConditions(DirDataExp = cp.DirDataExp, save = False, sep = ';
     if save:
         saveName = 'ExperimentalConditions' + suffix + '.csv'
         
-        savePath_data = os.path.join(DirDataExp, saveName)
+        savePath_data = os.path.join(DirExp, saveName)
         expDf.to_csv(savePath_data, sep=sep)
-        
-        savePath_repo = os.path.join(cp.DirRepoExp, saveName)
-        expDf.to_csv(savePath_repo, sep=sep)
         
         if not cp.CloudSaving == '':
             savePath_cloud = os.path.join(cp.DirCloudExp, saveName)
