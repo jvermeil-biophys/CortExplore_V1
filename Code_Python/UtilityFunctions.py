@@ -2,7 +2,7 @@
 """
 Created on Tue Mar  1 11:21:02 2022
 
-@author: JosephVermeil
+@authors: Joseph Vermeil, Anumita Jawahar
 """
 
 # %% (0) Imports and settings
