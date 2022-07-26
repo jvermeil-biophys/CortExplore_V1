@@ -2,7 +2,7 @@
 """
 Created on Wed Jan 19 13:07:45 2022
 
-@author: JosephVermeil
+@author: JosephVermeil & AnumitaJawahar
 """
 
 # %% (0) Imports and settings
@@ -60,8 +60,9 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 ####
 
 dictSubstrates = {}
-for i in range(0,105,5):
+for i in range(5,105,5):
     dictSubstrates['disc' + str(i) + 'um'] = str(i) + 'um fibronectin discs'
+    dictSubstrates['disc{:02.0f}um'.format(i)] = str(i) + 'um fibronectin discs'
 
                
                     

@@ -19,13 +19,10 @@ import time
 import pyautogui
 import matplotlib
 import traceback
-# import cv2
 
-# import scipy
 from scipy import interpolate
 from scipy import signal
 
-# import skimage
 from skimage import io, filters, exposure, measure, transform, util, color
 from scipy.signal import find_peaks, savgol_filter
 from scipy.optimize import linear_sum_assignment
@@ -48,32 +45,15 @@ import UtilityFunctions as ufun
 pd.set_option('mode.chained_assignment', None)
 
 # 3. Plot settings
-# Here we use this mode because displaying images
-# in new windows is more convenient for this code.
-# %matplotlib qt 
-# matplotlib.use('Qt5Agg')
-# To switch back to inline display, use : 
-# %matplotlib widget or %matplotlib inline
-# matplotlib.rcParams.update({'figure.autolayout': True})
+gs.set_default_options_jv()
 
-SMALLER_SIZE = 8
-SMALL_SIZE = 12
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 20
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
 # %% (1) Utility functions
 
 # NB: Please use this part of the code only for development purposes.
 # Once a utility function have been successfully tried & tested, 
-# please copy it in a "utilityFunctions_##.py" file.
+# please copy it in the "UtilityFunctions.py" file (imported as ufun, cause it's fun).
 
 
 # %% (2) Tracker classes
@@ -1926,9 +1906,14 @@ class Trajectory:
 
 # %%%% Main
 
-def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, timeSeriesDataDir,
-                dates, manips, wells, cells, depthoNames, expDf, NB = 2,
-                sourceField = 'default', redoAllSteps = False, MatlabStyle = False, trackAll = False):
+def mainTracker(dates, manips, wells, cells, depthoNames, expDf, NB = 2,
+                sourceField = 'default', redoAllSteps = False, MatlabStyle = False, trackAll = False,
+                DirData = cp.DirData, 
+                DirDataRaw = cp.DirDataRaw, 
+                DirDataRawDeptho = cp.DirDataRawDeptho, 
+                DirDataTimeseries = cp.DirDataTimeseries,
+                CloudSaving = cp.CloudSaving,
+                DirCloudTimeseries = cp.DirCloudTimeseries):
     
     start = time.time()
 
@@ -1938,9 +1923,9 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
     imagesToAnalyse = []
     imagesToAnalyse_Paths = []
     if not isinstance(dates, str):
-        rawDirList = [os.path.join(rawDataDir, d) for d in dates]
+        rawDirList = [os.path.join(DirDataRaw, d) for d in dates]
     else:
-        rawDirList = [os.path.join(rawDataDir, dates)]
+        rawDirList = [os.path.join(DirDataRaw, dates)]
     for rd in rawDirList:
         fileList = os.listdir(rd)
         for f in fileList:
@@ -2010,7 +1995,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
         #### 0.7 - Detect fluo & black images
         current_date = ufun.findInfosInFileName(f, 'date')
         current_date = current_date.replace("-", ".")
-        fluoDirPath = os.path.join(rawDataDir, current_date + '_Fluo', f[:-4])
+        fluoDirPath = os.path.join(DirDataRaw, current_date + '_Fluo', f[:-4])
 
         PTL.checkIfBlackFrames()
         PTL.saveFluoAside(fluoDirPath, f)
@@ -2093,7 +2078,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
         Tt = time.time()
 
         #### 2.1 - Check if some trajectories exist already
-        trajDirRaw = os.path.join(timeSeriesDataDir, 'Trajectories_raw')
+        trajDirRaw = os.path.join(DirDataTimeseries, 'Trajectories_raw')
         trajFilesExist_global = False
         trajFilesImported = False
         trajFilesExist_sum = 0
@@ -2191,7 +2176,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
         HDZfactor = PTL.listTrajectories[0].HDZfactor
         
         if len(PTL.beadTypes) == 1:
-            depthoPath = os.path.join(depthoDir, depthoNames)
+            depthoPath = os.path.join(DirDataRawDeptho, depthoNames)
 #             depthoExist = os.path.exists(depthoPath+'_Deptho.tif')
             deptho = io.imread(depthoPath+'_Deptho.tif')
             depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
@@ -2222,7 +2207,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
 
         if len(PTL.beadTypes) > 1:
             for dN in depthoNames:
-                depthoPath = os.path.join(depthoDir, dN)
+                depthoPath = os.path.join(DirDataRawDeptho, dN)
                 deptho = io.imread(depthoPath+'_Deptho.tif')
                 depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
                 depthoStep = depthoMetadata.loc[0,'step']
@@ -2278,7 +2263,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
             for iB in range(PTL.NB):
                 traj = PTL.listTrajectories[iB]
                 traj_df = pd.DataFrame(traj.dict)
-                trajPathRaw = os.path.join(timeSeriesDataDir, 'Trajectories_raw', f[:-4] + '_rawTraj' + str(iB) + '_' + traj.beadInOut + '_PY.csv')
+                trajPathRaw = os.path.join(DirDataTimeseries, 'Trajectories_raw', f[:-4] + '_rawTraj' + str(iB) + '_' + traj.beadInOut + '_PY.csv')
                 traj_df.to_csv(trajPathRaw, sep = '\t', index = False)
 
         #### 4.4 - Keep only the best std data in the trajectories
@@ -2291,7 +2276,7 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
             for iB in range(PTL.NB):
                 traj = PTL.listTrajectories[iB]
                 traj_df = pd.DataFrame(traj.dict)
-                trajPath = os.path.join(timeSeriesDataDir, 'Trajectories', f[:-4] + '_traj' + str(iB) + '_' + traj.beadInOut + '_PY.csv')
+                trajPath = os.path.join(DirDataTimeseries, 'Trajectories', f[:-4] + '_traj' + str(iB) + '_' + traj.beadInOut + '_PY.csv')
                 traj_df.to_csv(trajPath, sep = '\t', index = False)
                 
                 # save in ownCloud
@@ -2373,19 +2358,18 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
         #### 7.1 - Save the tables !
         if PTL.NB == 2:
             timeSeries_DF = pd.DataFrame(timeSeries)
-            timeSeriesFilePath = os.path.join(timeSeriesDataDir, f[:-4] + '_PY.csv')
+            timeSeriesFilePath = os.path.join(DirDataTimeseries, f[:-4] + '_PY.csv')
             timeSeries_DF.to_csv(timeSeriesFilePath, sep = ';', index=False)
             
-            # if ownCloud_timeSeriesDataDir != '':
-            #     OC_timeSeriesFilePath = os.path.join(ownCloud_timeSeriesDataDir, f[:-4] + '_PY.csv')
-            #     timeSeries_DF.to_csv(OC_timeSeriesFilePath, sep = ';', index=False)
+            if CloudSaving != '':
+                CloudTimeSeriesFilePath = os.path.join(DirCloudTimeseries, f[:-4] + '_PY.csv')
+                timeSeries_DF.to_csv(CloudTimeSeriesFilePath, sep = ';', index=False)
     
     print(gs.BLUE + '\nTotal time:' + gs.NORMAL)
     print(gs.BLUE + str(time.time()-start) + gs.NORMAL)
     print(gs.BLUE + '\n' + gs.NORMAL)
 
     plt.close('all')
-
 
 
         #### 7.2 - Return the last objects, for optional verifications
@@ -2397,6 +2381,128 @@ def mainTracker(mainDataDir, rawDataDir, depthoDir, interDataDir, figureDir, tim
 
 
 # %%%% Stand-alone functions
+
+# Tracker stand-Alone Functions
+
+# 1. XYZtracking do the tracking on any image, given
+def XYZtracking(I, cellID, NB, manipDict, depthoDir, depthoNames):
+
+    PTL = PincherTimeLapse(I, cellID, manipDict, NB = NB)
+    PTL.determineFramesStatus_R40()
+    PTL.uiThresholding(method = 'max_entropy', factorT = 1)#, increment = 0.05)
+    PTL.makeFramesList()
+    PTL.detectBeads(resFileImported = False, display = 1)
+    issue = PTL.buildTrajectories()
+    XYZtracking_assignBeadSizes(PTL)
+    for iB in range(PTL.NB):
+        traj = PTL.listTrajectories[iB]
+        beadType = ''
+        if len(PTL.beadTypes) == 1:
+            beadType = PTL.beadTypes[0] # M270 or M450
+        else:
+            beadType = 'detect'
+        traj.detectNeighbours(frequency = PTL.loop_mainSize, beadType = beadType)
+    XYZtracking_computeZ(PTL, depthoDir, depthoNames, plot = 1)
+    return(PTL)
+
+# Subfuctions of XYZtracking
+def XYZtracking_assignBeadSizes(PTL):
+    if len(PTL.beadTypes) == 1:
+            if 'M450' in PTL.beadTypes[0]:
+                D = 4.5
+            elif 'M270' in PTL.beadTypes[0]:
+                D = 2.7
+            for B in PTL.listFrames[0].listBeads:
+                B.D = D
+    else:
+        PTL.listFrames[0].detectDiameter(plot = 0)
+
+    # Propagate it across the trajectories
+    for iB in range(PTL.NB):
+        traj = PTL.listTrajectories[iB]
+        B0 = traj.dict['Bead'][0]
+        D = B0.D
+        traj.D = D
+        for B in traj.dict['Bead']:
+            B.D = D
+
+def XYZtracking_computeZ(PTL, depthoDir, depthoNames, plot = 0):
+    HDZfactor = 10
+    if len(PTL.beadTypes) == 1:
+        depthoPath = os.path.join(depthoDir, depthoNames)
+#             depthoExist = os.path.exists(depthoPath+'_Deptho.tif')
+        deptho = io.imread(depthoPath+'_Deptho.tif')
+        depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
+        depthoStep = depthoMetadata.loc[0,'step']
+        depthoZFocus = depthoMetadata.loc[0,'focus']
+
+        # increase the resolution of the deptho with interpolation
+        nX, nZ = deptho.shape[1], deptho.shape[0]
+        XX, ZZ = np.arange(0, nX, 1), np.arange(0, nZ, 1)
+        fd = interpolate.interp2d(XX, ZZ, deptho, kind='cubic')
+        ZZ_HD = np.arange(0, nZ, 1/HDZfactor)
+        depthoHD = fd(XX, ZZ_HD)
+        depthoStepHD = depthoStep/HDZfactor
+        depthoZFocusHD = depthoZFocus*HDZfactor
+        #
+        for iB in range(PTL.NB):
+            traj = PTL.listTrajectories[iB]
+            traj.deptho = depthoHD
+            traj.depthoPath = depthoPath
+            traj.depthoStep = depthoStepHD
+            traj.depthoZFocus = depthoZFocusHD
+            plt.imshow(depthoHD)
+
+    if len(PTL.beadTypes) > 1:
+        for dN in depthoNames:
+            depthoPath = os.path.join(depthoDir, dN)
+            deptho = io.imread(depthoPath+'_Deptho.tif')
+            depthoMetadata = pd.read_csv(depthoPath+'_Metadata.csv', sep=';')
+            depthoStep = depthoMetadata.loc[0,'step']
+            depthoZFocus = depthoMetadata.loc[0,'focus']
+
+            # increase the resolution of the deptho with interpolation
+            nX, nZ = deptho.shape[1], deptho.shape[0]
+            XX, ZZ = np.arange(0, nX, 1), np.arange(0, nZ, 1)
+            fd = interpolate.interp2d(XX, ZZ, deptho, kind='cubic')
+            ZZ_HD = np.arange(0, nZ, 1/HDZfactor)
+            depthoHD = fd(XX, ZZ_HD)
+            depthoStepHD = depthoStep/HDZfactor
+            depthoZFocusHD = depthoZFocus*HDZfactor
+            #
+            if 'M450' in dN:
+                depthoD = 4.5
+            elif 'M270' in dN:
+                depthoD = 2.7
+            for iB in range(PTL.NB):
+                traj = PTL.listTrajectories[iB]
+                if traj.D == depthoD:
+                    traj.deptho = depthoHD
+                    traj.depthoPath = depthoPath
+                    traj.depthoStep = depthoStepHD
+                    traj.depthoZFocus = depthoZFocusHD
+
+    # Compute z for each traj
+    matchingDirection = 'downward'
+
+    for iB in range(PTL.NB):
+        np.set_printoptions(threshold=np.inf)
+
+        print('Computing Z in traj  {:.0f}...'.format(iB+1))
+
+        Tz = time.time()
+        traj = PTL.listTrajectories[iB]
+        traj.computeZ(matchingDirection, plot)
+        print('OK! dT = {:.3f}'.format(time.time()-Tz))
+
+    # Keep only the best std data in the trajectories
+    for iB in range(PTL.NB):
+        print('Picking the images with the best StdDev in traj  {:.0f}...'.format(iB+1))
+
+        Tstd = time.time()
+        traj = PTL.listTrajectories[iB]
+        traj.keepBestStdOnly()
+        print('OK! dT = {:.3f}'.format(time.time()-Tstd))
 
 
 

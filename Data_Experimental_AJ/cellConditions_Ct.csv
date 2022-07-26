@@ -1,0 +1,13 @@
+cellID,blebCondition,phenotype,excluded,comments
+22-07-13_M1_P1_C1_disc20um,none,3mT,yes,
+22-07-13_M1_P1_C2_disc20um,none,3mT,yes,
+22-07-13_M1_P1_C3_disc20um,none,3mT,yes,Field too low and the bead stuck to the cell surface makes them move very far apart in Z and therefore makes it negative at the end.
+22-07-13_M1_P1_C5_disc20um,none,3mT,yes,
+22-07-13_M1_P2_C3_disc20um,none,3mT,no,
+22-07-13_M2_P1_C5_disc20um,none,7mT,yes,
+22-07-13_M2_P1_C1_disc20um,none,7mT,yes,
+22-07-13_M2_P2_C1_disc20um,none,7mT,yes,
+22-07-13_M2_P2_C3_disc20um,none,7mT,no,
+22-07-13_M3_P1_C2_disc20um,none,15mT,yes,
+22-07-13_M3_P2_C1_disc20um,none,15mT,yes,
+22-07-13_M3_P2_C3_disc20um,none,15mT,no,

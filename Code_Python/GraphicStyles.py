@@ -2,7 +2,7 @@
 """
 Created on Tue Jul 19 11:52:35 2022
 
-@author: JosephVermeil
+@author: Joseph Vermeil
 """
 
 # %% 0. Imports
@@ -20,11 +20,13 @@ from cycler import cycler
 
 
 
-# %% 1. Markers
+# %% 1. Useful styles
+
+# %%% 1.1 Markers
 my_default_marker_list = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
 markerList10 = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
 
-# %% 2. Colors
+# %%% 1.2 Colors
 
 # prop_cycle = plt.rcParams['axes.prop_cycle']
 # colors = prop_cycle.by_key()['color']
@@ -80,57 +82,36 @@ for ii in range(3, -1, -1):
     customPalette_hex.append(bigPalette1_hex[4*1 + ii]) # yellow-green
     customPalette_hex.append(bigPalette2_hex[4*4 + ii]) # gray
     
-
-# customPalette = sns.color_palette(customPalette_hex)
 colorList40 = customPalette_hex
 
-# TEST to get a darker list
-# colorList40_darker = []
-# for i in range(len(colorList40)):
-#     c = colorList40[i]
-#     print(c)
-#     c_darker = jvu.lighten_color(c, 1.25)
-#     colorList40_darker.append(c_darker)
-
-# colorList40_darker = colorList40_darker.as_hex()
-
-#### Test the colors
-
-# N = len(my_default_marker_list)
-# X = np.arange(1, N+1)
-# Y = np.arange(1, N+1)
-# fig, ax = plt.subplots(1, 1, figsize = (3, 3))
-# for i in range(N):
-#     for j in range(N):
-#         ax.plot([X[i]], [Y[-1-j]], color = my_default_color_list[i], marker = my_default_marker_list[j], 
-#                 ls = '', markersize = 10, markeredgecolor = 'k')
-# ax.set_xticks([])
-# ax.set_yticks([])
-# ax.set_xticklabels([])
-# ax.set_yticklabels([])
-# plt.show()
+# %%% 1.3 Tester
 
 def colorTester():
-    N = len(colorList40)
-    M = len(markerList10)
-    X = np.arange(1, N+1)
-    Y = np.arange(1, M+1)
-    fig, ax = plt.subplots(1, 1, figsize = (0.3*N, 0.3*M))
+    colorList = colorList40
+    markerList = markerList10
+    N = len(colorList)
+    M = len(markerList)
+    X = np.arange(0, N)
+    Y = np.arange(0, M)
+    fig, ax = plt.subplots(1, 1, figsize = (0.4*N, 0.4*M))
     for i in range(N):
         for j in range(M):
-            ax.plot([X[i]], [Y[-1-j]], color = colorList40[i], marker = markerList10[j], 
+            ax.plot([X[i]], [Y[-1-j]], color = colorList[i], marker = markerList[j], 
                     ls = '', markersize = 10, markeredgecolor = 'k')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
+    ax.set_xticks([i for i in range(N)])
+    ax.set_yticks([j for j in range(M)])
+    ax.set_xticklabels([i for i in range(N)])
+    ax.set_yticklabels([j for j in range(M)])
+    ax.set_xlabel('colorList')
+    ax.set_ylabel('markerList')
+    plt.tight_layout()
     plt.show()
+    
+colorTester()
 
-# %% 3. Global constants
+# %% 2. Global constants
 
-
-
-#### Console text styles
+# %%% 2.1 Console text styles
 
 NORMAL  = '\033[1;0m'
 RED  = '\033[0;31m' # red
@@ -141,9 +122,9 @@ CYAN  = '\033[1;36m' # blue
 YELLOW = '\033[1;33m' # yellow
 PURPLE = '\033[1;35m' # purple
 
-#### Test the styles
+# %%% 2.2 Tester
 
-def printTester01():
+def consoleTextTester_01():
     print(NORMAL + 'normal' + NORMAL)
     print(RED + 'nothing rhyme with red' + NORMAL)
     print(ORANGE + 'nothing rhyme with orange' + NORMAL)
@@ -155,7 +136,7 @@ def printTester01():
     print('\n')
 
 
-def printTester02():
+def consoleTextTester_02():
     print("\033[0;37;48m Normal text\n")
     print("\033[2;37;48m Underlined text\033[0;37;48m \n")
     print("\033[1;37;48m Bright Colour\033[0;37;48m \n")
@@ -172,7 +153,25 @@ def printTester02():
     print("\033[1;37;40m White          \033[0m 1;37;40m            \033[0;37;40m Light Grey \033[0m 0;37;40m               \033[0;37;48m Black      \033[0m 0;37;48m")
     print("\n")
     
+consoleTextTester_01()
+consoleTextTester_02()
     
     
     
-    
+# %% 3. Set default graphic options
+
+SMALLER_SIZE = 8
+SMALL_SIZE = 12
+MEDIUM_SIZE = 16
+BIGGER_SIZE = 20
+
+def set_default_options_jv():
+    plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+    plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+
+set_default_options_jv()    

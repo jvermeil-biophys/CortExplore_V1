@@ -40,6 +40,7 @@ elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
     suffix = '_AJ'
     DirRepo = "C://Users//anumi//OneDrive//Desktop//CortExplore"
     DirData = "D:/Anumita/MagneticPincherData"
+    #### TBC !!!
     DirCloud = ""# + suffix
     DirTempPlots = 'C://Users//anumi//OneDrive//Desktop//TempPlots'
     CloudSaving = ''
@@ -57,8 +58,8 @@ elif COMPUTERNAME =='DATA2JHODR':
 # 1.2 Init sub directories
 
 DirRepoPython = os.path.join(DirRepo, "Code_Python")
-DirRepoPythonPerso = os.path.join(DirRepoPython, "Code" + suffix)
-DirRepoExp = os.path.join(DirRepo, "Data_Experimental")
+DirRepoPythonUser = os.path.join(DirRepoPython, "Code" + suffix)
+DirRepoExp = os.path.join(DirRepo, "Data_Experimental" + suffix)
 
 DirDataRaw = os.path.join(DirData, "Raw")
 DirDataRawDeptho = os.path.join(DirDataRaw, 'DepthoLibrary')
@@ -67,7 +68,7 @@ DirDataRawDepthoInter = os.path.join(DirDataRawDeptho, 'IntermediateSteps')
 # DirDataExp = os.path.join(DirData, "Data_Experimental")
 
 DirDataAnalysis = os.path.join(DirData, "Data_Analysis")
-DirDataTimeseries = os.path.join(DirDataAnalysis, "Data_Timeseries")
+DirDataTimeseries = os.path.join(DirData, "Data_TimeSeries")
 DirDataTimeseriesRawtraj = os.path.join(DirDataTimeseries, "Trajectories_raw")
 DirDataTimeseriesTraj = os.path.join(DirDataTimeseries, "Trajectories")
 
@@ -81,7 +82,7 @@ if not CloudSaving == '':
     DirCloudFig = os.path.join(DirCloud, "Figures")
     DirCloudFigToday = os.path.join(DirCloudFig, "Historique", str(date.today()))
 else:
-    DirCloudExp, DirCloudFig, DirCloudFigToday = "", "", ""
+    DirCloudExp, DirCloudAnalysis, DirCloudTimeseries, DirCloudFig, DirCloudFigToday = "", "", "", "", ""
 
 # 1.3 Add python directory to path
 
@@ -91,7 +92,7 @@ sys.path.append(DirRepoPython)
 # %% 2. Useful functions
 
 MainDirs = [DirRepo, DirData, DirTempPlots]
-RepoSubdirs = [DirRepoPython, DirRepoPythonPerso, DirRepoExp]
+RepoSubdirs = [DirRepoPython, DirRepoPythonUser, DirRepoExp]
 DataSubdirs = [DirDataRaw, DirDataAnalysis, DirDataFig,
                DirDataTimeseries, DirDataTimeseriesTraj, DirDataTimeseriesRawtraj]
 
@@ -100,6 +101,9 @@ if not CloudSaving == '':
 
 
 def checkDirArchi():
+    """
+    Check if the local file architecture is well defined and existing.
+    """
     valid_main = True
     for p in MainDirs:
         if not os.path.exists(p):
@@ -121,6 +125,7 @@ def checkDirArchi():
                 
         for p in DataSubdirs:
             if not os.path.exists(p):
+                print(p)
                 valid_repo = False
         if not valid_repo:
             print('One of the data sub-directories is missing')
@@ -137,7 +142,12 @@ def checkDirArchi():
         print('Directories architecture is correct !')
             
             
+            
+            
 def makeDirArchi():
+    """
+    Create all the folders missing to the file architecture on this computer.
+    """
     for p in MainDirs:
         if not os.path.exists(p):
             os.makedirs(p)

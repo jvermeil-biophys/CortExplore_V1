@@ -100,7 +100,7 @@ def findActivation(fieldDf):
     return(maxZidx, maxZ)
     
 
-def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', suffix = ''):
+def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', suffix = cp.suffix):
     """
     Import the table with all the conditions in a clean way.
     It is a tedious function to read because it's doing a boring job:
@@ -185,32 +185,32 @@ def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', s
     #### 2. Save the table, if required
     if save:
         saveName = 'ExperimentalConditions' + suffix + '.csv'
-        
-        savePath_data = os.path.join(DirExp, saveName)
-        expDf.to_csv(savePath_data, sep=sep)
+        savePath = os.path.join(DirExp, saveName)
+        expDf.to_csv(savePath, sep=sep, index = False)
         
         if not cp.CloudSaving == '':
             savePath_cloud = os.path.join(cp.DirCloudExp, saveName)
-            expDf.to_csv(savePath_cloud, sep=sep)
+            expDf.to_csv(savePath_cloud, sep=sep, index = False)
 
     #### 3. Generate additionnal field that won't be saved
     
-    def str2int(s):
-        try:
-            x = int(s)
-        except:
-            x = np.nan
-        return(x)
-    
-    def str2float(s):
-        try:
-            x = float(s)
-        except:
-            x = np.nan
-        return(x)
-    
     #### 3.1 Make 'manipID'
     expDf['manipID'] = expDf['date'] + '_' + expDf['manip']
+    
+    # def str2int(s):
+    #     try:
+    #         x = int(s)
+    #     except:
+    #         x = np.nan
+    #     return(x)
+    
+    # def str2float(s):
+    #     try:
+    #         x = float(s)
+    #     except:
+    #         x = np.nan
+    #     return(x)
+    
     
     # #### 3.2 Format 'bead diameter'
     # diameters = expDf.loc[:,'bead diameter'].apply(lambda x: str(x).split('_'))
@@ -394,31 +394,6 @@ def getDepthoCleanSize(D, scale):
     cleanSize = int(np.floor(1*D*scale))
     cleanSize += 1 + cleanSize%2
     return(cleanSize)
-
-def squareDistance_V0(M, V, normalize = False): # MAKE FASTER !!!
-    """
-    DEPRECATED BECAUSE TOO SLOW
-    Compute a distance between two arrays of the same size, defined as such:
-    D = integral of the squared difference between the two arrays.
-    It is used to compute the best fit of a slice of a bead profile on the depthograph.
-    This function speed is critical for the Z computation process because it is called so many times !
-    """
-    top = time.time()
-    n, m = M.shape[0], M.shape[1]
-    # len(V) should be m
-    result = np.zeros(n)
-    if normalize:
-        V = V/np.mean(V)
-    for i in range(n):
-        if normalize:
-            Mi = M[i,:]/np.mean(M[i,:])
-        else:
-            Mi = M[i,:]
-        d = np.sum((Mi-V)**2)
-        result[i] = d
-    print('DistanceCompTime')
-    print(time.time()-top)
-    return(result)
 
 def squareDistance(M, V, normalize = False): # MUCH FASTER ! **Michael Scott Voice** VERRRRY GOODE
     """
