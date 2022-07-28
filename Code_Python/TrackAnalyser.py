@@ -39,22 +39,12 @@ import UtilityFunctions as ufun
 
 # %%% Smaller settings
 
-pd.set_option('mode.chained_assignment',None)
+# Pandas settings
+pd.set_option('mode.chained_assignment', None)
 pd.set_option('display.max_columns', None)
 
-
-SMALLER_SIZE = 10
-SMALL_SIZE = 14
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 20
-
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+# Plot settings
+gs.set_default_options_jv()
 
 
 ####
@@ -70,12 +60,12 @@ for i in range(5,105,5):
 
 def getCellTimeSeriesData(cellID, fromPython = True):
     if fromPython:
-        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
+        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) 
+                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) 
                                   and f.endswith("PY.csv"))]
     else:
-        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
+        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) 
+                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) 
                                   and f.endswith(".csv") and not f.endswith("PY.csv"))]
     fileFound = False
     nFile = len(allTimeSeriesDataFiles)
@@ -83,7 +73,7 @@ def getCellTimeSeriesData(cellID, fromPython = True):
     while (not fileFound) and (iFile < nFile):
         f = allTimeSeriesDataFiles[iFile]
         if f.startswith(cellID + '_'):
-            timeSeriesDataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+            timeSeriesDataFilePath = os.path.join(cp.DirDataTimeseries, f)
             timeSeriesDataFrame = pd.read_csv(timeSeriesDataFilePath, sep=';')
             fileFound = True
         iFile += 1
@@ -120,7 +110,7 @@ def plotCellTimeSeriesData(cellID, fromPython = True):
     # plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
         
 def getCellTrajData(cellID, Ntraj = 2):
-    trajDir = os.path.join(cp.DirDataAnalysisTimeseries, 'Trajectories')
+    trajDir = os.path.join(cp.DirDataTimeseries, 'Trajectories')
     allTrajFiles = [f for f in os.listdir(trajDir) 
                     if (os.path.isfile(os.path.join(trajDir, f)) 
                         and f.endswith(".csv"))]
@@ -156,7 +146,7 @@ def getCellTrajData(cellID, Ntraj = 2):
     return(listTraj)
         
 def addExcludedCell(cellID, motive):
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'r')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'r')
     lines = f.readlines()
     nLines = len(lines)
     excludedCellsList = []
@@ -173,11 +163,11 @@ def addExcludedCell(cellID, motive):
         newlines = copy(lines)
         newlines.append('' + cellID + ',' + motive + '\n')
     f.close()
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'w')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'w')
     f.writelines(newlines)
     
 def getExcludedCells():
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'r')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'r')
     lines = f.readlines()
     nLines = len(lines)
     excludedCellsDict = {}
@@ -238,14 +228,14 @@ def createDataDict_ctField(list_ctFieldFiles):
     tableDict['duration'], tableDict['medianRawB'], tableDict['medianThickness'] = [], [], []
     tableDict['1stDThickness'], tableDict['9thDThickness'], tableDict['fluctuAmpli'] = [], [], []
     tableDict['R2_polyFit'], tableDict['validated'] = [], []
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
     for f in list_ctFieldFiles:
         split_f = f.split('_')
         tableDict['date'].append(split_f[0])
         tableDict['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
         tableDict['cellID'].append(split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3])
         tableDict['manipID'].append(split_f[0] + '_' + split_f[1])
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(cp.DirDataTimeseries, f)
         current_tsDf = pd.read_csv(tS_DataFilePath, ';')
         current_resultDict = analyseTimeSeries_ctField(f, current_tsDf, expDf)
         for k in current_resultDict.keys():
@@ -262,19 +252,19 @@ def createDataDict_ctField(list_ctFieldFiles):
 #     """
 #     top = time.time()
     
-# #     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-# #                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+# #     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+# #                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 # #                       and ('R40' in f))] # Change to allow different formats in the future
     
 #     suffixPython = '_PY'
 #     if source == 'Matlab':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#         list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 #                       and ('R40' in f) and not (suffixPython in f))]
         
 #     elif source == 'Python':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#         list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 #                       and (('R40' in f) or ('L40' in f)) and (suffixPython in f))]
 #         # print(list_mecaFiles)
 
@@ -289,21 +279,21 @@ def computeGlobalTable_ctField(task = 'fromScratch', fileName = 'Global_CtFieldD
     with the data analysed from those new files.
     > Else, having task= a date, a cellID or a manipID will create a globalTable with this source only.
     """
-    ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                                  if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+    ctFieldFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                                  if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                                       and ('thickness' in f))]
         
 #     print(ctFieldFiles)
 
     suffixPython = '_PY'
     if source == 'Matlab':
-        ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        ctFieldFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and ('thickness' in f) and not (suffixPython in f))]
         
     elif source == 'Python':
-        ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        ctFieldFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and ('thickness' in f) and (suffixPython in f))]
         # print(list_mecaFiles)
 
@@ -1650,7 +1640,7 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
     tableDict = {}
     Nfiles = len(list_mecaFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -1660,7 +1650,7 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     for c in listColumnsMeca:
         tableDict[c] = []
     for f in list_mecaFiles: #[:10]:
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(cp.DirDataTimeseries, f)
         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
          # MAIN SUBFUNCTION
         current_resultDict = analyseTimeSeries_meca(f, current_tsDF, expDf, 
@@ -1673,43 +1663,52 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     return(tableDict)
 
 
-def update_uiDf(ui_fileName, mecaDf):
+def update_uiDf(ui_fileSuffix, mecaDf):
     """
     """
     listColumnsUI = ['date','cellName','cellID','manipID','compNum',
                      'UI_Valid','UI_Comments']
-
-    try:
-        print('Imported existing UI table')
-        savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
-        uiDf = pd.read_csv(savePath, sep='\t', )
-        fromScratch = False
-    except:
-        print('No existing UI table found with this name')
-        fromScratch = True
-
-    new_uiDf = mecaDf[listColumnsUI[:5]]
-    if not fromScratch:
-        existingCellId = uiDf['cellID'].values
-        new_uiDf = new_uiDf.loc[new_uiDf['cellID'].apply(lambda x : x not in existingCellId), :]
     
-    nrows = new_uiDf.shape[0]
-    new_uiDf['UI_Valid'] = np.ones(nrows, dtype = bool)
-    new_uiDf['UI_Comments'] = np.array(['' for i in range(nrows)])
+    listDates = mecaDf['date'].unique()
     
-    if not fromScratch:
-        new_uiDf = pd.concat([uiDf, new_uiDf], axis = 0, ignore_index=True)
+    for date in listDates:
+        ui_fileName = date + '_' + ui_fileSuffix
+        try:
+            print('Imported existing UI table')
+            savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
+            uiDf = pd.read_csv(savePath, sep='\t', )
+            fromScratch = False
+            
+        except:
+            print('No existing UI table found with this name')
+            fromScratch = True
+    
+        new_uiDf = mecaDf[mecaDf['date'] == date][listColumnsUI[:5]]
+        if not fromScratch:
+            existingCellId = uiDf['cellID'].values
+            new_uiDf = new_uiDf.loc[new_uiDf['cellID'].apply(lambda x : x not in existingCellId), :]
         
-    savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
-    new_uiDf.sort_values(by=['cellID', 'compNum'], inplace = True)
-    new_uiDf.to_csv(savePath, sep='\t', index = False)
+        nrows = new_uiDf.shape[0]
+        new_uiDf['UI_Valid'] = np.ones(nrows, dtype = bool)
+        new_uiDf['UI_Comments'] = np.array(['' for i in range(nrows)])
+        
+        if not fromScratch:
+            new_uiDf = pd.concat([uiDf, new_uiDf], axis = 0, ignore_index=True)
+            
+        savePath = os.path.join(cp.DirDataAnalysisUMS, (ui_fileName + '.csv'))
+        new_uiDf.sort_values(by=['cellID', 'compNum'], inplace = True)
+        new_uiDf.to_csv(savePath, sep='\t', index = False)
+        
+        if cp.CloudSaving != '':
+            CloudTimeSeriesFilePath = os.path.join(cp.DirCloudAnalysisUMS, (ui_fileName + '.csv'))
+            new_uiDf.to_csv(CloudTimeSeriesFilePath, sep = ';', index=False)
 
 
 
 def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData', 
                             save = False, PLOT = False, \
                             source = 'Matlab', listColumnsMeca=listColumnsMeca,
-                            ui_fileName = 'UserManualSelection_MecaData'):
+                            ui_fileSuffix = 'UserManualSelection_MecaData'):
     """
     Compute the GlobalTable_meca from the time series data files.
     Option task='fromScratch' will analyse all the time series data files and construct a new GlobalTable from them regardless of the existing GlobalTable.
@@ -1718,19 +1717,19 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
     """
     top = time.time()
     
-#     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 #                       and ('R40' in f))] # Change to allow different formats in the future
     
     suffixPython = '_PY'
     if source == 'Matlab':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and (('R40' in f) or ('L40' in f)) and not (suffixPython in f))]
         
     elif source == 'Python':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and (('R40' in f) or ('L40' in f)) and (suffixPython in f))]
         # print(list_mecaFiles)
     
@@ -1743,7 +1742,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # create the dataframe from it
         mecaDf = pd.DataFrame(tableDict)
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
         # last step: now that the dataFrame is complete, one can use "compStartTimeThisDay" col to compute the start time of each compression relative to the first one done this day.
         allDates = list(mecaDf['date'].unique())
@@ -1775,7 +1774,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # fuse the existing table with the new one
         mecaDf = pd.concat([existing_mecaDf, new_mecaDf])
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
     else: # If task is neither 'fromScratch' nor 'updateExisting'
     # Then task can be a substring that can be in some timeSeries file !
@@ -1795,7 +1794,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # create the dataframe from it
         mecaDf = pd.DataFrame(new_tableDict)
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
     
     for c in mecaDf.columns:
             if 'Unnamed' in c:
@@ -1834,7 +1833,7 @@ def getGlobalTable_meca(fileName):
             
     elif 'date' in mecaDf.columns:
         dateExemple = mecaDf.loc[mecaDf.index[0],'date']
-        if re.match(dateFormatExcel, dateExemple):
+        if re.match(ufun.dateFormatExcel, dateExemple):
             print('bad date')
         
     if not ('manipID' in mecaDf.columns):
@@ -1904,7 +1903,7 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
     tableDict = {}
     Nfiles = len(listFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -1914,7 +1913,7 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
     for c in listColumns:
         tableDict[c] = []
     for f in listFiles: #[:10]:
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(cp.DirDataTimeseries, f)
         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
          # MAIN SUBFUNCTION
         current_resultDict = analyseTimeSeries_sinus(f, current_tsDF, expDf, 
@@ -1935,19 +1934,19 @@ def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', sa
     """
     top = time.time()
     
-#     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 #                       and ('R40' in f))] # Change to allow different formats in the future
     
     suffixPython = '_PY'
     if source == 'Matlab':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and ('R40' in f) and not (suffixPython in f))]
         
     elif source == 'Python':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and ('sin' in f) and (suffixPython in f))]
         # print(list_mecaFiles)
     
@@ -2039,7 +2038,7 @@ def removeColumnsDuplicate(df):
     
 # %%% Main function
 
-def getGlobalTable(kind, DirDataExp = cp.DirDataExp):
+def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     if kind == 'ctField':
         GlobalTable = getGlobalTable_ctField()
         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
@@ -2190,8 +2189,8 @@ def getGlobalTable(kind, DirDataExp = cp.DirDataExp):
         if 'diverse fibronectin discs' in vals_substrate:
             try:
                 cellIDs = GlobalTable[GlobalTable['substrate'] == 'diverse fibronectin discs']['cellID'].values
-                listFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
+                listFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
                 for Id in cellIDs:
                     for f in listFiles:
                         if Id == ufun.findInfosInFileName(f, 'cellID'):
