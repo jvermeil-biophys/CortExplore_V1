@@ -1876,43 +1876,52 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, PLOT):
 
 
 
-def update_uiDf(ui_fileName, mecaDf):
+def update_uiDf(ui_fileSuffix, mecaDf):
     """
     """
     listColumnsUI = ['date','cellName','cellID','manipID','compNum',
                      'UI_Valid','UI_Comments']
-
-    try:
-        print('Imported existing UI table')
-        savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
-        uiDf = pd.read_csv(savePath, sep='\t', )
-        fromScratch = False
-    except:
-        print('No existing UI table found with this name')
-        fromScratch = True
-
-    new_uiDf = mecaDf[listColumnsUI[:5]]
-    if not fromScratch:
-        existingCellId = uiDf['cellID'].values
-        new_uiDf = new_uiDf.loc[new_uiDf['cellID'].apply(lambda x : x not in existingCellId), :]
     
-    nrows = new_uiDf.shape[0]
-    new_uiDf['UI_Valid'] = np.ones(nrows, dtype = bool)
-    new_uiDf['UI_Comments'] = np.array(['' for i in range(nrows)])
+    listDates = mecaDf['date'].unique()
     
-    if not fromScratch:
-        new_uiDf = pd.concat([uiDf, new_uiDf], axis = 0, ignore_index=True)
+    for date in listDates:
+        ui_fileName = date + '_' + ui_fileSuffix
+        try:
+            print('Imported existing UI table')
+            savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
+            uiDf = pd.read_csv(savePath, sep='\t', )
+            fromScratch = False
+            
+        except:
+            print('No existing UI table found with this name')
+            fromScratch = True
+    
+        new_uiDf = mecaDf[mecaDf['date'] == date][listColumnsUI[:5]]
+        if not fromScratch:
+            existingCellId = uiDf['cellID'].values
+            new_uiDf = new_uiDf.loc[new_uiDf['cellID'].apply(lambda x : x not in existingCellId), :]
         
-    savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
-    new_uiDf.sort_values(by=['cellID', 'compNum'], inplace = True)
-    new_uiDf.to_csv(savePath, sep='\t', index = False)
+        nrows = new_uiDf.shape[0]
+        new_uiDf['UI_Valid'] = np.ones(nrows, dtype = bool)
+        new_uiDf['UI_Comments'] = np.array(['' for i in range(nrows)])
+        
+        if not fromScratch:
+            new_uiDf = pd.concat([uiDf, new_uiDf], axis = 0, ignore_index=True)
+            
+        savePath = os.path.join(cp.DirDataAnalysisUMS, (ui_fileName + '.csv'))
+        new_uiDf.sort_values(by=['cellID', 'compNum'], inplace = True)
+        new_uiDf.to_csv(savePath, sep='\t', index = False)
+        
+        if cp.CloudSaving != '':
+            CloudTimeSeriesFilePath = os.path.join(cp.DirCloudAnalysisUMS, (ui_fileName + '.csv'))
+            new_uiDf.to_csv(CloudTimeSeriesFilePath, sep = ';', index=False)
 
 
 
 def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData', 
                             save = False, PLOT = False, \
                             source = 'Matlab', listColumnsMeca=listColumnsMeca,
-                            ui_fileName = 'UserManualSelection_MecaData'):
+                            ui_fileSuffix = 'UserManualSelection_MecaData'):
     """
     Compute the GlobalTable_meca from the time series data files.
     Option task='fromScratch' will analyse all the time series data files and construct a new GlobalTable from them regardless of the existing GlobalTable.
@@ -1921,19 +1930,19 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
     """
     top = time.time()
     
-#     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
 #                       and ('R40' in f))] # Change to allow different formats in the future
     
     suffixPython = '_PY'
     if source == 'Matlab':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and (('R40' in f) or ('L40' in f)) and not (suffixPython in f))]
         
     elif source == 'Python':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
                       and (('R40' in f) or ('L40' in f)) and (suffixPython in f))]
         # print(list_mecaFiles)
     
@@ -1946,7 +1955,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # create the dataframe from it
         mecaDf = pd.DataFrame(tableDict)
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
         # last step: now that the dataFrame is complete, one can use "compStartTimeThisDay" col to compute the start time of each compression relative to the first one done this day.
         allDates = list(mecaDf['date'].unique())
@@ -1978,7 +1987,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # fuse the existing table with the new one
         mecaDf = pd.concat([existing_mecaDf, new_mecaDf])
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
     else: # If task is neither 'fromScratch' nor 'updateExisting'
     # Then task can be a substring that can be in some timeSeries file !
@@ -1998,7 +2007,7 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # create the dataframe from it
         mecaDf = pd.DataFrame(new_tableDict)
         
-        update_uiDf(ui_fileName, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
     
     for c in mecaDf.columns:
             if 'Unnamed' in c:
