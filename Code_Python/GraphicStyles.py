@@ -107,7 +107,7 @@ def colorTester():
     plt.tight_layout()
     plt.show()
     
-colorTester()
+# colorTester()
 
 # %% 2. Global constants
 
@@ -153,8 +153,8 @@ def consoleTextTester_02():
     print("\033[1;37;40m White          \033[0m 1;37;40m            \033[0;37;40m Light Grey \033[0m 0;37;40m               \033[0;37;48m Black      \033[0m 0;37;48m")
     print("\n")
     
-consoleTextTester_01()
-consoleTextTester_02()
+# consoleTextTester_01()
+# consoleTextTester_02()
     
     
     
@@ -174,4 +174,4 @@ def set_default_options_jv():
     plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
-set_default_options_jv()    
+# set_default_options_jv()    

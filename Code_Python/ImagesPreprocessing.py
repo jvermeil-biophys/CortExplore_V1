@@ -47,6 +47,16 @@ prefix = ''
 channel = ''
 microscope = 'labview'
 
+#%% Define parameters # Duya
+
+date = '22.07.28'
+DirExt = 'E:/22.07.22_DiscsSize' #'/M4_patterns_ctrl'
+DirSave = os.path.join(cp.DirDataRaw, date)
+
+prefix = ''
+channel = ''
+microscope = 'labview'
+
 
 # %% Functions
 
@@ -273,7 +283,7 @@ def moveFilesWithString(DirSave, allCells, filename):
 
 # def preprocess(DirExt, DirSave, microscope, reset = 0):
     
-allCellsRaw = getListOfSourceFolders(DirExt)[:]
+allCellsRaw = getListOfSourceFolders(DirExt)[:2]
 allCells = []
 # allCellNames = []
 ref_point = []

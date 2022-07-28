@@ -2,7 +2,7 @@
 """
 Created on Wed Jan 19 13:07:45 2022
 
-@author: JosephVermeil & AnumitaJawahar
+@author: JosephVermeil
 """
 
 # %% (0) Imports and settings
@@ -12,6 +12,8 @@ import pandas as pd
 import seaborn as sns
 import scipy.stats as st
 import statsmodels.api as sm
+
+np_default_printoptions = np.get_printoptions()
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -23,10 +25,13 @@ import time
 import random
 import itertools
 
+
 from copy import copy
 from cycler import cycler
 from datetime import date
 from scipy.optimize import curve_fit
+from pathlib import Path
+
 
 #### Local Imports
 
@@ -35,13 +40,17 @@ import CortexPaths as cp
 sys.path.append(cp.DirRepoPython)
 
 import GraphicStyles as gs
+import GlobalConstants as gc
 import UtilityFunctions as ufun
+
+
+data_path=os.path.join(cp.DirDataAnalysis, "Global_MecaData_DB.csv")
+ratio_file_path=os.path.join(cp.DirDataAnalysis, "Global_ratio_file.csv")
 
 # %%% Smaller settings
 
 pd.set_option('mode.chained_assignment',None)
 pd.set_option('display.max_columns', None)
-
 
 gs.set_default_options_jv()
 
@@ -50,21 +59,211 @@ gs.set_default_options_jv()
 
 dictSubstrates = {}
 for i in range(5,105,5):
-    dictSubstrates['disc' + str(i) + 'um'] = str(i) + 'um fibronectin discs'
     dictSubstrates['disc{:02.0f}um'.format(i)] = str(i) + 'um fibronectin discs'
+    dictSubstrates['disc{:.0f}um'.format(i)] = str(i) + 'um fibronectin discs'
 
-               
+# %%% Color and marker lists
+
+colorList10 = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+markerList10 = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
+
+bigPalette1 = sns.color_palette("tab20b")
+bigPalette1_hex = bigPalette1.as_hex()
+
+bigPalette2 = sns.color_palette("tab20c")
+bigPalette2_hex = bigPalette2.as_hex()
+
+colorList30 = []
+for ii in range(2, -1, -1):
+    colorList30.append(bigPalette2_hex[4*0 + ii]) # blue
+    colorList30.append(bigPalette2_hex[4*1 + ii]) # orange
+    colorList30.append(bigPalette2_hex[4*2 + ii]) # green
+    colorList30.append(bigPalette1_hex[4*3 + ii]) # red
+    colorList30.append(bigPalette2_hex[4*3 + ii]) # purple
+    colorList30.append(bigPalette1_hex[4*2 + ii]) # yellow-brown
+    colorList30.append(bigPalette1_hex[4*4 + ii]) # pink
+    colorList30.append(bigPalette1_hex[4*0 + ii]) # navy    
+    colorList30.append(bigPalette1_hex[4*1 + ii]) # yellow-green
+    colorList30.append(bigPalette2_hex[4*4 + ii]) # gray
+    
+
+# %% (1) Directories adress
+
+# cp.DirRepoExp = os.path.join(cp.DirRepo, "Data_Experimental")
+cp.DirDataAnalysis = os.path.join(cp.DirRepo, "Data_Analysis")
+timeSeriesDataDir = os.path.join(cp.DirDataAnalysis, "TimeSeriesData")
+
+figDir = os.path.join(cp.DirDataAnalysis, "Figures")
+todayFigDir = os.path.join(figDir, "Historique//" + str(date.today()))
+
+figDirLocal = os.path.join(cp.DirData, "Figures")
+todayFigDirLocal = os.path.join(figDirLocal, "Historique//" + str(date.today()))
+
+# %% (2) Utility functions
+
+def get_R2(Y1, Y2):
+    meanY = np.mean(Y1)
+    meanYarray = meanY*np.ones(len(Y1))
+    SST = np.sum((Y1-meanYarray)**2)
+    SSE = np.sum((Y2-meanYarray)**2)
+    R2 = SSE/SST
+    return(R2)
+
+def get_Chi2(Ymeas, Ymodel, dof, S):
+    #### To be validated soon !
+    residuals = Ymeas-Ymodel
+    Chi2 = np.sum((residuals/S)**2)
+    Chi2_dof = Chi2/dof
+    return(Chi2_dof)
+
+def getDictAggMean(df):
+    dictAggMean = {}
+    for c in df.columns:
+    #         t = df[c].dtype
+    #         print(c, t)
+            try :
+                if np.array_equal(df[c], df[c].astype(bool)):
+                    dictAggMean[c] = 'min'
+                else:
+                    try:
+                        if not c.isnull().all():
+                            np.mean(df[c])
+                            dictAggMean[c] = 'mean'
+                    except:
+                        dictAggMean[c] = 'first'
+            except:
+                    dictAggMean[c] = 'first'
+    return(dictAggMean)
+
+def findFirst(x, A):
+    idx = (A==x).view(bool).argmax()
+    return(idx)
+
+def fitLine(X, Y):
+    X = sm.add_constant(X)
+    model = sm.OLS(Y, X)
+    results = model.fit()
+    params = results.params # Y=a*X+b ; params[0] = b,  params[1] = a
+#     print(dir(results))
+#     R2 = results.rsquared
+#     ci = results.conf_int(alpha=0.05)
+#     CovM = results.cov_params()
+#     p = results.pvalues
+
+# This is how are computed conf_int:
+#
+#     bse = results.bse
+#     dist = stats.t
+#     alpha = 0.05
+#     q = dist.ppf(1 - alpha / 2, results.df_resid)
+#     params = results.params
+#     lower = params - q * bse
+#     upper = params + q * bse
+#     print(lower, upper)
+    
+    return(results.params, results)
+
+def archiveFig(fig, ax, name='auto', figDir = todayFigDir, figSubDir='', dpi = 100):
+    
+    if not os.path.exists(figDir):
+        os.makedirs(figDir)
+    
+    saveDir = os.path.join(figDir, figSubDir)
+    if not os.path.exists(saveDir):
+        os.makedirs(saveDir)
+    
+    if name != 'auto':
+        fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
+    
+    else:
+        suptitle = fig._suptitle.get_text()
+        if len(suptitle) > 0:
+            name = suptitle
+            fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
+        
+        else:
+            try:
+                N = len(ax)
+                ax = ax[0]
+            except:
+                N = 1
+                ax = ax
+                
+            xlabel = ax.get_xlabel()
+            ylabel = ax.get_ylabel()
+            if len(xlabel) > 0 and len(ylabel) > 0:
+                name = ylabel + ' Vs ' + xlabel
+                if N > 1:
+                    name = name + '___etc'
+                fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
+            
+            else:
+                title = ax.get_title()
+                if len(title) > 0:
+                    if N > 1:
+                        name = name + '___etc'
+                    fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
+                
+                else:
+                    figNum = plt.gcf().number
+                    name = 'figure ' + str(figNum) 
+                    fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
+                    
+# def findInfosInFileName(f, infoType):
+#     """
+#     Return a given type of info from a file name.
+#     Inputs : f (str), the file name.
+#               infoType (str), the type of info wanted.
+#               infoType can be equal to : 
+#               * 'M', 'P', 'C' -> will return the number of manip (M), well (P), or cell (C) in a cellID.
+#               ex : if f = '21-01-18_M2_P1_C8.tif' and infoType = 'C', the function will return 8.
+#               * 'manipID'     -> will return the full manip ID.
+#               ex : if f = '21-01-18_M2_P1_C8.tif' and infoType = 'manipID', the function will return '21-01-18_M2'.
+#               * 'cellID'     -> will return the full cell ID.
+#               ex : if f = '21-01-18_M2_P1_C8.tif' and infoType = 'cellID', the function will return '21-01-18_M2_P1_C8'.
+#     """
+#     if infoType in ['M', 'P', 'C']:
+#         acceptedChar = [str(i) for i in range(10)] + ['.', '-']
+#         string = '_' + infoType
+#         iStart = re.search(string, f).end()
+#         i = iStart
+#         infoString = '' + f[i]
+#         while f[i+1] in acceptedChar and i < len(f)-1:
+#             i += 1
+#             infoString += f[i]
+            
+#     elif infoType == 'date':
+#         datePos = re.search(r"[\d]{1,2}-[\d]{1,2}-[\d]{2}", f)
+#         date = f[datePos.start():datePos.end()]
+#         infoString = date
+    
+#     elif infoType == 'manipID':
+#         datePos = re.search(r"[\d]{1,2}-[\d]{1,2}-[\d]{2}", f)
+#         date = f[datePos.start():datePos.end()]
+#         manip = 'M' + findInfosInFileName(f, 'M')
+#         infoString = date + '_' + manip
+        
+#     elif infoType == 'cellID':
+#         datePos = re.search(r"[\d]{1,2}-[\d]{1,2}-[\d]{2}", f)
+#         date = f[datePos.start():datePos.end()]
+#         infoString = date + '_' + 'M' + findInfosInFileName(f, 'M') + \
+#                             '_' + 'P' + findInfosInFileName(f, 'P') + \
+#                             '_' + 'C' + findInfosInFileName(f, 'C')
+
+    
+#     return(infoString)
+                    
                     
 # %% (3) TimeSeries functions
 
 def getCellTimeSeriesData(cellID, fromPython = True):
     if fromPython:
-        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
+        allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) 
+                              if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) 
                                   and f.endswith("PY.csv"))]
     else:
-        allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
+        allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) 
+                              if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) 
                                   and f.endswith(".csv") and not f.endswith("PY.csv"))]
     fileFound = False
     nFile = len(allTimeSeriesDataFiles)
@@ -72,7 +271,7 @@ def getCellTimeSeriesData(cellID, fromPython = True):
     while (not fileFound) and (iFile < nFile):
         f = allTimeSeriesDataFiles[iFile]
         if f.startswith(cellID + '_'):
-            timeSeriesDataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+            timeSeriesDataFilePath = os.path.join(timeSeriesDataDir, f)
             timeSeriesDataFrame = pd.read_csv(timeSeriesDataFilePath, sep=';')
             fileFound = True
         iFile += 1
@@ -107,9 +306,11 @@ def plotCellTimeSeriesData(cellID, fromPython = True):
     else:
         print('cell not found')
     # plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+ 
+    
         
 def getCellTrajData(cellID, Ntraj = 2):
-    trajDir = os.path.join(cp.DirDataAnalysisTimeseries, 'Trajectories')
+    trajDir = os.path.join(timeSeriesDataDir, 'Trajectories')
     allTrajFiles = [f for f in os.listdir(trajDir) 
                     if (os.path.isfile(os.path.join(trajDir, f)) 
                         and f.endswith(".csv"))]
@@ -145,7 +346,7 @@ def getCellTrajData(cellID, Ntraj = 2):
     return(listTraj)
         
 def addExcludedCell(cellID, motive):
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'r')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'r')
     lines = f.readlines()
     nLines = len(lines)
     excludedCellsList = []
@@ -162,11 +363,11 @@ def addExcludedCell(cellID, motive):
         newlines = copy(lines)
         newlines.append('' + cellID + ',' + motive + '\n')
     f.close()
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'w')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'w')
     f.writelines(newlines)
     
 def getExcludedCells():
-    f = open(os.path.join(cp.DirDataExp, 'ExcludedCells.txt'), 'r')
+    f = open(os.path.join(cp.DirRepoExp, 'ExcludedCells.txt'), 'r')
     lines = f.readlines()
     nLines = len(lines)
     excludedCellsDict = {}
@@ -176,6 +377,12 @@ def getExcludedCells():
         excludedCellsDict[splitLine[0]] = splitLine[1:]
     return(excludedCellsDict)
 
+
+
+    # plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+        
+    #plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+ 
 # %% (4) GlobalTables functions
 
 # %%% (4.1) Exp conditions
@@ -193,7 +400,7 @@ def analyseTimeSeries_ctField(f, tsDf, expDf):
     thisManipID = ufun.findInfosInFileName(f, 'manipID')
     thisExpDf = expDf.loc[expDf['manipID'] == thisManipID]
     # Deal with the asymmetric pair case : the diameter can be for instance 4503 (float) or '4503_2691' (string)
-    diameters = thisExpDf.at[thisExpDf.index.values[0], 'bead diameter'].split('_')
+    diameters = thisExpDf.at[thisExpDf.index.values[0], 'bead diameter'] #.split('_')
     if len(diameters) == 2:
         DIAMETER = (int(diameters[0]) + int(diameters[1]))/2.
     else:
@@ -227,14 +434,14 @@ def createDataDict_ctField(list_ctFieldFiles):
     tableDict['duration'], tableDict['medianRawB'], tableDict['medianThickness'] = [], [], []
     tableDict['1stDThickness'], tableDict['9thDThickness'], tableDict['fluctuAmpli'] = [], [], []
     tableDict['R2_polyFit'], tableDict['validated'] = [], []
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = cp.suffix)
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
     for f in list_ctFieldFiles:
         split_f = f.split('_')
         tableDict['date'].append(split_f[0])
         tableDict['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
         tableDict['cellID'].append(split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3])
         tableDict['manipID'].append(split_f[0] + '_' + split_f[1])
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(timeSeriesDataDir, f)
         current_tsDf = pd.read_csv(tS_DataFilePath, ';')
         current_resultDict = analyseTimeSeries_ctField(f, current_tsDf, expDf)
         for k in current_resultDict.keys():
@@ -251,19 +458,19 @@ def createDataDict_ctField(list_ctFieldFiles):
 #     """
 #     top = time.time()
     
-# #     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-# #                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+# #     list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+# #                       if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
 # #                       and ('R40' in f))] # Change to allow different formats in the future
     
 #     suffixPython = '_PY'
 #     if source == 'Matlab':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#         list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+#                       if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
 #                       and ('R40' in f) and not (suffixPython in f))]
         
 #     elif source == 'Python':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#         list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+#                       if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
 #                       and (('R40' in f) or ('L40' in f)) and (suffixPython in f))]
 #         # print(list_mecaFiles)
 
@@ -278,21 +485,21 @@ def computeGlobalTable_ctField(task = 'fromScratch', fileName = 'Global_CtFieldD
     with the data analysed from those new files.
     > Else, having task= a date, a cellID or a manipID will create a globalTable with this source only.
     """
-    ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                                  if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+    ctFieldFiles = [f for f in os.listdir(timeSeriesDataDir) \
+                                  if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
                                       and ('thickness' in f))]
         
 #     print(ctFieldFiles)
 
     suffixPython = '_PY'
     if source == 'Matlab':
-        ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        ctFieldFiles = [f for f in os.listdir(timeSeriesDataDir) \
+                      if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
                       and ('thickness' in f) and not (suffixPython in f))]
         
     elif source == 'Python':
-        ctFieldFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        ctFieldFiles = [f for f in os.listdir(timeSeriesDataDir) \
+                      if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
                       and ('thickness' in f) and (suffixPython in f))]
         # print(list_mecaFiles)
 
@@ -450,23 +657,21 @@ dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
     # 'H0Chadwick_'+rFN, 'EChadwick_'+rFN
     
 #### >>> OPTION 5 - Effect of range width
-
 fitC =  np.array([S for S in range(100, 1150, 50)])
 fitW = [100, 150, 200, 250, 300]
-
 fitCenters = np.array([[int(S) for S in fitC] for w in fitW]).flatten()
-fitWidth = np.array([[int(w) for S in fitC] for w in fitW]).flatten()
-
+fitWidth = np.array([[int(w) for S in fitC] for w in fitW]).flatten() 
 fitMin = np.array([[int(S-(w/2)) for S in fitC] for w in fitW]).flatten()
 fitMax = np.array([[int(S+(w/2)) for S in fitC] for w in fitW]).flatten()
-
 fitCenters, fitWidth = fitCenters[fitMin>0], fitWidth[fitMin>0]
 fitMin, fitMax = fitMin[fitMin>0], fitMax[fitMin>0]
 
+# regionFitsNames = [str(fitMin[ii]) + '<s<' + str(fitMax[ii]) for ii in range(len(fitMin))]
 regionFitsNames = ['S='  + str(fitCenters[ii]) + '+/-' + str(int(fitWidth[ii]//2)) for ii in range(len(fitCenters))]
-
 fit_toPlot = [regionFitsNames[ii] for ii in range(len(fitC), 2*len(fitC), 2)]
+
 mask_fitToPlot = np.array(list(map(lambda x : x in fit_toPlot, regionFitsNames)))
+
 
 for rFN in regionFitsNames:
     listColumnsMeca += ['KChadwick_'+rFN, 'K_CIW_'+rFN, 'R2Chadwick_'+rFN, 'K2Chadwick_'+rFN, 
@@ -493,9 +698,10 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     # some initial parameter values - must be within bounds
     initH0 = max(hCompr) # H0 ~ h_max
     initE = (3*max(hCompr)*max(fCompr))/(np.pi*(DIAMETER/2)*(max(hCompr)-min(hCompr))**2) # E ~ 3*H0*F_max / pi*R*(H0-h_min)²
-    # initH0, initE = initH0*(initH0>0), initE*(initE>0)
+#     initH0, initE = initH0*(initH0>0), initE*(initE>0)
     
     initialParameters = [initE, initH0]
+#     print(initialParameters)
 
     # bounds on parameters - initial parameters must be within these
     lowerBounds = (0, 0)
@@ -636,22 +842,29 @@ def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
 
 
 
-def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHOW):
+def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
     
     plotSmallElements = True
     
     #### (0) Import experimental infos
     split_f = f.split('_')
     tsDF.dx, tsDF.dy, tsDF.dz, tsDF.D2, tsDF.D3 = tsDF.dx*1000, tsDF.dy*1000, tsDF.dz*1000, tsDF.D2*1000, tsDF.D3*1000
+    # thisManipID = split_f[0] + '_' + split_f[1]
+    # expDf['manipID'] = expDf['date'] + '_' + expDf['manip']
+    # thisExpDf = expDf.loc[expDf['manipID'] == thisManipID]
     thisManipID = ufun.findInfosInFileName(f, 'manipID')
     thisExpDf = expDf.loc[expDf['manipID'] == thisManipID]
-
+    
     # Deal with the asymmetric pair case : the diameter can be for instance 4503 (float) or '4503_2691' (string)
-    diameters = thisExpDf.at[thisExpDf.index.values[0], 'bead diameter'].split('_')
-    if len(diameters) == 2:
-        DIAMETER = (int(diameters[0]) + int(diameters[1]))/2.
-    else:
-        DIAMETER = int(diameters[0])
+    
+    diameters = int(thisExpDf.at[thisExpDf.index.values[0], 'bead diameter'])#.split('_')
+    # print(type(diameters))
+    # if len(diameters) == 2:
+    #     DIAMETER = (int(diameters[0]) + int(diameters[1]))/2.
+    # else:
+    #     DIAMETER = int(diameters[0])
+    DIAMETER = diameters
+    
     
     EXPTYPE = str(thisExpDf.at[thisExpDf.index.values[0], 'experimentType'])
 
@@ -1199,7 +1412,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                         
                         hPredict_fit2 = H0_fit - ((3*H0_fit*fCompr_fit)/(np.pi*(K2_fit/1e6)*R))**0.5
                         
-                        color = gs.colorList30[k]
+                        color = colorList30[k]
                         legendText4 = ''
                         
                         # hPredict_fit0 = bestH0 - ((3*bestH0*fCompr_fit)/(np.pi*(K_fit/1e6)*R))**0.5
@@ -1239,7 +1452,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                         stressCompr_fit = stressCompr[fitConditions_fit]
                         strainPredict_fit = list_strainPredict_fitToPlot[k]
                         
-                        color = gs.colorList30[k]
+                        color = colorList30[k]
                         legendText5 = ''
                         
                         if not fitError_fit:
@@ -1292,7 +1505,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                         stressCompr_fit = stressCompr[fitConditions_fit]
                         strainPredict_fit = list_strainPredict_fitToPlot[k]
     
-                        color = gs.colorList30[k]
+                        color = colorList30[k]
                         
                         if not fitError_fit:
                             
@@ -1582,7 +1795,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
             elif nRowsSubplot >= 1:
                 thisAx6 = ax6[rowSp,colSp]
                 
-            Kmax = min(Kmax, 20)
+            Kmax = min(Kmax, 25)
 
             thisAx6.set_xlim([0, sMax])
             thisAx6.set_ylim([0, Kmax])
@@ -1599,9 +1812,19 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
     # Save the figures
     if PLOT:
         dpi1 = 150
-        dpi2 = 150        
+        dpi2 = 150
+        # figDir = todayFigDir # Already by default
+        # figSubDir = 'MecaAnalysis_allCells'
+        # archiveFig(fig1, ax1, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi1)
+        # archiveFig(fig2, ax2, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi1)
+        # archiveFig(fig3, ax3, name=results['cellID'][-1] + '_03_sig(eps)', dpi = dpi1)
+        # archiveFig(fig4, ax4, name=results['cellID'][-1] + '_04_F(h)_regionFits', dpi = dpi1)
+        # archiveFig(fig5, ax5, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi1)
+        # archiveFig(fig6, ax6, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi1)
+        # archiveFig(fig7, ax7, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi1)
+        
 
-        figDir = os.path.join(cp.DirDataFigToday, 'MecaAnalysis_allCells_' + task)
+        figDir = os.path.join(todayFigDirLocal, 'MecaAnalysis_allCells')
         ufun.archiveFig(fig1, ax1, figDir, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi1)
         ufun.archiveFig(fig2, ax2, figDir, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi1)
         ufun.archiveFig(fig3, ax3, figDir, name=results['cellID'][-1] + '_03_sig(eps)', dpi = dpi1)
@@ -1610,15 +1833,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
         ufun.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi1)
         ufun.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi1)
         
-        if not cp.CloudSaving == '':
-            figDir = os.path.join(cp.DirCloudFigToday, 'MecaAnalysis_allCells_' + task)
-            ufun.archiveFig(fig1, ax1, figDir, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi2)
-            ufun.archiveFig(fig2, ax2, figDir, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi2)
-            ufun.archiveFig(fig3, ax3, figDir, name=results['cellID'][-1] + '_03_sig(eps)', dpi = dpi2)
-            ufun.archiveFig(fig4, ax4, figDir, name=results['cellID'][-1] + '_04_F(h)_regionFits', dpi = dpi2)
-            ufun.archiveFig(fig5, ax5, figDir, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi2)
-            ufun.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi2)
-            ufun.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi2)
         
         
         if PLOT_SHOW:
@@ -1634,12 +1848,12 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
 
 
 
-def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
+def createDataDict_meca(list_mecaFiles, listColumnsMeca, PLOT):
     """
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = cp.suffix)
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_DB')
     tableDict = {}
     Nfiles = len(list_mecaFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -1649,17 +1863,17 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     for c in listColumnsMeca:
         tableDict[c] = []
     for f in list_mecaFiles: #[:10]:
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(timeSeriesDataDir, f)
         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
          # MAIN SUBFUNCTION
         current_resultDict = analyseTimeSeries_meca(f, current_tsDF, expDf, 
-                                                    listColumnsMeca, task,
-                                                    PLOT, PLOT_SHOW)
+                                                    listColumnsMeca, PLOT, PLOT_SHOW)
         for k in current_resultDict.keys():
             tableDict[k] += current_resultDict[k]
 #     for k in tableDict.keys():
 #         print(k, len(tableDict[k]))
     return(tableDict)
+
 
 
 def update_uiDf(ui_fileName, mecaDf):
@@ -1805,32 +2019,32 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
 def getGlobalTable_meca(fileName):
     try:
         savePath = os.path.join(cp.DirDataAnalysis, (fileName + '.csv'))
-        mecaDf = pd.read_csv(savePath, sep=';')
-        print('Extracted a table with ' + str(mecaDf.shape[0]) + ' lines and ' + str(mecaDf.shape[1]) + ' columns.')
+        meca_DF = pd.read_csv(savePath, sep=';')
+        print('Extracted a table with ' + str(meca_DF.shape[0]) + ' lines and ' + str(meca_DF.shape[1]) + ' columns.')
     except:
         print('No existing table found')
         
-    for c in mecaDf.columns:
+    for c in meca_DF.columns:
         if 'Unnamed' in c:
-            mecaDf = mecaDf.drop([c], axis=1)
+            meca_DF = meca_DF.drop([c], axis=1)
         # if 'K_CIW_' in c:    
-        #     mecaDf[c].apply(lambda x : x.strip('][').split(', ')).apply(lambda x : [float(x[0]), float(x[1])])
+        #     meca_DF[c].apply(lambda x : x.strip('][').split(', ')).apply(lambda x : [float(x[0]), float(x[1])])
     
-    if 'ExpDay' in mecaDf.columns:
-        dateExemple = mecaDf.loc[mecaDf.index[0],'ExpDay']
-        if not ('manipID' in mecaDf.columns):
-            mecaDf['manipID'] = mecaDf['ExpDay'] + '_' + mecaDf['CellID'].apply(lambda x: x.split('_')[0])
+    if 'ExpDay' in meca_DF.columns:
+        dateExemple = meca_DF.loc[meca_DF.index[0],'ExpDay']
+        if not ('manipID' in meca_DF.columns):
+            meca_DF['manipID'] = meca_DF['ExpDay'] + '_' + meca_DF['CellID'].apply(lambda x: x.split('_')[0])
             
-    elif 'date' in mecaDf.columns:
-        dateExemple = mecaDf.loc[mecaDf.index[0],'date']
+    elif 'date' in meca_DF.columns:
+        dateExemple = meca_DF.loc[meca_DF.index[0],'date']
         if re.match(ufun.dateFormatExcel, dateExemple):
             print('bad date')
         
-    if not ('manipID' in mecaDf.columns):
-        mecaDf['manipID'] = mecaDf['date'] + '_' + mecaDf['cellName'].apply(lambda x: x.split('_')[0])
+    if not ('manipID' in meca_DF.columns):
+        meca_DF['manipID'] = meca_DF['date'] + '_' + meca_DF['cellName'].apply(lambda x: x.split('_')[0])
 
         
-    return(mecaDf)
+    return(meca_DF)
 
 # %%% (4.4) Fluorescence data
 
@@ -1893,7 +2107,7 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirDataExp, suffix = cp.suffix)
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_DB')
     tableDict = {}
     Nfiles = len(listFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -1903,7 +2117,7 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
     for c in listColumns:
         tableDict[c] = []
     for f in listFiles: #[:10]:
-        tS_DataFilePath = os.path.join(cp.DirDataAnalysisTimeseries, f)
+        tS_DataFilePath = os.path.join(timeSeriesDataDir, f)
         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
          # MAIN SUBFUNCTION
         current_resultDict = analyseTimeSeries_sinus(f, current_tsDF, expDf, 
@@ -1924,19 +2138,19 @@ def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', sa
     """
     top = time.time()
     
-#     list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+#     list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+#                       if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
 #                       and ('R40' in f))] # Change to allow different formats in the future
     
     suffixPython = '_PY'
     if source == 'Matlab':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+                      if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
                       and ('R40' in f) and not (suffixPython in f))]
         
     elif source == 'Python':
-        list_mecaFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                      if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv") \
+        list_mecaFiles = [f for f in os.listdir(timeSeriesDataDir) \
+                      if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv") \
                       and ('sin' in f) and (suffixPython in f))]
         # print(list_mecaFiles)
     
@@ -1959,7 +2173,7 @@ def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', sa
         # get existing table
         try:
             savePath = os.path.join(cp.DirDataAnalysis, (fileName + '.csv'))
-            existing_mecaDf = pd.read_csv(savePath, sep=';')
+            existing_meca_DF = pd.read_csv(savePath, sep=';')
         except:
             print('No existing table found')
             
@@ -1968,15 +2182,15 @@ def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', sa
         for f in list_mecaFiles:
             split_f = f.split('_')
             currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
-            if currentCellID not in existing_mecaDf.cellID.values:
+            if currentCellID not in existing_meca_DF.cellID.values:
                 new_list_mecaFiles.append(f)
                 
         # create the dict with new data
         new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, PLOT) # MAIN SUBFUNCTION
         # create the dataframe from it
-        new_mecaDf = pd.DataFrame(new_tableDict)
+        new_meca_DF = pd.DataFrame(new_tableDict)
         # fuse the existing table with the new one
-        DF = pd.concat([existing_mecaDf, new_mecaDf])
+        DF = pd.concat([existing_meca_DF, new_meca_DF])
         
     else: # If task is neither 'fromScratch' nor 'updateExisting'
     # Then task can be a substring that can be in some timeSeries file !
@@ -2024,9 +2238,10 @@ def removeColumnsDuplicate(df):
             df = df.rename(columns={c: c[:-2]})
         elif c.endswith('_y'):
             df = df.drop(columns=[c])
-    return(df)
+    return df
     
 # %%% Main function
+
 
 def getGlobalTable(kind, DirDataExp = cp.DirDataExp):
     if kind == 'ctField':
@@ -2194,3 +2409,302 @@ def getGlobalTable(kind, DirDataExp = cp.DirDataExp):
                 print('Automatic determination of substrate type FAILED !')
     
     return(GlobalTable)
+
+
+# %% (5) Duya analysis functions
+
+pd.set_option('display.max_columns', None)
+# pd.reset_option('display.max_columns')
+pd.set_option('display.max_rows', None)
+# pd.reset_option('display.max_rows')
+
+
+np.set_printoptions(threshold=np.inf)
+
+
+test = ['cellID', 'date', 'compNum ', 'diameter', 'Minor', 'Majeur',
+       'Square_Mean_radius', 'Radius ', 'ratio_adhesion', 'Area_ellipse',
+       'mean_area', 'area_adhesion', 'ratio_area', 'User_Validation',
+       'Comment', 'Logarith_area', 'Unnamed: 0', 'cellName', 'manipID',
+       'compNum', 'compDuration', 'compStartTime', 'compAbsStartTime',
+       'compStartTimeThisDay', 'initialThickness', 'minThickness',
+       'maxIndent', 'previousThickness', 'surroundingThickness',
+       'surroundingDx', 'surroundingDz', 'validatedThickness', 'jumpD3',
+       'minForce', 'maxForce', 'minStress', 'maxStress', 'minStrain',
+       'maxStrain', 'ctFieldThickness', 'ctFieldFluctuAmpli', 'ctFieldDX',
+       'ctFieldDZ', 'bestH0', 'H0Chadwick', 'EChadwick', 'R2Chadwick',
+       'EChadwick_CIWidth', 'hysteresis', 'critFit', 'validatedFit',
+       'comments']
+
+# %%% Utility function
+
+
+
+# Mapping function that creates diameter
+def diameter_map(df, file):
+    cell_id_to_info = {}
+    for f in file:
+        if f.endswith(".tif"):
+            cell_id = ufun.findInfosInFileName(f, "cellID")
+            diam = ufun.findInfosInFileName(f, "substrate")[4:][:-2]
+            cell_id_to_info[cell_id] = int(diam)
+    df["diameter"] = df["cellID"].map(cell_id_to_info)
+    return df
+
+def load_df_merged():
+    #Load data   
+    df = pd.read_csv(data_path, sep=";")
+    df_ratio=pd.read_csv(ratio_file_path, sep=";")
+    for col in df_ratio.columns:
+        if 'Unnamed' in col:
+            df_ratio = df_ratio.drop(col, axis = 1)
+            
+    df_ratio = ufun.correctDateInDf(df_ratio)
+    
+    # path_name=manipID_to_plot.replace("-", ".")[:-3]
+    # files_path=os.path.join(cp.DirDataRaw, path_name)
+    
+    # Mask dataframe based on manipID
+    # manip_mask = df['manipID'] == manipID_to_plot
+    # df = df[manip_mask]
+    # manip_mask_ratio = df_ratio['manipID'] == manipID_to_plot
+    # df_ratio = df_ratio[manip_mask_ratio]
+    # Round the values of ratio_adhesion for visibility in the plots
+    df_ratio["ratio_adhesion"] = df_ratio["ratio_adhesion"].round(2)
+    df_ratio["area_adhesion"] = df_ratio["area_adhesion"].round(0)
+    # Since there are several rows with the same cell ID, keep only the first one
+    df_ratio = df_ratio.groupby("cellID").agg("first")
+    # Merge df_ratio into df
+    df_merged=df_ratio.merge(df, on=['cellID'], how = 'right')
+    mask = df_merged["ratio_adhesion"].isna()
+    df_merged = df_merged[~mask]
+    
+    #Remove column duplicate
+    df_merged = removeColumnsDuplicate(df_merged)
+    # Rename Adhesion to diameter
+    df_merged.rename({"Adhesion": "diameter"}, axis=1, inplace=True)
+    
+    # Define the cell ids to plot and remove measurement for other cell ids
+    cell_ids_to_plot = df_merged["cellID"].unique()
+    mask = df_merged["cellID"].isin(cell_ids_to_plot)
+    dates_to_plot, discs_to_plot =list_infos_to_plot(df_merged)
+
+    disc_mask = df_merged["diameter"].isin(discs_to_plot)
+    df_merged = df_merged[disc_mask]
+
+
+    return df_merged #, files_path, path_name
+
+def list_infos_to_plot(df):
+    
+    # Define the lists to plot
+
+    dates_to_plot = df['date'].unique()
+    
+    # Make column with cellID and adhesion diameter
+    # csv_files = [f.name for f in Path(files_path).glob("*")]
+    # df = diameter_map(df, csv_files)
+    discs_to_plot = df["diameter"].unique()
+    # Extract 
+    discs_to_plot.sort()
+    discs_to_plot[:-2]
+    return dates_to_plot, discs_to_plot
+
+
+# %%% Main functions
+
+
+def plot_bestH0(x_axis,fig=None, ax=None, save_fig=True):
+    
+    df_merged = load_df_merged()
+    dates_to_plot, discs_to_plot = list_infos_to_plot(df_merged)
+    
+    # Find_bestH0
+    cols_to_keep = ['cellID', 'date', 'bestH0', x_axis]
+    if x_axis != "diameter":
+        cols_to_keep.append("diameter")
+    df_validated = df_merged[cols_to_keep]
+        
+    fig, ax = plt.subplots(1,1, figsize=(10, 5), dpi=400)
+    
+    if x_axis=='ratio_adhesion' or x_axis=='area_adhesion'or x_axis=='mean_area':
+        
+        colorDict, markerDict = {}, {}
+        for i in range(len(discs_to_plot)):
+            colorDict[str(discs_to_plot[i])] = colorList10[i]
+        for i in range(len(dates_to_plot)):
+            markerDict[str(dates_to_plot[i])] = markerList10[i]
+        # Plotting the data
+        for d in dates_to_plot:
+            df_validated_day = df_validated[df_validated['date'] == d]
+            X = df_validated_day[x_axis].values
+            Y = df_validated_day['bestH0'].values
+            color = df_validated_day['diameter'].astype(str).map(colorDict).values
+            marker = markerDict[d]
+                # for i in range(len(X)):
+                    # ax.plot(X[i],Y[i], c = colors[i], marker = markers[i])
+                
+            ax.scatter(X,Y, c = color, marker = marker, s=12, edgecolors ='none')
+            
+        # Making the legend
+        for disc in discs_to_plot:
+            ax.scatter([],[], c = colorDict[str(disc)], marker = 'o', 
+                       label = f'{int(disc)}µm')
+        for dat in dates_to_plot:
+            ax.scatter([],[], c = 'w', marker = markerDict[dat], edgecolors ='k',
+                       label = dat)
+
+    
+        ax.legend(bbox_to_anchor=[1., 0.8])
+        fig.suptitle("BestH0")
+        plt.xlabel(x_axis)
+        plt.tight_layout()
+        save_file = f"D:/Duya/MagneticPincherData/Figures/Validated/all_date_bestH0_{x_axis}.png"
+        plt.savefig(save_file, dpi=400)
+        plt.close()
+    
+
+    elif x_axis=='diameter':
+
+        # colorDict= {}
+        # for i in range(len(dates_to_plot)):
+        #     colorDict[str(dates_to_plot[i])] = colorList10[i]
+        
+        # Plotting the data
+        # for d in dates_to_plot:
+        #     df_validated_day = df_validated[df_validated['date'] == d]
+        X = df_validated[x_axis].values
+        Y = df_validated['bestH0'].values
+        # colors = df_validated['date'].astype(str).map(colorDict).values
+            # for i in range(len(X)):
+                # ax.plot(X[i],Y[i], c = colors[i], marker = markers[i])
+            
+        sns.swarmplot(x=X,y=Y,hue='date',data=df_validated,size=4)
+        sns.boxplot(x=X,y=Y,data=df_validated, boxprops=dict(alpha=.3), width=0.3)
+        
+        # for dat in dates_to_plot:
+        #     ax.scatter([],[], c = colorDict[dat], edgecolors ='none',
+        #                 label = dat)
+
+        # ax.legend(bbox_to_anchor=[1., 0.8])   
+        fig.suptitle('BestH0')
+        plt.xlabel(x_axis)
+        plt.tight_layout()
+        if save_fig:
+            save_file = f"D:/Duya/MagneticPincherData/Figures/Validated/all_date_bestH0_{x_axis}.png"
+            plt.savefig(save_file, dpi=400)
+            plt.close()
+        else:
+            return fig
+        
+
+        
+def plot_KChadwick(x_axis, fig=None, ax=None, save_fig=True):
+    # 
+    df_merged = load_df_merged()
+    dates_to_plot, discs_to_plot = list_infos_to_plot(df_merged)
+    
+    columns_to_plot=['KChadwick_S=300+/-75']#,'KChadwick_S=200+/-75', 'KChadwick_S=100+/-75','KChadwick_S=400+/-75']
+
+    # Find KChad
+    
+    for column in df_merged[columns_to_plot]:
+        col_vf = column.replace('KChadwick_S', "validatedFit_S")
+        validated_fit = df_merged[col_vf]
+        cols_to_keep = ['cellID', 'date', 'bestH0', x_axis, column]
+        if x_axis != "diameter":
+            cols_to_keep.append("diameter")
+        df_validated = df_merged[cols_to_keep][validated_fit]
+
+        # colorDict, markerDict = {}, {}
+        # for i in range(len(discs_to_plot)):
+        #     colorDict[str(discs_to_plot[i])] = colorList10[i]
+        # for i in range(len(manip_ids_to_plot)):
+        #     markerDict[str(manip_ids_to_plot[i])] = markerList10[i]
+        
+        if fig == None:
+            fig, ax = plt.subplots(1,1)
+        if x_axis=='ratio_adhesion' or x_axis=='mean_area' or x_axis=='area_adhesion' : 
+
+            colorDict, markerDict = {}, {}
+            for i in range(len(discs_to_plot)):
+                colorDict[str(discs_to_plot[i])] = colorList10[i]
+            for i in range(len(dates_to_plot)):
+                markerDict[str(dates_to_plot[i])] = markerList10[i]               
+            # Plotting the data
+        # Plotting the data
+            for d in dates_to_plot:
+                df_validated_day = df_validated[df_validated['date'] == d]
+                X = df_validated_day[x_axis].values
+                Y = df_validated_day[column].values
+                colors = df_validated_day['diameter'].astype(str).map(colorDict).values
+                marker = markerDict[d]
+                    # for i in range(len(X)):
+                        # ax.plot(X[i],Y[i], c = colors[i], marker = markers[i])
+                    
+                ax.scatter(X,Y, c = colors, marker = marker, s=12, edgecolors ='none')
+                
+            # Making the legend
+            if x_axis == "ratio_adhesion":
+                for disc in discs_to_plot:
+                    ax.scatter([],[], c = colorDict[str(disc)], marker = 'o', 
+                               label = f'{int(disc)}µm')
+                for d in dates_to_plot:
+                    ax.scatter([],[], c = 'w', marker = markerDict[d], edgecolors ='k',
+                               label = d)
+                ax.legend(bbox_to_anchor=[1., 0.8])
+            fig.suptitle(column)
+            plt.xlabel(x_axis)
+            plt.tight_layout()
+            if save_fig:
+                save_file = f"D:/Duya/MagneticPincherData/Figures/Validated/all_date_{column.replace('/', '')}_{x_axis}.png"
+                plt.savefig(save_file, dpi=400)
+                plt.close()
+            else:
+                return fig
+
+            
+        if x_axis=='diameter' :    
+            
+
+            X = df_validated[x_axis].values
+            Y= df_validated[column].values
+
+                
+            sns.swarmplot(x=X,y=Y,hue='date', data=df_validated,size=4)
+            sns.boxplot(x=X,y=Y,data=df_validated, boxprops=dict(alpha=.3), width=0.3)
+              
+            fig.suptitle(column)
+            plt.xlabel(x_axis)
+            plt.tight_layout()
+            if save_fig:
+                save_file = f"D:/Duya/MagneticPincherData/Figures/Validated/all_date_{x_axis}_{column.replace('/', '')}.png"
+                plt.savefig(save_file, dpi=100)
+                plt.close()
+            else:
+                return fig
+            
+
+# %%% Multiple graph
+
+
+def plot_all():
+    
+    fig, axes = plt.subplots(3, 1)
+    fig.suptitle("KChadwick")
+    x_axes = ("ratio_adhesion", "area_adhesion", "mean_area")
+    for x_axis, ax in zip(x_axes, axes):
+        print(x_axis)
+        plot_KChadwick(x_axis, fig=fig, ax=ax, save_fig=False)
+        # plot_bestH0(x_axis, fig=fig, ax=ax, save_fig=False)
+    
+    save_file = f"D:/Duya/MagneticPincherData/Figures/Validated/all_date_KChadwick.png"
+    plt.savefig(save_file, dpi=100)
+    plt.tight_layout()
+    plt.show()
+    return
+
+
+
+
+
