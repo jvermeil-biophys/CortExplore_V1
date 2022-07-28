@@ -47,17 +47,7 @@ import GlobalConstants as gc
 pd.set_option('mode.chained_assignment', None)
 
 # 3. Plot settings
-SMALLER_SIZE = 8
-SMALL_SIZE = 12
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 20
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+gs.set_default_options_jv()
 
 # 4. Other settings
 # These regex are used to correct the stupid date conversions done by Excel
