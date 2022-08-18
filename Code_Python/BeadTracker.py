@@ -129,7 +129,7 @@ class PincherTimeLapse:
             self.dictBeadDiameters[self.beadTypes[k]] = self.beadDiameters[k]
 
         self.microscope = manipDict['microscope']
-
+        
 
         loopStruct = manipDict['loop structure'].split('_')
 
@@ -210,16 +210,19 @@ class PincherTimeLapse:
             # when you count the loop starting from 1
             
             self.activationFirst = int(manipDict['first activation'])
+            self.activationLast = int(manipDict['last activation'])
             self.activationFreq = int(manipDict['activation frequency'])
             self.activationExp = manipDict['activation exp']
             self.activationType = manipDict['activation type']
             
-            if (not pd.isna(self.activationFreq)) and self.activationFreq > 0:
+            if (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and pd.isna(self.activationLast):
                 self.LoopActivations = np.array([k-1 for k in range(self.activationFirst, self.nLoop, self.activationFreq)])
                 # k-1 here cause we counted the loops starting from 1 but python start from 0.
+            elif (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and (not pd.isna(self.activationLast)):
+                self.LoopActivations = np.array([k-1 for k in range(self.activationFirst, self.activationLast, self.activationFreq)])
             else:
                 self.LoopActivations = np.array([self.activationFirst-1])
-                
+                            
             fluo = True
                 
         except:
@@ -234,18 +237,19 @@ class PincherTimeLapse:
             print(gs.ORANGE + 'No fluo !' + gs.NORMAL)
             self.LoopActivations = np.array([])
             
-            
-        self.totalActivationImages = np.array([np.sum(self.LoopActivations < kk) 
-                                               for kk in range(self.nLoop)])
-        
         if self.microscope == 'labview':
+            self.totalActivationImages = np.array([np.sum(self.LoopActivations < kk) 
+                                               for kk in range(self.nLoop)])
             print(self.excludedFrames_outward)
             self.excludedFrames_outward += self.totalActivationImages
         else:
             pass
         
+        
+        
+        
         # 3. Field that are just initialized for now and will be filled by calling different methods.
-
+        self.threshold = 0
         self.listFrames = []
         self.listTrajectories = []
 
@@ -278,11 +282,10 @@ class PincherTimeLapse:
         if self.microscope == 'labview':
             offsets = np.array([np.sum(self.LoopActivations <= kk) 
                                 for kk in range(self.nLoop)])
-        
+            
             for i in range(self.nLoop):
                 j = ((i+1)*self.loop_mainSize) - 1 + offsets[i]
                 checkSum = np.sum(self.I[j])
-                
                 while checkSum == 0:
                     print('Black images found')
     #                 self.dictLog['Black'][j] = True
@@ -292,6 +295,7 @@ class PincherTimeLapse:
                     self.excludedFrames_inward[i] += 1 # More general
                     j -= 1
                     checkSum = np.sum(self.I[j])
+            
         else:
             pass
 
@@ -304,7 +308,7 @@ class PincherTimeLapse:
         """
         
         if self.microscope == 'labview':
-            print(self.excludedFrames_black)
+            # print(self.excludedFrames_black)
             try:
                 if self.activationFirst > 0:
                     for iLoop in self.LoopActivations:
@@ -734,7 +738,6 @@ class PincherTimeLapse:
         nT = self.listTrajectories[0].nT
         status_nUp = self.listTrajectories[0].dict['status_nUp']
         sum_std = np.zeros(nT)
-        print(len(sum_std))
         for i in range(self.NB):
             # print(nT)
             # print(i)
@@ -1066,12 +1069,12 @@ class PincherTimeLapse:
                 #             + self.listTrajectories[iB].dict['idxAnalysis']
                         
                 # elif self.expType == 'optoGen_constant field':
-                    idxAnalysis = 0
-            
+                idxAnalysis = 0
             
             
             #### 3.7 Append the different lists of listTrajectories[iB].dict
             for iB in range(self.NB):
+               
                 self.listTrajectories[iB].dict['Bead'].append(self.listFrames[iF].listBeads[iBoi[iB]])
                 self.listTrajectories[iB].dict['iF'].append(iF)
                 self.listTrajectories[iB].dict['iS'].append(self.listFrames[iF].iS)
@@ -1117,6 +1120,7 @@ class PincherTimeLapse:
         Nct = (self.loop_mainSize-self.loop_rampSize)//2
 
         for iB in range(self.NB):
+            print(iB)
             self.listTrajectories[iB].dict['Zr'] = np.zeros(nT)
             self.listTrajectories[iB].nT = nT
             iField = []
@@ -1134,9 +1138,15 @@ class PincherTimeLapse:
 
                 # i_lim is the first index after the end of the ramp
                 addOffset = (iF >= i_lim) # Is this ramp going further than it should, considering the black images ?
-
-                SField = iF + int(addOffset*offset) + self.excludedFrames_outward[iLoop]
+                
+                if 'optoGen' in self.expType:
+                    SField = iF + int(addOffset*offset) + self.excludedFrames_outward[iLoop]
+                else:
+                    SField = iF + int(addOffset*offset)
+                
                 iField.append(SField)
+                
+                
                 # except:
                 #     print(i, nT, offset)
                 #     iF = self.listTrajectories[iB].dict['iF'][i]
@@ -2530,7 +2540,7 @@ class BeadDeptho:
 
         self.beadType = beadType
         self.D0 = 4.5 * (beadType == 'M450') + 2.7 * (beadType == 'M270')
-#         self.threshold = threshold
+        # self.threshold = threshold
         self.I_cleanROI = np.array([])
 #         self.cleanROI = np.zeros((self.nz, 4), dtype = int)
 

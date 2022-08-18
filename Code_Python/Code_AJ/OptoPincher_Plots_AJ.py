@@ -59,7 +59,7 @@ BLUE  = '\033[36m' # blue
 mainDataDir = 'D:/Anumita/MagneticPincherData'
 experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
 dataDir = os.path.join(mainDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(dataDir, "TimeSeriesData")
+timeSeriesDataDir = os.path.join(mainDataDir, "Data_TimeSeries")
 
 figDir = os.path.join(mainDataDir, "Figures")
 todayFigDir = os.path.join(figDir, "Historique/" + str(date.today()))
@@ -849,12 +849,12 @@ summaryDf = ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter,
 plt.close('all')
 
 # %% Plotting all three plots (3D, 2D, Dz vs Time) of an experiment
-date = '22.07.13'
+date = '22.07.26'
 ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, background = 'dark')
 
 
 # %%
-# plt.close('all')
+plt.close('all')
 
 #%%% Plotting 3D trajectories of all cells
 
