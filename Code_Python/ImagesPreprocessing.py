@@ -51,6 +51,11 @@ microscope = 'labview'
 # %% Functions
 
 def getListOfSourceFolders(Dir, forbiddenWords = ['deptho']):
+    """
+    Given a root folder Dir, search recursively inside for all folders containing .tif images 
+    and whose name do not contains any of the forbiddenWords.
+    """
+    
     res = []
     exclude = False
     for w in forbiddenWords:
@@ -81,11 +86,21 @@ def getListOfSourceFolders(Dir, forbiddenWords = ['deptho']):
 #
 
 def copyFieldFiles(ListDirSrc, DirDst, suffix = '_Field.txt'):
+    """
+    Import the Field.txt files from the relevant folders.
+    Calls the copyFilesWithString from ufun with suffix = '_Field.txt'
+    """
+    
     for DirSrc in ListDirSrc:
         ufun.copyFilesWithString(DirSrc, DirDst, suffix)
 
 
 def removeFrames(DirSave):
+    """
+    Used for metamorph created files
+    Description TBC
+    """
+    
     allFiles = os.listdir(DirSave)
     for f in allFiles:
         if f.endswith('.tif'):
@@ -95,7 +110,13 @@ def removeFrames(DirSave):
             print('Saving...'+f)
             io.imsave(DirSave+'/'+f, stack)
 
+
 def AllMMTriplets2Stack(DirExt, DirSave, prefix, channel):
+    """
+    Used for metamorph created files
+    Description TBC
+    """
+    
     allCells = os.listdir(DirExt)
     for currentCell in allCells:
         path = os.path.join(DirExt, currentCell)
@@ -118,7 +139,13 @@ def AllMMTriplets2Stack(DirExt, DirSave, prefix, channel):
             
         io.imsave(fluoPath+'/'+currentCell+'.tif', stack)
         
+        
 def renamePrefix(DirExt, currentCell, newPrefix):
+    """
+    Used for metamorph created files
+    Description TBC
+    """
+    
     path = os.path.join(DirExt, currentCell)
     allImages = os.listdir(path)
     for i in allImages:
@@ -128,7 +155,14 @@ def renamePrefix(DirExt, currentCell, newPrefix):
             newName = '_'.join()
             os.rename(os.path.join(path,i), os.path.join(path, newName))
 
+
 def Zprojection(currentCell, microscope, kind = 'min'):
+    """
+    From an image stack contained in 'currentCell' folder,
+    does a scaled-down (by 'scaleFactor') Z-projection (minimum by default)
+    to display the best image for cropping boundary selection.
+    """
+    
     scaleFactor = 4
     path = os.path.join(DirExt, currentCell)
     allFiles = os.listdir(path)
@@ -160,6 +194,11 @@ def Zprojection(currentCell, microscope, kind = 'min'):
     return Zimg
 
 def shape_selection(event, x, y, flags, param):
+    """
+    Non-interactive rectangular selection.
+    Has to be called in cv2.setMouseCallback(currentCell, shape_selection)
+    """
+    
     # grab references to the global variables
     global ref_point, crop, allZimg #, iZ
 
@@ -180,8 +219,10 @@ def shape_selection(event, x, y, flags, param):
   
 def shape_selection_V2(event, x, y, flags, param):
     """
-    Interactive rectangular selection
+    Interactive rectangular selection.
+    Has to be called in cv2.setMouseCallback(currentCell, shape_selection_V2)
     """
+    
     # Grab references to the global variables
     global ix, iy, drawing, ref_point, crop, img, img_copy
     
@@ -212,6 +253,11 @@ def shape_selection_V2(event, x, y, flags, param):
         
 
 def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
+    """
+    Using user specified rectangular coordinates from the previous functions,
+    Crop cells stack and copy them onto the destination file.
+    """
+    
     count = 0
     for refPts, cellPath in zip(allRefPoints, allCellPaths):
         cellName = cellPath.split('\\')[-1]
@@ -252,17 +298,6 @@ def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
             joke = pj.get_joke(language='en', category= 'all')
             print(joke)
             count = count + 1
-
-def moveFilesWithString(DirSave, allCells, filename):
-    for i in allCells:
-        path = os.path.join(DirExt, i)
-        allFiles = os.listdir(path)
-        for f in allFiles:
-            if filename in f:
-                source = os.path.join(path, f)
-                destination = DirSave+f+'.txt'
-                shutil.copy(source, destination)
-                break
 
 
 
