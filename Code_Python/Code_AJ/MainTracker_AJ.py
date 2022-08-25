@@ -463,7 +463,7 @@ output = mainTracker(dates, manips, wells, cells, depthoNames, expDf,
 # %%%% M1 :
 
 dates = '22.07.26'
-manips, wells, cells = 1, 'all', 'all'
+manips, wells, cells = 1, 3, 1
 depthoNames = '22.07.26_P2_M450_step20_100X'
 
 output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
@@ -475,7 +475,7 @@ output = mainTracker(dates, manips, wells, cells, depthoNames, expDf,
 # %%%% M2 : 
 
 dates = '22.07.26'
-manips, wells, cells = 2, 3, 1
+manips, wells, cells = 2, 1, 4
 depthoNames = '22.07.26_P2_M450_step20_100X'
 
 output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
@@ -487,7 +487,7 @@ output = mainTracker(dates, manips, wells, cells, depthoNames, expDf,
 # %%%% M3 : Global activation, 60s frequency
 
 dates = '22.07.26'
-manips, wells, cells = 3, 2, 3
+manips, wells, cells = 3, 1, 4
 depthoNames = '22.07.26_P2_M450_step20_100X'
 
 output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 

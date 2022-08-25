@@ -59,18 +59,8 @@ pd.reset_option('display.max_rows')
 ####  Matplotlib
 matplotlib.rcParams.update({'figure.autolayout': True})
 
-#### Fontsizes
-SMALLER_SIZE = 10
-SMALL_SIZE = 14
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 20
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+#### Graphic options
+gs.set_default_options_jv()
 
 #### Bokeh
 from bokeh.io import output_notebook, show
@@ -102,8 +92,8 @@ output_notebook()
 
 
 # %%% List files
-allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) \
-                          if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                          if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
 print(allTimeSeriesDataFiles)
 
 
@@ -307,12 +297,12 @@ else:
 
 # %%% Plot multiple time series
 
-allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
 for f in allTimeSeriesDataFiles:
     if '22-02-09_M3' in f:
         taka.plotCellTimeSeriesData(f[:-4])
 
-allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) and f.endswith(".csv"))]
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
 for f in allTimeSeriesDataFiles:
     if '22-02-09_M2' in f:
         taka.plotCellTimeSeriesData(f[:-4])
@@ -329,9 +319,9 @@ listeTraj = taka.getCellTrajData('21-12-16_M1_P1_C10', Ntraj = 2)
 listeTraj[1]['pos']
 
 def testTraj(D0):
-    trajDir = os.path.join(cp.DirDataAnalysisTimeseries, 'Trajectories')
-    allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataAnalysisTimeseries) 
-                              if (os.path.isfile(os.path.join(cp.DirDataAnalysisTimeseries, f)) 
+    trajDir = os.path.join(cp.DirDataTimeseries, 'Trajectories')
+    allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) 
+                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) 
                                   and f.endswith(".csv"))]
     cellIDList = []
     for f in allTimeSeriesDataFiles:
@@ -456,17 +446,17 @@ MCAtask = '21-01-18 & 21-01-21'
 
 # %%%% HoxB8
 
-HoxB8task = '22-05-03_M2' #' & 22-05-04 & 22-05-05'
+HoxB8task = '22-05-03 & 22-05-04 & 22-05-05' #' & 22-05-04 & 22-05-05'
 taka.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8', 
-                            save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+                            save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
 # taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 # %%%% Demo for Duya
 
 Demo = '22-06-16' #' & 22-05-04 & 22-05-05'
-taka.computeGlobalTable_meca(task = Demo, fileName = 'Global_MecaData_Demo', 
-                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = Demo, fileName = 'Global_MecaData_Demo', 
+#                             save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
 # taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 

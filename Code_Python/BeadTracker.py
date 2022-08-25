@@ -240,7 +240,7 @@ class PincherTimeLapse:
         if self.microscope == 'labview':
             self.totalActivationImages = np.array([np.sum(self.LoopActivations < kk) 
                                                for kk in range(self.nLoop)])
-            print(self.excludedFrames_outward)
+            # print(self.excludedFrames_outward)
             self.excludedFrames_outward += self.totalActivationImages
         else:
             pass
@@ -1451,8 +1451,9 @@ class Trajectory:
             while iF <= max(self.dict['iF']):
             #### Enable plots of Z detection  here
                 plot = 0
-                if (iF >= 0 and iF <= 30) or (iF > 400 and iF <= 440):
+                if (iF >= 705 and iF <= 750):# or (iF > 400 and iF <= 440):
                     plot = 1
+                    
             # ###################################################################
 
                 if iF not in self.dict['iF']: # this index isn't in the trajectory list => the frame was removed for some reason.

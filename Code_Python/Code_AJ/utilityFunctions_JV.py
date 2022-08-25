@@ -2,7 +2,7 @@
 """
 Created on Tue Mar  1 11:21:02 2022
 
-@authors: Joseph Vermeil, Anumita Jawahar
+@author: JosephVermeil
 """
 
 # %% (0) Imports and settings
@@ -17,7 +17,6 @@ import statsmodels.api as sm
 import os
 import re
 import time
-import shutil
 import pyautogui
 import matplotlib
 import traceback
@@ -34,20 +33,52 @@ from scipy.optimize import linear_sum_assignment
 from matplotlib.gridspec import GridSpec
 from datetime import date
 
-#### Local Imports
+# Add the folder to path
+COMPUTERNAME = os.environ['COMPUTERNAME']
+if COMPUTERNAME == 'ORDI-JOSEPH':
+    mainDir = "C://Users//JosephVermeil//Desktop//ActinCortexAnalysis"
+    ownCloudDir = "C://Users//JosephVermeil//ownCloud//ActinCortexAnalysis"
+    tempPlot = 'C://Users//JosephVermeil//Desktop//TempPlots'
+elif COMPUTERNAME == 'LARISA':
+    mainDir = "C://Users//Joseph//Desktop//ActinCortexAnalysis"
+    ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
+    tempPlot = 'C://Users//Joseph//Desktop//TempPlots'
+elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
+    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
+    rawDir = "D:/Anumita/MagneticPincherData"  
+elif COMPUTERNAME == '':
+    mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
+    ownCloudDir = "C://Users//josep//ownCloud//ActinCortexAnalysis"
+    tempPlot = 'C://Users//josep//Desktop//TempPlots'
+    
+elif COMPUTERNAME =='DATA2JHODR':
+    mainDir = "C://Utilisateurs//BioMecaCell//Bureau//ActinCortexAnalysis"
+    tempPlot = 'C://Utilisateurs//BioMecaCell//Bureau//TempPlots'
+    
+try:
+    ownCloudFigDir = os.path.join(ownCloudDir, "Data_Analysis", "Figures")
+    ownCloudTodayFigDir = os.path.join(ownCloudFigDir, "Historique//" + str(date.today()))
+except:
+    ownCloudFigDir, ownCloudTodayFigDir = '', ''
 
 import sys
-import CortexPaths as cp
-sys.path.append(cp.DirRepoPython)
-
-import GraphicStyles as gs
-import GlobalConstants as gc
+sys.path.append(mainDir + "//Code_Python")
 
 # 2. Pandas settings
 pd.set_option('mode.chained_assignment', None)
 
 # 3. Plot settings
-gs.set_default_options_jv()
+SMALLER_SIZE = 8
+SMALL_SIZE = 12
+MEDIUM_SIZE = 16
+BIGGER_SIZE = 20
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 # 4. Other settings
 # These regex are used to correct the stupid date conversions done by Excel
@@ -55,43 +86,28 @@ dateFormatExcel = re.compile(r'\d{2}/\d{2}/\d{4}')
 dateFormatExcel2 = re.compile(r'\d{2}-\d{2}-\d{4}')
 dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}')
 
+# 5. Global constants
+SCALE_100X = 15.8 # pix/µm 
+NORMAL  = '\033[0m'
+RED  = '\033[31m' # red
+GREEN = '\033[32m' # green
+ORANGE  = '\033[33m' # orange
+BLUE  = '\033[36m' # blue
+
 
 # %% (1) Utility functions
 
-def copyFile(DirSrc, DirDst, filename):
-    """
-    Copy the file 'filename' from 'DirSrc' to 'DirDst'
-    """
-    PathSrc = os.path.join(DirSrc, filename)
-    PathDst = os.path.join(DirDst, filename)
-    shutil.copyfile(PathSrc, PathDst)
-    
-def copyFilesWithString(DirSrc, DirDst, stringInName):
-    """
-    Copy all the files from 'DirSrc' which names contains 'stringInName' to 'DirDst'
-    """
-    SrcFilesList = os.listdir(DirSrc)
-    for SrcFile in SrcFilesList:
-        if stringInName in SrcFile:
-            copyFile(DirSrc, DirDst, SrcFile)
-            
-def containsFilesWithExt(Dir, ext):
-    answer = False
-    FilesList = os.listdir(Dir)
-    for File in FilesList:
-        if File.endswith(ext):
-            answer = True
-    return(answer)
+dateFormatExcel = re.compile(r'\d{2}/\d{2}/\d{4}')
+dateFormatExcel2 = re.compile(r'\d{2}-\d{2}-\d{4}')
+dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}')
+dateFormatExcel2 = re.compile(r'\d{2}-\d{2}-\d{4}')
 
 
-def findActivation(fieldDf):
-    maxZidx = fieldDf['Z'].argmax() #Finding the index of the max Z
-    maxZ = fieldDf['Z'][maxZidx] #To check if the value is correct
-    return(maxZidx, maxZ)
+# def findFirstActivation(cellID):
     
 
-def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', suffix = cp.suffix):
-    """
+def getExperimentalConditions(experimentalDataDir, save = False, sep = ';', suffix = ''):
+    """"
     Import the table with all the conditions in a clean way.
     It is a tedious function to read because it's doing a boring job:
     Converting strings into numbers when possible
@@ -99,132 +115,125 @@ def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', s
     Converting semicolon separated values into lists when needed
     Etc
     """
-    
     #### 0. Import the table
     if suffix == '':
         experimentalDataFile = 'ExperimentalConditions.csv'
     else:
         experimentalDataFile = 'ExperimentalConditions' + suffix + '.csv'
-        
-    experimentalDataFilePath = os.path.join(DirExp, experimentalDataFile)
-    expDf = pd.read_csv(experimentalDataFilePath, sep=sep, header=0)
-    print(gs.BLUE + 'Importing Experimental Conditions' + gs.NORMAL)
-    print(gs.BLUE + 'Extracted a table with ' + str(expDf.shape[0]) + ' lines and ' + str(expDf.shape[1]) + ' columns' + gs.NORMAL)
+    experimentalDataFilePath = os.path.join(experimentalDataDir, experimentalDataFile)
+    expConditionsDF = pd.read_csv(experimentalDataFilePath, sep=sep, header=0)
+    print(BLUE + 'Importing Experimental Conditions' + NORMAL)
+    print(BLUE + 'Extracted a table with ' + str(expConditionsDF.shape[0]) + ' lines and ' + str(expConditionsDF.shape[1]) + ' columns' + NORMAL)
     #### 1. Clean the table
     
     #### 1.1 Remove useless columns
-    for c in expDf.columns:
+    for c in expConditionsDF.columns:
         if 'Unnamed' in c:
-            expDf = expDf.drop([c], axis=1)
+            expConditionsDF = expConditionsDF.drop([c], axis=1)
         if '.1' in c:
-            expDf = expDf.drop([c], axis=1)
-    expDf = expDf.convert_dtypes()
+            expConditionsDF = expConditionsDF.drop([c], axis=1)
+    expConditionsDF = expConditionsDF.convert_dtypes()
 
     #### 1.2 Convert commas into dots
     listTextColumns = []
-    for col in expDf.columns:
+    for col in expConditionsDF.columns:
         try:
-            if expDf[col].dtype == 'string':
+            if expConditionsDF[col].dtype == 'string':
                 listTextColumns.append(col)
         except:
             pass
-    expDf[listTextColumns] = expDf[listTextColumns].apply(lambda x: x.str.replace(',','.'))
+    expConditionsDF[listTextColumns] = expConditionsDF[listTextColumns].apply(lambda x: x.str.replace(',','.'))
 
     #### 1.3 Format 'scale'
-    expDf['scale pixel per um'] = expDf['scale pixel per um'].astype(float)
+    expConditionsDF['scale pixel per um'] = expConditionsDF['scale pixel per um'].astype(float)
     
     #### 1.4 Format 'optical index correction'
     try: # In case the format is 'n1/n2'
-        expDf['optical index correction'] = \
-                  expDf['optical index correction'].apply(lambda x: x.split('/')[0]).astype(float) \
-                / expDf['optical index correction'].apply(lambda x: x.split('/')[1]).astype(float)
-        print(gs.ORANGE + 'optical index correction : format changed' + gs.NORMAL)
+        expConditionsDF['optical index correction'] = \
+                  expConditionsDF['optical index correction'].apply(lambda x: x.split('/')[0]).astype(float) \
+                / expConditionsDF['optical index correction'].apply(lambda x: x.split('/')[1]).astype(float)
+        print(ORANGE + 'optical index correction : format changed' + NORMAL)
     except:
         pass
     
     #### 1.5 Format 'magnetic field correction'
-    expDf['magnetic field correction'] = expDf['magnetic field correction'].astype(float)
+    expConditionsDF['magnetic field correction'] = expConditionsDF['magnetic field correction'].astype(float)
     
     #### 1.6 Format 'with fluo images'
-    expDf['with fluo images'] = expDf['with fluo images'].astype(bool)
+    expConditionsDF['with fluo images'] = expConditionsDF['with fluo images'].astype(bool)
 
     # #### 1.7 Format 'ramp field'
     # try:
-    #     print(ORANGE + 'ramp field : converted to list successfully' + gs.NORMAL)
-    #     expDf['ramp field'] = \
-    #     expDf['ramp field'].apply(lambda x: [x.split(';')[0], x.split(';')[1]] if not pd.isnull(x) else [])
+    #     print(ORANGE + 'ramp field : converted to list successfully' + NORMAL)
+    #     expConditionsDF['ramp field'] = \
+    #     expConditionsDF['ramp field'].apply(lambda x: [x.split(';')[0], x.split(';')[1]] if not pd.isnull(x) else [])
     # except:
     #     pass
 
     #### 1.8 Format 'date'
-    dateExemple = expDf.loc[expDf.index[1],'date']
+    dateExemple = expConditionsDF.loc[expConditionsDF.index[1],'date']
     if re.match(dateFormatExcel, dateExemple):
-        print(gs.ORANGE + 'dates : format corrected' + gs.NORMAL)
-        expDf.loc[:,'date'] = expDf.loc[:,'date'].apply(lambda x: x.split('/')[0] + '-' + x.split('/')[1] + '-' + x.split('/')[2][2:])        
+        print(ORANGE + 'dates : format corrected' + NORMAL)
+        expConditionsDF.loc[:,'date'] = expConditionsDF.loc[:,'date'].apply(lambda x: x.split('/')[0] + '-' + x.split('/')[1] + '-' + x.split('/')[2][2:])        
     elif re.match(dateFormatExcel2, dateExemple):
-        print(gs.ORANGE + 'dates : format corrected' + gs.NORMAL)
-        expDf.loc[:,'date'] = expDf.loc[:,'date'].apply(lambda x: x.split('-')[0] + '-' + x.split('-')[1] + '-' + x.split('-')[2][2:])  
+        print(ORANGE + 'dates : format corrected' + NORMAL)
+        expConditionsDF.loc[:,'date'] = expConditionsDF.loc[:,'date'].apply(lambda x: x.split('-')[0] + '-' + x.split('-')[1] + '-' + x.split('-')[2][2:])  
         
     #### 1.9 Format activation fields
     try:
-        expDf['first activation'] = expDf['first activation'].astype(np.float)
-        expDf['activation frequency'] = expDf['activation frequency'].astype(np.float)
+        expConditionsDF['first activation'] = expConditionsDF['first activation'].astype(np.float)
+        expConditionsDF['activation frequency'] = expConditionsDF['activation frequency'].astype(np.float)
     except:
         pass
 
     #### 2. Save the table, if required
     if save:
         saveName = 'ExperimentalConditions' + suffix + '.csv'
-        savePath = os.path.join(DirExp, saveName)
-        expDf.to_csv(savePath, sep=sep, index = False)
-        
-        if not cp.CloudSaving == '':
-            savePath_cloud = os.path.join(cp.DirCloudExp, saveName)
-            expDf.to_csv(savePath_cloud, sep=sep, index = False)
+        savePath = os.path.join(experimentalDataDir, saveName)
+        expConditionsDF.to_csv(savePath, sep=';')
 
     #### 3. Generate additionnal field that won't be saved
     
+    def str2int(s):
+        try:
+            x = int(s)
+        except:
+            x = np.nan
+        return(x)
+    
+    def str2float(s):
+        try:
+            x = float(s)
+        except:
+            x = np.nan
+        return(x)
+    
     #### 3.1 Make 'manipID'
-    expDf['manipID'] = expDf['date'] + '_' + expDf['manip']
-    
-    # def str2int(s):
-    #     try:
-    #         x = int(s)
-    #     except:
-    #         x = np.nan
-    #     return(x)
-    
-    # def str2float(s):
-    #     try:
-    #         x = float(s)
-    #     except:
-    #         x = np.nan
-    #     return(x)
-    
+    expConditionsDF['manipID'] = expConditionsDF['date'] + '_' + expConditionsDF['manip']
     
     # #### 3.2 Format 'bead diameter'
-    # diameters = expDf.loc[:,'bead diameter'].apply(lambda x: str(x).split('_'))
+    # diameters = expConditionsDF.loc[:,'bead diameter'].apply(lambda x: str(x).split('_'))
     # diameters = diameters.apply(lambda x: [int(xx) for xx in x])
-    # expDf.loc[:,'bead diameter'] = diameters
+    # expConditionsDF.loc[:,'bead diameter'] = diameters
     # # print(ORANGE + 'ramp field : converted to list successfully' + NORMAL)
     
     # #### 3.3 Format 'bead type'
-    # bt = expDf.loc[:,'bead type'].apply(lambda x: str(x).split('_'))
+    # bt = expConditionsDF.loc[:,'bead type'].apply(lambda x: str(x).split('_'))
     # bt = bt.apply(lambda x: [str(xx) for xx in x])
-    # expDf.loc[:,'bead type'] = bt
+    # expConditionsDF.loc[:,'bead type'] = bt
     
     # #### 3.4 Format 'ramp field'
-    # rf = expDf.loc[:,'ramp field'].apply(lambda x: str(x).split('_'))
+    # rf = expConditionsDF.loc[:,'ramp field'].apply(lambda x: str(x).split('_'))
     # rf = rf.apply(lambda x: [str2float(xx) for xx in x])
-    # expDf.loc[:,'ramp field'] = rf
+    # expConditionsDF.loc[:,'ramp field'] = rf
     
     # #### 3.5 Format 'loop structure'
-    # ls = expDf.loc[:,'loop structure'].apply(lambda x: str(x).split('_'))
+    # ls = expConditionsDF.loc[:,'loop structure'].apply(lambda x: str(x).split('_'))
     # ls = ls.apply(lambda x: [str2int(xx) for xx in x])
-    # expDf.loc[:,'loop structure'] = ls
+    # expConditionsDF.loc[:,'loop structure'] = ls
 
     #### 4. END
-    return(expDf)
+    return(expConditionsDF)
 
 def findInfosInFileName(f, infoType):
     """
@@ -385,6 +394,31 @@ def getDepthoCleanSize(D, scale):
     cleanSize += 1 + cleanSize%2
     return(cleanSize)
 
+def squareDistance_V0(M, V, normalize = False): # MAKE FASTER !!!
+    """
+    DEPRECATED BECAUSE TOO SLOW
+    Compute a distance between two arrays of the same size, defined as such:
+    D = integral of the squared difference between the two arrays.
+    It is used to compute the best fit of a slice of a bead profile on the depthograph.
+    This function speed is critical for the Z computation process because it is called so many times !
+    """
+    top = time.time()
+    n, m = M.shape[0], M.shape[1]
+    # len(V) should be m
+    result = np.zeros(n)
+    if normalize:
+        V = V/np.mean(V)
+    for i in range(n):
+        if normalize:
+            Mi = M[i,:]/np.mean(M[i,:])
+        else:
+            Mi = M[i,:]
+        d = np.sum((Mi-V)**2)
+        result[i] = d
+    print('DistanceCompTime')
+    print(time.time()-top)
+    return(result)
+
 def squareDistance(M, V, normalize = False): # MUCH FASTER ! **Michael Scott Voice** VERRRRY GOODE
     """
     Compute a distance between two arrays of the same size, defined as such:
@@ -427,7 +461,7 @@ def matchDists(listD, listStatus, Nup, NVox, direction):
             if offsets[i] < 0:
                 shift = abs(offsets[i])*NVox
                 D = listD[i]
-                fillVal = max(D)
+                fillVal = D[-1]
                 D2 = np.concatenate((D[shift:],fillVal*np.ones(shift))).astype(np.float64)
                 listD2.append(D2)
             if offsets[i] == 0:
@@ -436,7 +470,7 @@ def matchDists(listD, listStatus, Nup, NVox, direction):
             if offsets[i] > 0:
                 shift = abs(offsets[i])*NVox
                 D = listD[i]
-                fillVal = max(D)
+                fillVal = D[0]
                 D2 = np.concatenate((fillVal*np.ones(shift),D[:-shift])).astype(np.float64)
                 listD2.append(D2)
     elif direction == 'downward':
@@ -444,7 +478,7 @@ def matchDists(listD, listStatus, Nup, NVox, direction):
             if offsets[i] > 0:
                 shift = abs(offsets[i])*NVox
                 D = listD[i]
-                fillVal = max(D)
+                fillVal = D[-1]
                 D2 = np.concatenate((D[shift:],fillVal*np.ones(shift))).astype(np.float64)
                 listD2.append(D2)
             if offsets[i] == 0:
@@ -453,7 +487,7 @@ def matchDists(listD, listStatus, Nup, NVox, direction):
             if offsets[i] < 0:
                 shift = abs(offsets[i])*NVox
                 D = listD[i]
-                fillVal = max(D)
+                fillVal = D[0]
                 D2 = np.concatenate((fillVal*np.ones(shift),D[:-shift])).astype(np.float64)
                 listD2.append(D2)
     return(np.array(listD2))

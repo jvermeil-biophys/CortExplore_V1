@@ -54,7 +54,7 @@ date,manip,experimentType,drug,substrate,objective magnification,scale pixel per
 22-07-13,M2,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,7,,,,,,,,,False,3,500,21,labview
 22-07-13,M3,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,15,,,,,,,,,False,3,500,21,labview
 22-07-26,M1,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,3,,,,,,,,,False,3,500,21,labview
-22-07-26,M2,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,7,,,,,,,,,False,3,500,24,labview
+22-07-26,M2,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,7,,,,,,,,,False,3,500,21,labview
 22-07-26,M3,constant field,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,15,,,,,,,,,False,3,500,24,labview
 22-07-26,M4,optoGen,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,3,,,4.0,10,1.0,100,at beads,3.2,False,3,500,147,labview
 22-07-26,M5,optoGen,none,20um fibronectin discs,100X,15.8,oil,0.875,1.0,3T3,optoRhoA,M450,4503,0,7,,,4.0,10,1.0,100,at beads,3.2,False,3,500,147,labview

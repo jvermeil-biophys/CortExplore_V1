@@ -31,21 +31,21 @@ import UtilityFunctions as ufun
 
 #%% Define parameters # Numi
 
-# DirSave = 'D:/Anumita/MagneticPincherData/Raw/22.06.09'
-# DirExt = 'F:/Cortex Experiments/OptoPincher Experiments/20220906_100xoil_3t3optorhoa_4.5beads_15mT/22.06.09/'
-# prefix = 'cell'
-# channel = 'w1TIRF DIC'
-# microscope = 'metamorph'
+DirSave = 'D:/Anumita/MagneticPincherData/Raw/22.06.09'
+DirExt = 'F:/Cortex Experiments/OptoPincher Experiments/20220906_100xoil_3t3optorhoa_4.5beads_15mT/22.06.09/'
+prefix = 'cell'
+channel = 'w1TIRF DIC'
+microscope = 'metamorph'
 
 #%% Define parameters # Jojo
 
-date = '22.07.15'
-DirExt = 'G:/22.07.15_longLinker' #'/M4_patterns_ctrl'
-DirSave = os.path.join(cp.DirDataRaw, date)
+# date = '22.07.15'
+# DirExt = 'G:/22.07.15_longLinker' #'/M4_patterns_ctrl'
+# DirSave = os.path.join(cp.DirDataRaw, date)
 
-prefix = ''
-channel = ''
-microscope = 'labview'
+# prefix = ''
+# channel = ''
+# microscope = 'labview'
 
 
 # %% Functions
