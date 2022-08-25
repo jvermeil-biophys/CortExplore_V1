@@ -27,7 +27,7 @@ elif COMPUTERNAME == 'LARISA':
     rawDir = "F://JosephVermeil//MagneticPincherData"    
     ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
 elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
+    mainDir = "C://Users//anumi//OneDrive//Desktop//CortExplore"
     rawDir = "D:/Anumita/MagneticPincherData"  
 elif COMPUTERNAME == '':
     mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
@@ -59,10 +59,11 @@ BLUE  = '\033[36m' # blue
 mainDataDir = 'D:/Anumita/MagneticPincherData'
 experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
 dataDir = os.path.join(mainDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(dataDir, "TimeSeriesData")
+timeSeriesDataDir = os.path.join(mainDataDir, "Data_TimeSeries")
 
 figDir = os.path.join(mainDataDir, "Figures")
 todayFigDir = os.path.join(figDir, "Historique/" + str(date.today()))
+
 
 #%% Utility functions specific to Opto experiments
 
@@ -240,14 +241,13 @@ def ctFieldThicknessAll(experimentalDataDir, todayFigDir, date, param_type = 'no
     else:
         plt.style.use('default')
     
-    expDf = jvu.getExperimentalConditions(experimentalDataDir, save = False, sep = ';') 
+    expDf = jvu.getExperimentalConditions(experimentalDataDir, save = False, sep = ',') 
     expDf = expDf[expDf['experimentType'] == 'optoGen']
     expDf = expDf[expDf['microscope'] == 'metamorph']
     cellConditionsDf = pd.read_csv(experimentalDataDir+'/cellConditions_Ct.csv')
     cellConditionsDf = cellConditionsDf[cellConditionsDf['excluded'] == 'no']
     allCells = cellConditionsDf['cellID'].values
     cellIDs = []
-    
     
     
     if tag == 'all':
@@ -316,56 +316,309 @@ def ctFieldThicknessAll(experimentalDataDir, todayFigDir, date, param_type = 'no
     plt.savefig(todayFigDir+'/All_'+tag+'_'+param_type+'_ThicknessvTime')
 
 
+def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 0, kind = 'optogen'):
     
-
-def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, background = 'default', kind = 'optogen'):
     try:
         os.mkdir(todayFigDir)
     except:
         pass
-    
-    if background == 'dark':
-        plt.style.use('dark_background')
-    else:
-        plt.style.use('default')
-    
-    
+
     #### No activation experiments
     if kind == 'none':
+        
+        
         cellConditionsDf = pd.read_csv(experimentalDataDir+'/cellConditions_Ct.csv')
-        listOfCells = np.asarray(cellConditionsDf['cellID'][cellConditionsDf['excluded'] == 'no'])
-        phenotype = cellConditionsDf['phenotype'].values
+        cellConditionsDf = cellConditionsDf[cellConditionsDf['excluded'] == 'no']
+        
+        if len(parameter) == 1:
+            if parameter[0] != 'all':
+                cellConditionsDf = cellConditionsDf[cellConditionsDf['cellID'].str.contains(parameter[0])]
+        elif len(parameter) > 1:
+            cellConditionsDf = cellConditionsDf[(cellConditionsDf['cellID'].str.contains(parameter[0])) &\
+                                                 (cellConditionsDf['cellID'].str.contains(parameter[1]))]
+            
+        listOfCells = np.asarray(cellConditionsDf['cellID'])
+        magFields = cellConditionsDf['phenotype'].values
+        
         fig1 = plt.figure(figsize = (20,10))
-        plt.rcParams.update({'font.size': 25})
+        plt.rcParams.update({'font.size': 12})
+        
+        summaryDict = {}
+        summaryDict['cellID'] = []
+        summaryDict['medianThicknessWhole'] = []
+        summaryDict['medianThicknessToComp'] = []
+        summaryDict['fluctuationsWhole'] = []
+        summaryDict['ratioThickness'] = []
+        summaryDict['ratioFluctuations'] = []
+        summaryDict['fluctuationsToComp'] = []
+        summaryDict['magField'] = []
+        summaryDict['activationTag'] = []
+        
         for i in range(len(listOfCells)):
+            
+            
             cellID = listOfCells[i]
             print(cellID)
+            
+            magField = magFields[i]
             timeSeriesDf = getCellTimeSeriesData(cellID)
             
-            
             thickness = timeSeriesDf['D3'] - bead_dia
-            time = timeSeriesDf['T']*1000/60
+            time = timeSeriesDf['T'] #*1000/60
             
-            phenotypeCell = phenotype[i]
+            #Thickness first and last 5 mins to compare to before and after activation
             
-            if phenotypeCell == '3mT':
-                color = 'orange'
-            elif phenotypeCell == '7mT':
-                color = 'blue'
-            elif phenotypeCell == '15mT':
-                color = 'black'
+            thicknessBefore = thickness[:500]
+            thicknessAfter = thickness[500:]
             
-            plt.plot(time, thickness, color = color, label = cellID)
+            try:
+                ratioThickness = thicknessAfter/thicknessBefore
+            except:
+                ratioThickness = np.nan
             
-        plt.savefig(todayFigDir+'/SummaryThickness_NoActivation.png')
-        plt.legend(prop={'size': 6})
-        plt.show()
-        
-        cellConditionsDf.to_excel(todayFigDir+"/cellConditions_Ct"+kind+".xlsx")  
-        
-        summaryDf = np.nan
+            
+            fluctBefore = np.percentile(thicknessBefore, 90) - np.percentile(thicknessBefore, 10)
+            try:
+                fluctAfter = np.percentile(thicknessAfter, 90) - np.percentile(thicknessAfter, 10)
+                ratioFluct = fluctAfter/fluctBefore
+            except:
+                fluctAfter = np.nan
+                ratioFluct = np.nan
+            
+            summaryDict['cellID'].append(cellID)
+            summaryDict['medianThicknessWhole'].append(thickness.median())
+            summaryDict['medianThicknessToComp'].append(thicknessBefore.median())
+            summaryDict['fluctuationsWhole'].append(np.percentile(thickness, 90) - np.percentile(thickness, 10))
+            summaryDict['fluctuationsToComp'].append(fluctBefore)
+            summaryDict['magField'].append(magField)
+            summaryDict['ratioThickness'].append(ratioThickness)
+            summaryDict['ratioFluctuations'].append(ratioFluct)
+            summaryDict['activationTag'].append('Before')
+            
+            summaryDict['cellID'].append(cellID)
+            summaryDict['medianThicknessWhole'].append(np.nan)
+            summaryDict['medianThicknessToComp'].append(thicknessAfter.median())
+            summaryDict['fluctuationsWhole'].append(np.nan)
+            summaryDict['fluctuationsToComp'].append(fluctAfter)
+            summaryDict['magField'].append(magField)
+            summaryDict['ratioThickness'].append(np.nan)
+            summaryDict['ratioFluctuations'].append(np.nan)
+            summaryDict['activationTag'].append('After')
+            
+            summaryDf = pd.DataFrame(summaryDict)
+            
+            if plot == 1:
+                
+                #### Plots for individual thickness curves either for whole cell population of inidividually
+                if len(parameter) == 1 and parameter[0] == 'all':
     
-    #### Optognetic experiments
+                    if magField == '3mT':
+                        color = 'orange'
+                    elif magField == '7mT':
+                        color = 'blue'
+                    elif magField == '15mT':
+                        color = 'black'
+                    plt.plot(time, thickness, color = color, label = cellID)
+                    plt.legend(prop={'size': 6})
+                    
+                elif len(parameter) > 1 :
+                    
+                    if magField == '3mT':
+                        color = 'orange'
+                    elif magField == '7mT':
+                        color = 'blue'
+                    elif magField == '15mT':
+                        color = 'black'
+                    plt.plot(time, thickness, color = color, label = cellID)
+                    plt.legend(prop={'size': 6})
+                    
+                elif len(parameter) == 1 and parameter[0] != 'all':
+                    plt.plot(time, thickness, label = cellID)
+                    plt.legend(prop={'size': 6})
+                
+                plt.savefig(todayFigDir+'/SummaryThickness_NoActivation_'+kind+"_"+str(parameter)+'.png')
+                
+                plt.show()
+                cellConditionsDf.to_excel(todayFigDir+"/cellConditions_Ct_"+kind+"_"+str(parameter)+".xlsx")  
+                
+                # summaryDf = np.nan
+                
+        if plot == 2:
+            
+            
+            #### medianThickness for different magnetic fields
+            ax1 = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            ax1 = sns.boxplot(x = 'magField', y='medianThicknessWhole', data=summaryDf, palette = palette)
+            ax1 = sns.swarmplot(x = 'magField', y='medianThicknessWhole', data=summaryDf, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax1.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('Median Thickness | '+str(parameter))
+            plt.savefig(todayFigDir+'/medianThickness_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            ax1b = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            
+            y = summaryDf['medianThicknessToComp'][summaryDf['activationTag'] == 'Before']
+            ax1b = sns.boxplot(x = 'magField', y = y, data=summaryDf, palette = palette)
+            ax1b = sns.swarmplot(x = 'magField', y = y, data=summaryDf, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax1b.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('Median Thickness_5mins | '+str(parameter))
+            plt.savefig(todayFigDir+'/medianThickness5mins_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #### fluctuations for different magnetic fields
+            ax2 = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            ax2 = sns.boxplot(x = 'magField', y='fluctuationsWhole', data=summaryDf, palette = palette)
+            ax2 = sns.swarmplot(x = 'magField', y='fluctuationsWhole', data=summaryDf, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax2.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('Fluctuations | '+str(parameter))
+            plt.savefig(todayFigDir+'/fluctuations_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #### fluctuations for different magnetic fields
+            ax2b = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            y = summaryDf['fluctuationsToComp'][summaryDf['activationTag'] == 'Before']
+            ax2b = sns.boxplot(x = 'magField', y = y, data=summaryDf, palette = palette)
+            ax2b = sns.swarmplot(x = 'magField', y = y, data=summaryDf, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax2b.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('Fluctuations_5mins | '+str(parameter))
+            plt.savefig(todayFigDir+'/fluctuations5mins_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #### median thickness vs fluctuations for different magnetic fields
+            ax3 = plt.figure()
+            palette = ["orange", "blue", "#000000"]
+            sns.set_palette(palette)
+            ax3 = sns.scatterplot(x = 'fluctuationsWhole', y ='medianThicknessWhole', data = summaryDf, hue = 'magField', palette = palette, s= 40)
+                
+            plt.suptitle('Median Thickness vs. Fluctuations | '+str(parameter))
+            plt.savefig(todayFigDir+'/thicknessVfluctuations_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #### median thickness vs fluctuations for different magnetic fields only 5 mins
+            
+            ax3b = plt.figure()
+            palette = ["orange", "blue", "#000000"]
+            sns.set_palette(palette)
+            dataSpec = summaryDf[summaryDf['activationTag'] == 'Before']
+            ax3b = sns.scatterplot(x = 'fluctuationsToComp', y ='medianThicknessToComp', data = dataSpec, hue = 'magField', palette = palette, s= 40)
+                
+            plt.suptitle('Median Thickness vs. Fluctuations (5mins)| '+str(parameter))
+            plt.savefig(todayFigDir+'/thicknessVfluctuations5mins_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+
+            #### medianThickness Before/After 5mins to compare with activation for different magnetic fields
+            # 3mT
+            ax4a = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            dataSpec = summaryDf[summaryDf['magField'] == '3mT']
+            ax4a = sns.boxplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, palette = palette) #, palette = palette)
+            ax4a = sns.swarmplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax4a.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('MedianThicknessControl_3mT | '+str(parameter))
+            plt.savefig(todayFigDir+'/MedianThicknessActivationControl3mT_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #7mT
+            ax4b = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            dataSpec = summaryDf[summaryDf['magField'] == '7mT']
+            ax4b = sns.boxplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, palette = palette) #, palette = palette)
+            ax4b = sns.swarmplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax4a.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('MedianThicknessControl_7mT | '+str(parameter))
+            plt.savefig(todayFigDir+'/MedianThicknessActivationControl7mT_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            #15 mT
+            ax4c = plt.figure()
+            palette = sns.color_palette("light:b")
+            sns.set_palette(palette)
+            dataSpec = summaryDf[summaryDf['magField'] == '15mT']
+            ax4c = sns.boxplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, palette = palette) #, palette = palette)
+            ax4c = sns.swarmplot(x = 'activationTag', y='medianThicknessToComp', data=dataSpec, color ='black', size = 6)
+            # ax1.set_ylim(0, 1)
+            
+            for patch in ax4c.artists:
+                r, g, b, a = patch.get_facecolor()
+                patch.set_facecolor((r, g, b, 0.3))
+                
+            plt.suptitle('MedianThicknessControl_15mT | '+str(parameter))
+            plt.savefig(todayFigDir+'/MedianThicknessActivationControl15mT_'+kind+'_'+str(parameter)+'.png')
+            plt.show()
+            
+            ####Plot fluctuations vs. median thickness : Indidivually for diff activation types    
+            lm = sns.lmplot(x ='medianThicknessWhole', y ='fluctuationsWhole', data = summaryDf, \
+                            hue ='magFields', col = 'activationType')
+                
+            fig2 = lm.fig
+            
+            text_x = [0.05, 0.38, 0.7]
+            text1_y = [0.812, 0.812, 0.812]
+            text2_y = [0.78, 0.78, 0.78]
+            fields = ['3mT', '7mT', '15mT']
+            #Calculating correlation coefficient b/w fluctuation and median thickness
+            for j in range(len(fields)):
+                dataSpec = summaryDf[summaryDf['magField'] == fields[j]]
+                fluctuationsSpecAfter = dataSpec['fluctuationsWhole'][dataSpec['activationTag'] == 'After'].values
+                thicknessSpecAfter = dataSpec['medianThicknessWhole'][dataSpec['activationTag'] == 'After'].values
+                corrCoefAfter = np.corrcoef(thicknessSpecAfter, fluctuationsSpecAfter)
+        
+                
+                fluctuationsSpecBefore = dataSpec['fluctuationsWhole'][dataSpec['activationTag'] == 'Before'].values
+                thicknessSpecBefore = dataSpec['medianThicknessWhole'][dataSpec['activationTag'] == 'Before'].values
+                corrCoefBefore = np.corrcoef(thicknessSpecBefore, fluctuationsSpecBefore)
+        
+                
+                fig2.text(text_x[j], text1_y[j], str(np.round(corrCoefAfter[0][1], 3)), color = 'orange')
+                fig2.text(text_x[j], text2_y[j], str(np.round(corrCoefBefore[0][1], 3)), color = 'blue')
+            
+            fig2.suptitle('Fluctuations vs. Median thickness')
+            fig2.tight_layout()
+            plt.savefig(todayFigDir+'/Summary_MagFieldsControl_FluctuationsvsThickness.png')
+            plt.show()
+    
+    #### Optogenetic experiments
     if kind == 'optogen':
         expDf = jvu.getExperimentalConditions(experimentalDataDir, save = False, sep = ';')
         cellConditionsDf = pd.read_csv(experimentalDataDir+'/cellConditions_Ct.csv')
@@ -684,6 +937,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, backgro
         ax3 = sns.swarmplot(x = 'activationTag', y='fluctuations', data=summaryDf, hue = 'activationType')
         addStat_df(ax3, summaryDf, [('After', 'Before')], 'fluctuations', test = 'Wilcox_greater', cond = 'activationTag')
         ax3.set_ylim(0, 1)
+        
         for patch in ax3.artists:
             r, g, b, a = patch.get_facecolor()
             patch.set_facecolor((r, g, b, .3))
@@ -833,6 +1087,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, backgro
         plt.legend()
         plt.show()
     
+    
         cellConditionsDf.to_excel(todayFigDir+"/cellConditions_Ct"+kind+".xlsx")  
         
     return(summaryDf)
@@ -841,16 +1096,28 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, backgro
 # %% Constant field plots
 #%%% Plotting summary of thickness plots
 kind = 'none'
-parameter = 'none'
-summaryDf = ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, kind = kind)
+parameter =  ['all'] # ['all']
+summaryDf = ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 2, kind = kind)
+
+#%%%%% Plotting summary of thickness plots if you want cell specific curves for different conditions
+
+cellConditionsDf = pd.read_csv(experimentalDataDir+'/cellConditions_Ct.csv')
+cellIDs = cellConditionsDf['cellID'][cellConditionsDf['excluded'] == 'no']
+
+kind = 'none'
+for i in cellIDs:
+    date = jvu.findInfosInFileName(i,'date')
+    cellID = jvu.findInfosInFileName(i,'cellID')[-5:]
+    parameter =  [date, cellID] # ['none']
+    summaryDf = ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 1, kind = kind)
 
 
 # %% Close all open plots
 plt.close('all')
 
 # %% Plotting all three plots (3D, 2D, Dz vs Time) of an experiment
-date = '22.07.13'
-ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, background = 'dark')
+# date = '22.07.26'
+# ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, background = 'dark')
 
 
 # %%
@@ -858,7 +1125,7 @@ ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, 
 
 #%%% Plotting 3D trajectories of all cells
 
-# tag = 'global'
+# tag = 'all'
 # param_type = 'none'
 # # param = 'polarised'
 # ctFieldThicknessAll(experimentalDataDir, todayFigDir, date, param_type = param_type, \
@@ -868,262 +1135,3 @@ ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, 
 # plt.close('all')
 
 
-#%% shitty test plots
-#%%% Plotting all three graphs (3D, 2D and Dz)
-
-expt = '20220412_100xoil_3t3optorhoa_4.5beads_15mT_Mechanics'
-folder = '22-04-12_M1_P1_C5_disc20um'
-date = '22.04.12'
-
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder+'_PY.csv'
-data = pd.read_csv(file, sep=';')
- #in um
-
-xyz_dist = data['D3'] - bead_dia
-xy_dist = data['D2'] - bead_dia
-dz = data['dz']
-t = (data['T']*1000)/60
-#t = np.linspace(0,len(data['T']),len(data['T']))
-Nan_thresh = 3
-
-outlier = np.where(xyz_dist > Nan_thresh)[0]
-xyz_dist[outlier] = np.nan
-xy_dist[outlier] = np.nan
-dz[outlier] = np.nan
-
-plt.style.use('dark_background')
-
-fig = plt.figure(figsize=(20,20))
-fig.suptitle(folder, fontsize=16)
-plt.rcParams.update({'font.size': 25})
-
-ax1 = plt.subplot(311)
-plt.plot(t, xyz_dist)
-plt.axvline(x = 5, color = 'r', label = 'Activation begins')
-plt.axvline(x = 8, color = 'r', label = 'Activation begins')
-
-plt.title('3D Distance vs. Time')
-#plt.xlim(0,25)
-
-
-# share x only
-ax2 = plt.subplot(312)
-plt.plot(t, xy_dist)
-plt.axvline(x = 5, color = 'r', label = 'Activation begins')
-plt.axvline(x = 8, color = 'r', label = 'Activation begins')
-
-plt.title('2D Distance (XY) vs. Time (mins)')
-# make these tick labels invisible
-
-# share x and y
-ax3 = plt.subplot(313)
-plt.axvline(x = 5, color = 'r', label = 'Activation begins')
-plt.axvline(x = 8, color = 'r', label = 'Activation begins')
-
-plt.title('Dz vs. Time (mins)')
-plt.plot(t, dz)
-
-plt.show()
-
-plt.savefig('D:/Anumita/PincherPlots/'+folder+'_DistancevTime.jpg')
-
-#%% Plotting just 3D graphs
-
-# %%% Just 3D graphs
-
-expt = '20220322_100xoil_3t3optorhoa_4.5beads_15mT'
-folder = '22-03-22_M2_P1_C5_disc20um'
-date = '22.03.22'
-
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder+'_PY.csv'
-data = pd.read_csv(file, sep=';')
-bead_dia = 4.503 #in um
-
-xyz_dist = data['D3'] - bead_dia
-xy_dist = data['D2'] - bead_dia
-dz = data['dz']
-t = (data['T']*1000)/60
-#t = np.linspace(0,len(data['T']),len(data['T']))
-# Nan_thresh = 3
-
-# outlier = np.where(xyz_dist > Nan_thresh)[0]
-# xyz_dist[outlier] = np.nan
-# xy_dist[outlier] = np.nan
-# dz[outlier] = np.nan
-
-plt.style.use('dark_background')
-
-fig = plt.figure(figsize=(30,10))
-fig.suptitle(folder, fontsize=16)
-plt.rcParams.update({'font.size': 40})
-plt.axvline(x = 5, color = 'r', label = 'Activation begins')
-# plt.xlim(0.5,8)
-
-plt.ylabel('Thickness (um)')
-plt.xlabel('Time (mins)')
-
-plt.plot(t, xyz_dist)
-plt.title('3D Distance vs. Time')
-
-plt.savefig('D:/Anumita/PincherPlots/'+folder+'_3DistancevTime.jpg')
-
-
-# %%
-expt1 = '20220322_100xoil_3t3optorhoa_4.5beads_15mT'
-folder1 = '22-03-22_M4_P1_C5_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder1+'_PY.csv'
-data1 = pd.read_csv(file, sep=';')
-#t1 = np.linspace(0,len(data1['T']),len(data1['T']))
-t1 = (data1['T']*1000/60)
-xy_dist1 = data1['D3'] - bead_dia
-
-expt2 = '20220322_100xoil_3t3optorhoa_4.5beads_15mT'
-folder2 = '22-03-22_M3_P1_C5_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder2+'_PY.csv'
-data2 =  pd.read_csv(file, sep=';')
-# t2 = np.linspace(0,len(data2['T']),len(data2['T']))
-t2 = (data2['T']*1000/60)
-xy_dist2 = data2['D3'] - bead_dia
-
-Nan_thresh1 = 3
-Nan_thresh2 = 3
-
-outlier = np.where(xy_dist2 > Nan_thresh2)[0]
-xy_dist2[outlier] = np.nan
-
-outlier = np.where(xy_dist1 > Nan_thresh1)[0]
-xy_dist1[outlier] = np.nan
-
-# expt3 = '20211220_100xoil_3t3optorhoa_4.5beads_15mT'
-# folder3 = '21-12-20_M3_P1_C2_disc20um'
-# file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder3+'_PY.csv'
-# data3 = pd.read_csv(file, sep=';')
-# t3 = np.linspace(0,len(data3['T']),len(data3['T']))
-# xy_dist3 = data3['D2'] - bead_dia
-
-plt.style.use('dark_background')
-
-
-fig= plt.figure(figsize=(30,10))
-fig.suptitle(folder, fontsize=16)
-
-# right_side = fig.spines["right"]
-# right_side.set_visible(False)
-# top_side = fig.spines["top"]
-# top_side.set_visible(False)
-
-
-plt.rcParams.update({'font.size':35})
-plt.title('3D Distance vs Time')
-plt.ylabel('Thickness (um)')
-plt.xlabel('Time (secs)')
-
-plt.plot(t1, xy_dist1, label="Activation away from beads", color = 'orange')
-plt.plot(t2, xy_dist2, label='Activation at beads', color = 'royalblue')
-plt.axvline(x = 5, color = 'r')
-
-# plt.plot(t3, xy_dist3, label='90s')
-plt.legend()
-plt.show()
-plt.savefig('D:/Anumita/PincherPlots/C3_DistancevTime.jpg')
-
-# %% All curves
-
-expt1 = '20211220_100xoil_3t3optorhoa_4.5beads_15mT'
-folder1 = '21-12-20_M1_P1_C1_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder1+'_PY.csv'
-data1 = pd.read_csv(file, sep=';')
-#t1 = np.linspace(0,len(data1['T']),len(data1['T']))
-t1 = (data1['T']*1000)
-xy_dist1 = data1['D3'] - bead_dia
-
-expt2 = '20211220_100xoil_3t3optorhoa_4.5beads_15mT'
-folder2 = '21-12-20_M1_P1_C3_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder2+'_PY.csv'
-data2 =  pd.read_csv(file, sep=';')
-# t2 = np.linspace(0,len(data2['T']),len(data2['T']))
-t2 = (data2['T']*1000)
-xy_dist2 = data2['D3'] - bead_dia
-
-expt3 = '20220203_100xoil_3t3optorhoa_4.5beads_15mT'
-folder3 = '22-02-03_M4_P1_C1_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder3+'_PY.csv'
-data3 = pd.read_csv(file, sep=';')
-#t1 = np.linspace(0,len(data1['T']),len(data1['T']))
-t3 = (data3['T']*1000)
-xy_dist3 = data3['D3'] - bead_dia
-
-expt4 = '20220203_100xoil_3t3optorhoa_4.5beads_15mT'
-folder4 = '22-02-03_M3_P1_C1_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder4+'_PY.csv'
-data4 =  pd.read_csv(file, sep=';')
-# t2 = np.linspace(0,len(data2['T']),len(data2['T']))
-t4 = (data4['T']*1000)
-xy_dist4 = data4['D3'] - bead_dia
-
-expt5 = '20220203_100xoil_3t3optorhoa_4.5beads_15mT'
-folder5 = '22-02-03_M5_P1_C3_disc20um'
-file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder5+'_PY.csv'
-data5 =  pd.read_csv(file, sep=';')
-# t2 = np.linspace(0,len(data2['T']),len(data2['T']))
-t5 = (data5['T']*1000)
-xy_dist5 = data5['D3'] - bead_dia
-
-
-Nan_thresh1 = 3
-Nan_thresh2 = 3
-
-outlier = np.where(xy_dist2 > Nan_thresh2)[0]
-xy_dist2[outlier] = np.nan
-
-outlier = np.where(xy_dist1 > Nan_thresh1)[0]
-xy_dist1[outlier] = np.nan
-
-# expt3 = '20211220_100xoil_3t3optorhoa_4.5beads_15mT'
-# folder3 = '21-12-20_M3_P1_C2_disc20um'
-# file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+folder3+'_PY.csv'
-# data3 = pd.read_csv(file, sep=';')
-# t3 = np.linspace(0,len(data3['T']),len(data3['T']))
-# xy_dist3 = data3['D2'] - bead_dia
-
-plt.style.use('dark_background')
-
-
-fig= plt.figure(figsize=(20,20))
-# fig.suptitle(fontsize=16)
-
-# right_side = fig.spines["right"]
-# right_side.set_visible(False)
-# top_side = fig.spines["top"]
-# top_side.set_visible(False)
-
-
-plt.rcParams.update({'font.size':35})
-plt.title('3D Distance vs Time')
-plt.ylabel('Thickness (nm)')
-plt.xlabel('Time (secs)')
-
-plt.plot(t1, xy_dist1, label=folder1, color = 'red')
-plt.plot(t2, xy_dist2, label=folder2, color = 'blue')
-plt.plot(t3, xy_dist3, label=folder3, color = 'orange')
-plt.plot(t4, xy_dist4, label=folder4, color = 'pink')
-plt.plot(t5, xy_dist5, label=folder5, color='yellow')
-# plt.plot(t3, xy_dist3, label='90s')
-plt.legend()
-plt.show()
-plt.savefig('D:/Anumita/PincherPlots/All_DistancevTime.jpg')
-
-
-# %% Plotting with fluorescence recruitment values
-
-expt = '20220301_100xoil_3t3optorhoa_4.5beads_15mT'
-folder = '22-03-01_M1_P1_C3_disc20um'
-date = '22.03.01'
-
-file = 'D:/Anumita/MagneticPincherData/Raw/'+date+'/'+folder+'_Values.csv'
-data = pd.read_csv(file, sep=',')
-
-radius = np.asarray(data['Radius_[pixels]'])
-
-# for i in range(np.shape(data)[1]):
-#     plt

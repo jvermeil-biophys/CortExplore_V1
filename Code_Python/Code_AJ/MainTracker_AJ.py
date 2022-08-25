@@ -42,15 +42,15 @@ from BeadTracker import XYZtracking
 
 
 # 2. Pandas settings
-pd.set_option('mode.chained_assignment',None)
-
+# pd.set_option('mode.chained_assignment',None)
+# 
 # 3. Graphical settings
-gs.set_default_options_jv()
+# gs.set_default_options_jv()
 
 
 # 4. Import of the experimental conditions
 
-expDf = ufun.getExperimentalConditions(DirExp = cp.DirRepoExp, save = True, sep = ';', suffix = cp.suffix)
+expDf = ufun.getExperimentalConditions(DirExp = cp.DirRepoExp, save = True, sep = ',', suffix = cp.suffix)
 
 # %% Setting of the directories
 
@@ -455,6 +455,81 @@ depthoNames = '22.05.09_P2_M450_step20_100X'
 output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
                      redoAllSteps = False, MatlabStyle = True, trackAll = False, 
                      sourceField = 'default')
+
+
+
+# %% 26/07/2022 :
+
+# %%%% M1 :
+
+dates = '22.07.26'
+manips, wells, cells = 1, 3, 1
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M2 : 
+
+dates = '22.07.26'
+manips, wells, cells = 2, 1, 4
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M3 : Global activation, 60s frequency
+
+dates = '22.07.26'
+manips, wells, cells = 3, 1, 4
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+  # %%%% M4 : Global activation, 60s frequency
+
+dates = '22.07.26'
+manips, wells, cells = 4, 2, 'all'
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M5 : Global activation, 60s frequency
+
+dates = '22.07.26'
+manips, wells, cells = 5, 2, 'all'
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M6 : Global activation, 60s frequency
+
+dates = '22.07.26'
+manips, wells, cells = 6, 2, 'all'
+depthoNames = '22.07.26_P2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
 
 
 
