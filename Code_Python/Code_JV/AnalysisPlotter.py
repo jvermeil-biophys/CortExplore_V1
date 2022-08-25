@@ -42,7 +42,8 @@ sys.path.append(cp.DirRepoPython)
 
 import GraphicStyles as gs
 import UtilityFunctions as ufun
-import TrackAnalyser as taka
+# import TrackAnalyser as taka
+import TrackAnalyser_dev_AJ as taka
 
 #### Potentially useful lines of code
 # get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -478,8 +479,10 @@ taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa',
 
 df = taka.getGlobalTable_meca('Global_MecaData_Py2').tail()
 
+# %%%% Test of Numi's CRAZY GOOD NEW STUFF :D
 
-
+taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
+                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
 
 # =============================================================================
 # %%% Fluorescence
