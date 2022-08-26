@@ -72,6 +72,7 @@ DirDataAnalysisUMS = os.path.join(DirDataAnalysis, "UserManualSelection")
 DirDataTimeseries = os.path.join(DirData, "Data_Timeseries")
 DirDataTimeseriesRawtraj = os.path.join(DirDataTimeseries, "Trajectories_raw")
 DirDataTimeseriesTraj = os.path.join(DirDataTimeseries, "Trajectories")
+DirDataTimeseriesStressStrain = os.path.join(DirDataTimeseries, "Trajectories_stress-strain")
 
 DirDataFig = os.path.join(DirData, "Figures")
 DirDataFigToday = os.path.join(DirDataFig, "Historique", str(date.today()))
@@ -81,10 +82,13 @@ if not CloudSaving == '':
     DirCloudAnalysis = os.path.join(DirCloud, "Data_Analysis")
     DirCloudAnalysisUMS = os.path.join(DirCloudAnalysis, "UserManualSelection")
     DirCloudTimeseries = os.path.join(DirCloud, "Data_Timeseries")
+    DirCloudTimeseriesStressStrain = os.path.join(DirCloudTimeseries, "Trajectories_stress-strain")
     DirCloudFig = os.path.join(DirCloud, "Figures")
     DirCloudFigToday = os.path.join(DirCloudFig, "Historique", str(date.today()))
 else:
-    DirCloudExp, DirCloudAnalysis, DirCloudAnalysisUMS, DirCloudTimeseries, DirCloudFig, DirCloudFigToday = "", "", "", "", "", ""
+    DirCloudExp, DirCloudAnalysis, DirCloudAnalysisUMS = "", "", "" 
+    DirCloudTimeseries, DirCloudTimeseriesStressStrain = "", ""
+    DirCloudFig, DirCloudFigToday = "", ""
 
 # 1.3 Add python directory to path
 
@@ -96,10 +100,10 @@ sys.path.append(DirRepoPython)
 MainDirs = [DirRepo, DirData, DirTempPlots]
 RepoSubdirs = [DirRepoPython, DirRepoPythonUser, DirRepoExp]
 DataSubdirs = [DirDataRaw, DirDataAnalysis, DirDataFig,
-               DirDataTimeseries, DirDataTimeseriesTraj, DirDataTimeseriesRawtraj]
+               DirDataTimeseries, DirDataTimeseriesTraj, DirDataTimeseriesRawtraj, DirDataTimeseriesStressStrain]
 
 if not CloudSaving == '':
-    CloudDirs = [DirCloud, DirCloudExp, DirCloudFig, DirCloudAnalysis, DirCloudTimeseries]
+    CloudDirs = [DirCloud, DirCloudExp, DirCloudFig, DirCloudAnalysis, DirCloudTimeseries, DirCloudTimeseriesStressStrain]
 
 
 def checkDirArchi():

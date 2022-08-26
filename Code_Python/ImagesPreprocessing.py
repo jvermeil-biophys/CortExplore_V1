@@ -383,7 +383,7 @@ print(gs.YELLOW + instructionText + gs.NORMAL)
 
 count = 0
 # for i in range(len(allZimg)):
-for i in range(24):
+for i in range(min(len(allZimg), 24)):
     if count%24 == 0:
         count = 0
         

@@ -58,37 +58,7 @@ dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}')
 
 # %% (1) Utility functions
 
-def copyFile(DirSrc, DirDst, filename):
-    """
-    Copy the file 'filename' from 'DirSrc' to 'DirDst'
-    """
-    PathSrc = os.path.join(DirSrc, filename)
-    PathDst = os.path.join(DirDst, filename)
-    shutil.copyfile(PathSrc, PathDst)
-    
-def copyFilesWithString(DirSrc, DirDst, stringInName):
-    """
-    Copy all the files from 'DirSrc' which names contains 'stringInName' to 'DirDst'
-    """
-    SrcFilesList = os.listdir(DirSrc)
-    for SrcFile in SrcFilesList:
-        if stringInName in SrcFile:
-            copyFile(DirSrc, DirDst, SrcFile)
-            
-def containsFilesWithExt(Dir, ext):
-    answer = False
-    FilesList = os.listdir(Dir)
-    for File in FilesList:
-        if File.endswith(ext):
-            answer = True
-    return(answer)
-
-
-def findActivation(fieldDf):
-    maxZidx = fieldDf['Z'].argmax() #Finding the index of the max Z
-    maxZ = fieldDf['Z'][maxZidx] #To check if the value is correct
-    return(maxZidx, maxZ)
-    
+# %%% Data management
 
 def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', suffix = cp.suffix):
     """
@@ -226,6 +196,15 @@ def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', s
     #### 4. END
     return(expDf)
 
+
+
+def findActivation(fieldDf):
+    maxZidx = fieldDf['Z'].argmax() #Finding the index of the max Z
+    maxZ = fieldDf['Z'][maxZidx] #To check if the value is correct
+    return(maxZidx, maxZ)   
+
+
+
 def findInfosInFileName(f, infoType):
     """
     Return a given type of info from a file name.
@@ -324,6 +303,83 @@ def isFileOfInterest(f, manips, wells, cells):
                                 test = True
     return(test)
 
+
+
+def getDictAggMean(df):
+    dictAggMean = {}
+    for c in df.columns:
+    #         t = df[c].dtype
+    #         print(c, t)
+            try :
+                if np.array_equal(df[c], df[c].astype(bool)):
+                    dictAggMean[c] = 'min'
+                else:
+                    try:
+                        if not c.isnull().all():
+                            np.mean(df[c])
+                            dictAggMean[c] = 'mean'
+                    except:
+                        dictAggMean[c] = 'first'
+            except:
+                    dictAggMean[c] = 'first'
+    return(dictAggMean)
+
+# %%% File manipulation
+
+def copyFile(DirSrc, DirDst, filename):
+    """
+    Copy the file 'filename' from 'DirSrc' to 'DirDst'
+    """
+    PathSrc = os.path.join(DirSrc, filename)
+    PathDst = os.path.join(DirDst, filename)
+    shutil.copyfile(PathSrc, PathDst)
+    
+def copyFilesWithString(DirSrc, DirDst, stringInName):
+    """
+    Copy all the files from 'DirSrc' which names contains 'stringInName' to 'DirDst'
+    """
+    SrcFilesList = os.listdir(DirSrc)
+    for SrcFile in SrcFilesList:
+        if stringInName in SrcFile:
+            copyFile(DirSrc, DirDst, SrcFile)
+            
+def containsFilesWithExt(Dir, ext):
+    answer = False
+    FilesList = os.listdir(Dir)
+    for File in FilesList:
+        if File.endswith(ext):
+            answer = True
+    return(answer)
+
+# %%% Stats
+
+def get_R2(Y1, Y2):
+    meanY = np.mean(Y1)
+    meanYarray = meanY*np.ones(len(Y1))
+    SST = np.sum((Y1-meanYarray)**2)
+    SSE = np.sum((Y2-meanYarray)**2)
+    R2 = SSE/SST
+    return(R2)
+
+def get_Chi2(Ymeas, Ymodel, dof, S):
+    residuals = Ymeas-Ymodel
+    Chi2 = np.sum((residuals/S)**2)
+    Chi2_dof = Chi2/dof
+    return(Chi2_dof)
+
+# %%% Image processing
+
+def getDepthoCleanSize(D, scale):
+    """
+    Function that looks stupid but is quite important ! It allows to standardise 
+    across all other functions the way the depthograph width is computed.
+    D here is the approximative size of the bead in microns, 4.5 for M450, 2.7 for M270.
+    Scale is the pixel to microns ration of the objective.
+    """
+    cleanSize = int(np.floor(1*D*scale))
+    cleanSize += 1 + cleanSize%2
+    return(cleanSize)
+
 def compute_cost_matrix(XY1,XY2):
     """
     Compute a custom cost matrix between two arrays of XY positions.
@@ -374,16 +430,7 @@ def getROI(roiSize, x0, y0, nx, ny):
         validROI = True
     return(x1, y1, x2, y2, validROI)
 
-def getDepthoCleanSize(D, scale):
-    """
-    Function that looks stupid but is quite important ! It allows to standardise 
-    across all other functions the way the depthograph width is computed.
-    D here is the approximative size of the bead in microns, 4.5 for M450, 2.7 for M270.
-    Scale is the pixel to microns ration of the objective.
-    """
-    cleanSize = int(np.floor(1*D*scale))
-    cleanSize += 1 + cleanSize%2
-    return(cleanSize)
+
 
 def squareDistance(M, V, normalize = False): # MUCH FASTER ! **Michael Scott Voice** VERRRRY GOODE
     """
@@ -584,7 +631,57 @@ def max_entropy_threshold(I):
     T = max_entropy(H)
     return(T)
 
+# %%% Physics
 
+def computeMag_M270(B):
+    M = 0.74257*1.05*1600 * (0.001991*B**3 + 17.54*B**2 + 153.4*B) / (B**2 + 35.53*B + 158.1)
+    return(M)
+
+def computeMag_M450(B):
+    M = 1.05*1600 * (0.001991*B**3 + 17.54*B**2 + 153.4*B) / (B**2 + 35.53*B + 158.1)
+    return(M)
+ 
+                    
+# %%% Very general functions
+
+def findFirst(x, A):
+    """
+    Find first occurence of x in array A, in a VERY FAST way.
+    If you like weird one liners, you will like this function.
+    """
+    idx = (A==x).view(bool).argmax()
+    return(idx)
+
+def fitLine(X, Y):
+    """
+    returns: results.params, results \n
+    Y=a*X+b ; params[0] = b,  params[1] = a
+    
+    NB:
+        R2 = results.rsquared \n
+        ci = results.conf_int(alpha=0.05) \n
+        CovM = results.cov_params() \n
+        p = results.pvalues \n
+    
+    This is how one should compute conf_int:
+        bse = results.bse \n
+        dist = stats.t \n
+        alpha = 0.05 \n
+        q = dist.ppf(1 - alpha / 2, results.df_resid) \n
+        params = results.params \n
+        lower = params - q * bse \n
+        upper = params + q * bse \n
+    """
+    
+    X = sm.add_constant(X)
+    model = sm.OLS(Y, X)
+    results = model.fit()
+    params = results.params 
+#     print(dir(results))
+    return(results.params, results)
+
+
+# %%% Figure & graphic operations
 
 def archiveFig(fig, ax, figDir, name='auto', dpi = 100):
     
@@ -632,82 +729,6 @@ def archiveFig(fig, ax, figDir, name='auto', dpi = 100):
                     figNum = plt.gcf().number
                     name = 'figure ' + str(figNum) 
                     fig.savefig(os.path.join(saveDir, name + '.png'), dpi=dpi)
-                
-                    
-                
-def get_R2(Y1, Y2):
-    meanY = np.mean(Y1)
-    meanYarray = meanY*np.ones(len(Y1))
-    SST = np.sum((Y1-meanYarray)**2)
-    SSE = np.sum((Y2-meanYarray)**2)
-    R2 = SSE/SST
-    return(R2)
-
-def get_Chi2(Ymeas, Ymodel, dof, S):
-    residuals = Ymeas-Ymodel
-    Chi2 = np.sum((residuals/S)**2)
-    Chi2_dof = Chi2/dof
-    return(Chi2_dof)
-
-def getDictAggMean(df):
-    dictAggMean = {}
-    for c in df.columns:
-    #         t = df[c].dtype
-    #         print(c, t)
-            try :
-                if np.array_equal(df[c], df[c].astype(bool)):
-                    dictAggMean[c] = 'min'
-                else:
-                    try:
-                        if not c.isnull().all():
-                            np.mean(df[c])
-                            dictAggMean[c] = 'mean'
-                    except:
-                        dictAggMean[c] = 'first'
-            except:
-                    dictAggMean[c] = 'first'
-    return(dictAggMean)
-
-def findFirst(x, A):
-    idx = (A==x).view(bool).argmax()
-    return(idx)
-
-def fitLine(X, Y):
-    """
-    returns: results.params, results \n
-    Y=a*X+b ; params[0] = b,  params[1] = a
-    
-    NB:
-        R2 = results.rsquared \n
-        ci = results.conf_int(alpha=0.05) \n
-        CovM = results.cov_params() \n
-        p = results.pvalues \n
-    
-    This is how one should compute conf_int:
-        bse = results.bse \n
-        dist = stats.t \n
-        alpha = 0.05 \n
-        q = dist.ppf(1 - alpha / 2, results.df_resid) \n
-        params = results.params \n
-        lower = params - q * bse \n
-        upper = params + q * bse \n
-    """
-    
-    X = sm.add_constant(X)
-    model = sm.OLS(Y, X)
-    results = model.fit()
-    params = results.params 
-#     print(dir(results))
-    return(results.params, results)
-
-
-def computeMag_M270(B):
-    M = 0.74257*1.05*1600 * (0.001991*B**3 + 17.54*B**2 + 153.4*B) / (B**2 + 35.53*B + 158.1)
-    return(M)
-
-def computeMag_M450(B):
-    M = 1.05*1600 * (0.001991*B**3 + 17.54*B**2 + 153.4*B) / (B**2 + 35.53*B + 158.1)
-    return(M)
 
 def lighten_color(color, amount=0.5):
     """
