@@ -31,26 +31,26 @@ import UtilityFunctions as ufun
 
 #%% Define parameters # Numi
 
-DirSave = 'D:/Anumita/MagneticPincherData/Raw/22.06.09'
-DirExt = 'F:/Cortex Experiments/OptoPincher Experiments/20220906_100xoil_3t3optorhoa_4.5beads_15mT/22.06.09/'
-prefix = 'cell'
-channel = 'w1TIRF DIC'
-microscope = 'metamorph'
+# DirSave = 'D:/Anumita/MagneticPincherData/Raw/22.06.09'
+# DirExt = 'F:/Cortex Experiments/OptoPincher Experiments/20220906_100xoil_3t3optorhoa_4.5beads_15mT/22.06.09/'
+# prefix = 'cell'
+# channel = 'w1TIRF DIC'
+# microscope = 'metamorph'
 
 #%% Define parameters # Jojo
 
-# date = '22.07.15'
-# DirExt = 'G:/22.07.15_longLinker' #'/M4_patterns_ctrl'
-# DirSave = os.path.join(cp.DirDataRaw, date)
+date = '22.07.27'
+DirExt = 'G:/22.07.27_longLinker' #'/M4_patterns_ctrl'
+DirSave = os.path.join(cp.DirDataRaw, date)
 
-# prefix = ''
-# channel = ''
-# microscope = 'labview'
+prefix = ''
+channel = ''
+microscope = 'labview'
 
 
 # %% Functions
 
-def getListOfSourceFolders(Dir, forbiddenWords = ['deptho']):
+def getListOfSourceFolders(Dir, forbiddenWords = ['deptho', 'error', 'excluded']):
     """
     Given a root folder Dir, search recursively inside for all folders containing .tif images 
     and whose name do not contains any of the forbiddenWords.
@@ -205,13 +205,13 @@ def shape_selection(event, x, y, flags, param):
     # if the left mouse button was clicked, record the starting
     # (x, y) coordinates and indicate that cropping is being performed
     if event == cv2.EVENT_LBUTTONDOWN:
-        ref_point = [(x, y)]
+        ref_point = [[x, y]]
 
     # check to see if the left mouse button was released
     elif event == cv2.EVENT_LBUTTONUP:
         # record the ending (x, y) coordinates and indicate that
         # the cropping operation is finished
-        ref_point.append((x, y))
+        ref_point.append([x, y])
 
         # draw a rectangle around the region of interest
         cv2.rectangle(allZimg[i], ref_point[0], ref_point[1], (0, 255, 0), 1)
@@ -232,7 +232,7 @@ def shape_selection_V2(event, x, y, flags, param):
         drawing = True
         ix,iy = x,y
         img_copy = np.copy(img)
-        ref_point = [(x, y)]
+        ref_point = [[x, y]]
     
     # If the mouse moves, reinitialize the image and the rectangle to match 
     # the current position
@@ -247,7 +247,7 @@ def shape_selection_V2(event, x, y, flags, param):
         drawing = False
         # Record the ending (x, y) coordinates and indicate that
         # the cropping operation is finished
-        ref_point.append((x, y))
+        ref_point.append([x, y])
         # Final rectangle around the region of interest
         cv2.rectangle(img,(ix,iy),(x,y),(0,255,0),1)
         
@@ -259,9 +259,22 @@ def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
     """
     
     count = 0
-    for refPts, cellPath in zip(allRefPoints, allCellPaths):
+    for i in range(len(allCellPaths)):
+    # for refPts, cellPath in zip(allRefPoints, allCellPaths):
+        
+        refPts = np.array(allRefPoints[i])
+        
+        cellPath = allCellPaths[i]
         cellName = cellPath.split('\\')[-1]
         allFiles = os.listdir(cellPath)
+        
+        # to detect second selections
+        suffix = ''
+        try:
+            if (allCellPaths[i-1]==allCellPaths[i]):
+                suffix = '-1'
+        except:
+            pass
         
         if microscope == 'metamorph':
             allFiles = [cellPath+'/'+string for string in allFiles if channel in string]
@@ -277,16 +290,17 @@ def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
         ic = io.ImageCollection(allFiles, conserve_memory = True)
         stack = io.concatenate_images(ic)
         
-        x1, x2 = int(refPts[0][0]), int(refPts[1][0])
-        y1, y2 = int(refPts[0][1]), int(refPts[1][1])
+        x1, x2 = int(min(refPts[:,0])), int(max(refPts[:,0]))
+        y1, y2 = int(min(refPts[:,1])), int(max(refPts[:,1]))
         
         # To avoid that the cropped region gets bigger than the image itself
         ny, nx = stack.shape[1], stack.shape[2]
         x1, x2, y1, y2 = max(0, x1), min(nx, x2), max(0, y1), min(ny, y2)
         
+        
         try:
             cropped = stack[:, y1:y2, x1:x2]
-            io.imsave(DirDst + '/' + cellName + '.tif', cropped)
+            io.imsave(DirDst + '/' + cellName + suffix + '.tif', cropped)
             print(gs.GREEN + DirDst + '/' + cellName + '.tif' + '\nSaved sucessfully' + gs.NORMAL)
         
         except Exception:
@@ -304,19 +318,18 @@ def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
 
 # preprocess(DirExt, DirSave, microscope, reset = 0)    
 
-#%% Main function 1/3
+#%% Main function 1/2
 
 # def preprocess(DirExt, DirSave, microscope, reset = 0):
     
 allCellsRaw = getListOfSourceFolders(DirExt)[:]
 allCells = []
-# allCellNames = []
+allCellsToCrop = []
 ref_point = []
 allRefPoints = []
 allZimg = []
 allZimg_og = []
 
-#%% Main function 2/3
 
 # reset = 0
 checkIfAlreadyExist = True
@@ -336,24 +349,32 @@ for i in range(len(allCellsRaw)):
         
     if not ufun.containsFilesWithExt(currentCell, '.tif'):
         validCell = False
-        print('---> Is not a valid cell')
+        print(gs.BRIGHTRED + '/!\ Is not a valid cell' + gs.NORMAL)
         
     elif checkIfAlreadyExist and os.path.isfile(os.path.join(DirSave, currentCellName + '.tif')):
         validCell = False
-        print('---> Has already been copied')
+        print(gs.GREEN + ':-) Has already been copied' + gs.NORMAL)
         
     if validCell:
-        allCells.append(currentCell)
-        Zimg = Zprojection(currentCell, microscope)
-        allZimg.append(Zimg)
+        try:
+            Zimg = Zprojection(currentCell, microscope)
+            allCells.append(currentCell)
+            allZimg.append(Zimg)
+            print(gs.CYAN + '--> Will be copied' + gs.NORMAL)
+        except:
+            print(gs.BRIGHTRED + '/!\ Unexpected error during file handling' + gs.NORMAL)
         
 copyFieldFiles(allCells, DirSave)
 
 # allZimg_og = np.copy(np.asarray(allZimg)) # TBC
 
-#%% Main function 3/3
+#%% Main function 2/2
 
-print(gs.ORANGE + 'Draw the ROIs to crop...' + gs.NORMAL)
+instructionText = "Draw the ROIs to crop !\n\n(1) Click on the image to define a rectangular selection\n"
+instructionText += "(2) Press 'a' to accept your selection, 'r' to redraw it, "
+instructionText += "or 's' if you have a second selection to make (don't use 'm' more than once per stack)"
+instructionText += "\n\nC'est parti !\n"
+print(gs.YELLOW + instructionText + gs.NORMAL)
 
 # if reset == 1:
 #     allZimg = np.copy(allZimg_og)
@@ -361,11 +382,13 @@ print(gs.ORANGE + 'Draw the ROIs to crop...' + gs.NORMAL)
 #     allRefPoints = []
 
 count = 0
-for i in range(len(allZimg)):
+# for i in range(len(allZimg)):
+for i in range(24):
     if count%24 == 0:
         count = 0
         
     currentCell = allCells[i]
+    currentCellName = currentCell.split('\\')[-1]
     
     Nimg = len(allZimg)
     ncols = 6
@@ -378,16 +401,17 @@ for i in range(len(allZimg)):
     img_backup = np.copy(img)
     img_copy = np.copy(img)
     
-    cv2.namedWindow(currentCell)
-    cv2.moveWindow(currentCell, (count//ncols)*400, count%ncols*175)
+    cv2.namedWindow(currentCellName)
+    cv2.moveWindow(currentCellName, (count//ncols)*400, count%ncols*175)
     
     # cv2.setMouseCallback(currentCell, shape_selection)
-    cv2.setMouseCallback(currentCell, shape_selection_V2)
+    cv2.setMouseCallback(currentCellName, shape_selection_V2)
     
     while True:
     # display the image and wait for a keypress
         currentCell = allCells[i]
-        cv2.imshow(currentCell, img)
+        currentCellName = currentCell.split('\\')[-1]
+        cv2.imshow(currentCellName, img)
         key = cv2.waitKey(20) & 0xFF
         
     # press 'r' to reset the crop
@@ -397,7 +421,16 @@ for i in range(len(allZimg)):
     # if the 'a' key is pressed, break from the loop and move on to the next file
         elif key == ord("a"):
             allRefPoints.append(np.asarray(ref_point)*scaleFactor)
+            allCellsToCrop.append(currentCell)
             break
+        
+    # if the 's' key is pressed, save the coordinates and rest the crop, ready to save once more
+    # /!\ The code isn't designed to accept more than 2 selections per stack
+        elif key == ord("s"):
+            allRefPoints.append(np.asarray(ref_point)*scaleFactor)
+            allCellsToCrop.append(currentCell)
+            img = np.copy(img_backup)
+            
         
     count = count + 1
     
@@ -405,7 +438,7 @@ cv2.destroyAllWindows()
 
 print(gs.BLUE + 'Saving all tiff stacks...' + gs.NORMAL)
 
-cropAndCopy(DirExt, DirSave, allRefPoints[:], allCells[:], microscope)
+cropAndCopy(DirExt, DirSave, allRefPoints[:], allCellsToCrop[:], microscope)
 
 
 
