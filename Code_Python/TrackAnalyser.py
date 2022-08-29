@@ -387,6 +387,7 @@ def getGlobalTable_ctField(fileName = 'Global_CtFieldData'):
 # * createMecaDataDict() call the previous function on the given list of files and concatenate the results
 # * computeGlobalTable_meca() call the previous function and convert the dict to a DataFrame
 
+bestH0 = 'H0_Chadwick15'
 
 listColumnsMeca = ['date','cellName','cellID','manipID',
                    'compNum','compDuration','compStartTime','compAbsStartTime','compStartTimeThisDay',
@@ -395,10 +396,10 @@ listColumnsMeca = ['date','cellName','cellID','manipID',
                    'validatedThickness', 'jumpD3',
                    'minForce', 'maxForce', 'minStress', 'maxStress', 'minStrain', 'maxStrain',
                    'ctFieldThickness','ctFieldFluctuAmpli','ctFieldDX','ctFieldDZ',
-                   'bestH0',
+                   'H0_Chadwick15', 
                    'H0Chadwick','EChadwick','R2Chadwick','EChadwick_CIWidth',
                    'hysteresis',
-                   'critFit', 'validatedFit','comments'] # 'fitParams',
+                   'critFit', 'validatedFit','comments'] # 'fitParams', 'H0_Dimitriadis15', 
 
 #### SETTING ! Fit Selection R2 & Chi2
 dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
@@ -555,8 +556,14 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     return(E, H0, hPredict, R2, Chi2, confIntE, confIntH0, error)
 
 
-
-
+def fitH0(hCompr, fCompr, DIAMETER):
+    dictH0 = {}
+    
+    # findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError
+    Chadwick15_resultTuple = compressionFitChadwick(hCompr[:15], fCompr[:15], DIAMETER)
+    H0_Chadwick15 = Chadwick15_resultTuple[1]
+    dictH0['H0_Chadwick15'] = H0_Chadwick15
+    
 
 def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
     
@@ -909,22 +916,22 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                 
             #### (4.0) Find the best H0
             findH0_NbPts = 15
-            findH0_E, bestH0, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError = \
+            findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError = \
                 compressionFitChadwick(hCompr[:findH0_NbPts], fCompr[:findH0_NbPts], DIAMETER)
                 
-            maxH0 = max(H0, bestH0)
+            maxH0 = max(H0, H0_Chadwick15)
             if max(hCompr) > maxH0:
                 validatedFit = False
                 findH0_fitError = True
             
             if not findH0_fitError:
-                results['bestH0'].append(bestH0)
+                results['H0_Chadwick15'].append(H0_Chadwick15)
                 
                 #### Stress-strain computation
                 deltaCompr = (maxH0 - hCompr)/1000
                 stressCompr = fCompr / (np.pi * (DIAMETER/2000) * deltaCompr)
                 strainCompr = deltaCompr / (3*(maxH0/1000))
-                # trueStrainCompr = np.log((bestH0)/(hCompr*(hCompr>0)))
+                # trueStrainCompr = np.log((H0_Chadwick15)/(hCompr*(hCompr>0)))
                 validDelta = (deltaCompr > 0)
                 
                 results['minStress'].append(np.min(stressCompr))
@@ -933,7 +940,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                 results['maxStrain'].append(np.max(strainCompr))
                 
             elif findH0_fitError:
-                results['bestH0'].append(np.nan)
+                results['H0_Chadwick15'].append(np.nan)
                 
                 results['minStress'].append(np.nan)
                 results['maxStress'].append(np.nan)
@@ -1123,14 +1130,14 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                     titleText += '\nFIT ERROR'
                     
                 if not findH0_fitError:
-                    # Computations to display the fit of the bestH0
+                    # Computations to display the fit of the H0_Chadwick15
                     min_f = np.min(fCompr)
                     low_f = np.linspace(0, min_f, 20)
                     R = DIAMETER/2
-                    low_h = bestH0 - ((3*bestH0*low_f)/(np.pi*(findH0_E/1e6)*R))**0.5
+                    low_h = H0_Chadwick15 - ((3*H0_Chadwick15*low_f)/(np.pi*(findH0_E/1e6)*R))**0.5
 
                     
-                    legendText2 = 'bestH0 = {:.2f}nm'.format(bestH0)
+                    legendText2 = 'H0_Chadwick15 = {:.2f}nm'.format(H0_Chadwick15)
                     plot_startH = np.concatenate((low_h, findH0_hPredict[:]))
                     plot_startF = np.concatenate((low_f, fCompr[:findH0_NbPts]))
                     thisAx2.plot(plot_startH[0], plot_startF[0], ls = '', 
@@ -1203,9 +1210,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                         color = gs.colorList30[k]
                         legendText4 = ''
                         
-                        # hPredict_fit0 = bestH0 - ((3*bestH0*fCompr_fit)/(np.pi*(K_fit/1e6)*R))**0.5
+                        # hPredict_fit0 = H0_Chadwick15 - ((3*H0_Chadwick15*fCompr_fit)/(np.pi*(K_fit/1e6)*R))**0.5
                         # strainPredict_fit = list_strainPredict_fitToPlot[k]
-                        # hPredict_fit = bestH0 * (1 - 3*strainPredict_fit)
+                        # hPredict_fit = H0_Chadwick15 * (1 - 3*strainPredict_fit)
                         # legendText4 += 'Range ' + fit + '\n'
                         # legendText4 += 'K = {:.2e}Pa'.format(K_fit)
                         # thisAx4.plot(hPredict_fit, fCompr_fit, color = color, ls = '--', linewidth = 1.8, label = legendText4)
@@ -1327,11 +1334,11 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                     legendText7 = ''
                     
                     # def def2delta(e):
-                    #     d = 3*bestH0*e
+                    #     d = 3*H0_Chadwick15*e
                     #     return(d)
                     
                     # def delta2def(d):
-                    #     e = d/(3*bestH0)
+                    #     e = d/(3*H0_Chadwick15)
                     #     return(e)
                     
                     # secax = thisAx7.secondary_xaxis('top', functions=(def2delta, delta2def))
@@ -1342,7 +1349,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
                         A = 2* ((deltaCompr*(DIAMETER/2000))**0.5)
                         largeX = A/(maxH0/1000)
                         smallX = deltaCompr/(DIAMETER/1000)
-                        # legendText7 = 'bestH0 = {:.2f}nm'.format(bestH0)
+                        # legendText7 = 'H0_Chadwick15 = {:.2f}nm'.format(H0_Chadwick15)
                         
                         thisAx7.plot(strainCompr, largeX, color = 'red',     ls = '', marker = '+', label = 'a/H0',     markersize = 3)#, mec = 'k', mew = 0.5)
                         thisAx7.plot(strainCompr, smallX, color = 'skyblue', ls = '', marker = '+', label = 'delta/2R', markersize = 3)#, mec = 'k', mew = 0.5)
@@ -1414,7 +1421,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
             results['validatedThickness'].append(validatedThickness)
             validatedFit = False
             results['critFit'].append('Not relevant')
-            results['bestH0'].append(np.nan)
+            results['H0_Chadwick15'].append(np.nan)
             results['H0Chadwick'].append(np.nan)
             results['EChadwick'].append(np.nan)
             results['R2Chadwick'].append(np.nan)
