@@ -228,7 +228,7 @@ def createDataDict_ctField(list_ctFieldFiles):
     tableDict['duration'], tableDict['medianRawB'], tableDict['medianThickness'] = [], [], []
     tableDict['1stDThickness'], tableDict['9thDThickness'], tableDict['fluctuAmpli'] = [], [], []
     tableDict['R2_polyFit'], tableDict['validated'] = [], []
-    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
     for f in list_ctFieldFiles:
         split_f = f.split('_')
         tableDict['date'].append(split_f[0])
@@ -1640,7 +1640,7 @@ def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
     tableDict = {}
     Nfiles = len(list_mecaFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -1903,7 +1903,7 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
-    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = '_JV')
+    expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
     tableDict = {}
     Nfiles = len(listFiles)
     PLOT_SHOW = (Nfiles==1)
@@ -2041,7 +2041,7 @@ def removeColumnsDuplicate(df):
 def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     if kind == 'ctField':
         GlobalTable = getGlobalTable_ctField()
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2058,7 +2058,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     
     elif kind == 'ctField_py':
         GlobalTable = getGlobalTable_ctField('Global_CtFieldData_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2077,7 +2077,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
 
     elif kind == 'meca_matlab':
         GlobalTable = getGlobalTable_meca('Global_MecaData')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2096,7 +2096,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
 
     elif kind == 'meca_py':
         GlobalTable = getGlobalTable_meca('Global_MecaData_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2115,7 +2115,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
 
     elif kind == 'meca_py2':
         GlobalTable = getGlobalTable_meca('Global_MecaData_Py2')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2133,7 +2133,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     
     elif kind == 'meca_nonLin':
         GlobalTable = getGlobalTable_meca('Global_MecaData_NonLin_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2151,7 +2151,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     
     elif kind == 'meca_MCA':
         GlobalTable = getGlobalTable_meca('Global_MecaData_MCA')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
@@ -2169,7 +2169,7 @@ def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
     
     else:
         GlobalTable = getGlobalTable_meca(kind)
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = '_JV')
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
         fluoDf = getFluoData()
         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
