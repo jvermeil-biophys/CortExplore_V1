@@ -495,7 +495,6 @@ output = mainTracker(dates, manips, wells, cells, depthoNames, expDf,
                      sourceField = 'default')
 
 
-
   # %%%% M4 : Global activation, 60s frequency
 
 dates = '22.07.26'

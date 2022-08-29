@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+
 Created on Wed Jan 19 13:07:45 2022
 
 @author: JosephVermeil & AnumitaJawahar
@@ -9,8 +10,10 @@ Created on Wed Jan 19 13:07:45 2022
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 import scipy.stats as st
 import statsmodels.api as sm
+from sklearn.linear_model import LinearRegression
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -622,7 +625,7 @@ listColumnsMeca = ['date','cellName','cellID','manipID',
 # Nb of activations
 
 #### SETTING ! Fit Selection R2 & Chi2
-dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
+dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 10}
 
 #### SETTING ! Change the region fits NAMES here 
 
@@ -655,7 +658,6 @@ dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
 #                         'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN] 
 
 
-
 #### >>> OPTION 4 - Longe ranges
 # intervalSize = 250
 # fitMin = [S for S in range(25,975,50)] + [S for S in range(975,2125,100)]
@@ -671,9 +673,9 @@ dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
 #                         'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN] 
     # 'H0Chadwick_'+rFN, 'EChadwick_'+rFN
     
-#### >>> OPTION 5 - Effect of range width
+#### >>> OPTION 5 - Effect of range width on stress values
 fitC =  np.array([S for S in range(100, 1150, 50)])
-fitW = [200] # [100, 150, 200, 250, 300]
+fitW =[200] # [100, 150, 200, 250, 300]
 
 fitCenters = np.array([[int(S) for S in fitC] for w in fitW]).flatten()
 fitWidth = np.array([[int(w) for S in fitC] for w in fitW]).flatten() 
@@ -688,14 +690,25 @@ fit_toPlot = [regionFitsNames[ii] for ii in range(0, len(fitC), 2)]
 
 mask_fitToPlot = np.array(list(map(lambda x : x in fit_toPlot, regionFitsNames)))
 
-
 for rFN in regionFitsNames:
     listColumnsMeca += ['KChadwick_'+rFN, 'K_CIW_'+rFN, 'R2Chadwick_'+rFN, 'K2Chadwick_'+rFN, 
-                        'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN] 
+                        'K3Chadwick_'+rFN, 'K3_CIW_'+rFN, 'H0Chadwick_'+rFN, 'Npts_'+rFN, \
+                            'validatedFit_'+rFN, 'validatedFitK3_'+rFN]
     # 'H0Chadwick_'+rFN, 'EChadwick_'+rFN
 
+#### >>> OPTION 6 - Effect of range width on stress values, with whole stress range / 100. 
+#Not specific pre-defined values as in option 5
+
+NbOfTargets = 10
+overlap = np.round((20/100)*NbOfTargets) #in percentage
+int_count = 0
 
 
+for int_count in range(1,NbOfTargets):
+    targetPoint = str(int(int_count)*NbOfTargets)
+    listColumnsMeca += ['K4Chadwick_fit='+targetPoint, 'validatedFitK4_fit'+targetPoint]
+
+# %%%% Chadwick computing functions
 
 def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     
@@ -776,9 +789,6 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     return(E, H0, hPredict, R2, Chi2, confIntE, confIntH0, error)
 
 
-
-
-
 def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
     
     error = False
@@ -823,10 +833,10 @@ def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
     upperBounds = (np.Inf, np.Inf)
     parameterBounds = [lowerBounds, upperBounds]
 
-
     try:
         strainCompr = computeStrain(hCompr, H0)
         stressCompr = computeStress(fCompr, hCompr, H0)
+        
         
         params, covM = curve_fit(inversedConstitutiveRelation, stressCompr, strainCompr, initialParameters, bounds = parameterBounds)
 
@@ -848,8 +858,7 @@ def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
         # K, seK = K*1e6, seK*1e6
         confIntK = [K-q*seK, K+q*seK]
         confIntKWidth = 2*q*seK
-        
-        
+        # print(Chi2)
     except:
         error = True
         K, strainPredict, R2, Chi2, confIntK = -1, np.ones(len(strainCompr))*(-1), -1, -1, [-1,-1]
@@ -857,6 +866,276 @@ def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
     return(K, strainPredict, R2, Chi2, confIntK, error)
 
 
+def compressionFitChadwick_weightedLinearFit_V1(hCompr, fCompr, fitCentres_region, H0, DIAMETER):
+
+    error = False
+    K3Limit = 100 #Limiting the range of stressCompr to perform Chi2 tests with weighted stressPredict
+    
+    def computeStress(f, h, H0):
+        R = DIAMETER/2000
+        delta = (H0 - h)/1000
+        stress = f / (np.pi * R * delta)
+        return(stress)
+        
+    def computeStrain(h, H0):
+        delta = (H0 - h)/1000
+        strain = delta / (3 * (H0/1000))
+        return(strain)
+    
+    def constitutiveRelation(strain, K, stress0):
+        stress = (K * strain) + stress0
+        return(stress)
+    
+    def gaussianWeights(fitCentres_region, stressCompr, HR):
+        stressCompr = stressCompr.flatten(order='C')
+        return np.exp ( -((stressCompr - fitCentres_region) ** 2) / HR ** 2)
+    
+    # def gaussianWeights(fitCentres_region, stressCompr, HR):
+    #     stressCompr = stressCompr.flatten(order='C')
+    #     return np.exp ( -(stressCompr - fitCentres_region) / HR )
+    
+    def weightedLinearFit(strainCompr, stressCompr, fitCentres_region, HR = 100):
+        
+        strainCompr = strainCompr.reshape(-1, 1)
+        stressCompr = stressCompr.reshape(-1, 1)
+        
+        
+        
+        weights = gaussianWeights(fitCentres_region, stressCompr, HR)
+        regr = LinearRegression()
+        regr.fit(strainCompr, stressCompr, weights)
+        K = regr.coef_[0]
+        stress0 = regr.intercept_
+        strainCompr = strainCompr.flatten()
+        
+        stressCompr_copy = np.copy(stressCompr).flatten()
+        stressPredict = constitutiveRelation(strainCompr, K, stress0)
+        stressPredict = np.asarray(stressPredict)
+        
+
+        return(K, stressPredict, stress0)
+    
+    strainCompr = computeStrain(hCompr, H0)
+    stressCompr = computeStress(fCompr, hCompr, H0)
+    maxStressCompr = np.max(stressCompr)
+    
+    if fitCentres_region <= maxStressCompr:
+        K, stressPredict, stress0 = weightedLinearFit(strainCompr, stressCompr, fitCentres_region)
+        K = K[0] #Because the way regr.fit() returns the slope is within an array by default (very weird)
+        
+        lowS3, highS3 = int(fitCentres_region - K3Limit),  int(fitCentres_region + K3Limit)
+        
+        fitConditions = np.where(np.logical_and(stressPredict >= lowS3, \
+                                                  stressPredict <= highS3))
+        
+        stressCompr_fit = stressCompr[fitConditions]
+        stressPredict_fit = stressPredict[fitConditions]
+        
+        covM = np.cov(stressPredict_fit, stressCompr_fit)
+        
+        err = dictSelectionCurve['Error']
+        params = K, stress0
+        
+        alpha = 0.975
+        
+        # R2 = jvu.get_R2(strainCompr, stressPredict)
+        dof = len(stressCompr_fit)-len(params)
+
+        Chi2 = jvu.get_Chi2(stressCompr_fit, stressPredict_fit, dof, err)
+
+        varK = covM[0,0]
+        seK = (varK)**0.5
+        
+        q = st.t.ppf(alpha, dof) # Student coefficient
+        # K, seK = K*1e6, seK*1e6
+        confIntK = [K-q*seK, K+q*seK]
+        confIntKWidth = 2*q*seK
+        # print(Chi2)
+        
+        # confIntK = st.t.interval(0.95, len(stressPredict)-1, loc=np.mean(stressPredict),\
+        #                          scale=st.sem(stressPredict))
+        # confIntKWidth = confIntK[1] - confIntK[0]
+       
+    
+    else:
+    # except:
+        error = True
+        K, stressPredict, Chi2, confIntK = -1, np.ones(len(stressCompr))*(-1), -1, [-1, -1]
+
+    
+    return(K, stressPredict, Chi2, confIntK, error)
+
+def compressionFitChadwick_weightedLinearFit(hCompr, fCompr, fitCentres_region, H0, DIAMETER):
+
+    error = False
+    K3Limit = 100 #Limiting the range of stressCompr to perform Chi2 tests with weighted stressPredict
+    
+    def computeStress(f, h, H0):
+        R = DIAMETER/2000
+        delta = (H0 - h)/1000
+        stress = f / (np.pi * R * delta)
+        return(stress)
+        
+    def computeStrain(h, H0):
+        delta = (H0 - h)/1000
+        strain = delta / (3 * (H0/1000))
+        return(strain)
+    
+    def constitutiveRelation(strain, K, stress0):
+        stress = (K * strain) + stress0
+        return(stress)
+    
+    def gaussianWeights(fitCentres_region, stressCompr, HR):
+        stressCompr = stressCompr.flatten(order='C')
+        return np.exp ( -((stressCompr - fitCentres_region) ** 2) / HR ** 2)
+    
+        
+    # def gaussianWeights(fitCentres_region, stressCompr, HR):
+    #     stressCompr = stressCompr.flatten(order='C')
+    #     return np.exp ( -(stressCompr - fitCentres_region) / HR )
+
+
+    def getConfInt(Npts, Nparms, parm, se):
+        alpha = 0.05
+        df = Npts - Nparms
+        # se = diag(cov)**0.5
+        q = stats.t.ppf(1 - alpha / 2, df)
+        ConfInt = [parm - q*se, parm, parm + q*se]
+        return(ConfInt)
+
+
+    def weightedLinearFit(strainCompr, stressCompr, fitCentres_region, HR = 100):
+        weights = gaussianWeights(fitCentres_region, stressCompr, HR)
+        
+        wls_model = sm.WLS(stressCompr, sm.add_constant(strainCompr), weights=weights)
+        results_wls = wls_model.fit()
+        stress0, K = results_wls.params
+        cov0 = results_wls.cov_HC0
+        seK = cov0[1,1]**0.5
+
+        stressPredict = constitutiveRelation(strainCompr, K, stress0)
+
+        return(K, stressPredict, stress0, seK)
+    
+    strainCompr = computeStrain(hCompr, H0)
+    stressCompr = computeStress(fCompr, hCompr, H0)
+    maxStressCompr = np.max(stressCompr)
+    
+    if fitCentres_region <= maxStressCompr:
+        K, stressPredict, stress0, seK = weightedLinearFit(strainCompr, stressCompr, fitCentres_region)
+        
+        lowS3, highS3 = int(fitCentres_region - K3Limit),  int(fitCentres_region + K3Limit)
+        
+        fitConditions = np.where(np.logical_and(stressPredict >= lowS3, \
+                                                  stressPredict <= highS3))
+        
+        stressCompr_fit = stressCompr[fitConditions]
+        stressPredict_fit = stressPredict[fitConditions]
+    
+        
+        err = dictSelectionCurve['Error']
+        params = K, stress0
+        
+        alpha = 0.975
+        
+        dof = len(stressCompr_fit)-len(params)
+
+        Chi2 = jvu.get_Chi2(stressCompr_fit, stressPredict_fit, dof, err)
+        q = st.t.ppf(alpha, dof) # Student coefficient
+        confIntK = [K-q*seK, K+q*seK]
+        confIntKWidth = 2*q*seK
+       
+    
+    else:
+        error = True
+        K, stressPredict, Chi2, confIntK = -1, np.ones(len(stressCompr))*(-1), -1, [-1, -1]
+
+    return(K, stressPredict, Chi2, confIntK, error)
+
+
+def compressionFitChadwick_pointBased(hCompr, fCompr, NbOfTargets, overlap, int_count, H0, DIAMETER):
+    
+    error = False
+    
+    def computeStress(f, h, H0):
+        R = DIAMETER/2000
+        delta = (H0 - h)/1000
+        stress = f / (np.pi * R * delta)
+        return(stress)
+        
+    def computeStrain(h, H0):
+        delta = (H0 - h)/1000
+        strain = delta / (3 * (H0/1000))
+        return(strain)
+    
+    def constitutiveRelation(strain, K, stress0):
+        stress = (K * strain) + stress0
+        return(stress)
+    
+    def inversedConstitutiveRelation(stress, K, strain0):
+        strain = (stress / K) + strain0
+        return(strain)
+
+    # some initial parameter values - must be within bounds
+    initK = (3*max(hCompr)*max(fCompr))/(np.pi*(DIAMETER/2)*(max(hCompr)-min(hCompr))**2) # E ~ 3*H0*F_max / pi*R*(H0-h_min)²
+    init0 = 0
+    
+    initialParameters = [initK, init0]
+
+    # bounds on parameters - initial parameters must be within these
+    lowerBounds = (0, -np.Inf)
+    upperBounds = (np.Inf, np.Inf)
+    parameterBounds = [lowerBounds, upperBounds]
+
+    try:
+        strainCompr = computeStrain(hCompr, H0)
+        stressCompr = computeStress(fCompr, hCompr, H0)
+        
+        if int_count == 1:
+            overlap = 0
+            
+        lowerLimit = (int_count-1)*NbOfTargets - overlap
+        upperLimit = (int_count)*NbOfTargets + overlap
+            
+        stressCompr_region = stressCompr[lowerLimit:upperLimit]
+        
+        strainCompr_region = strainCompr[lowerLimit:upperLimit]
+            
+        params, covM = curve_fit(constitutiveRelation, strainCompr_region, \
+                                 stressCompr_region, initialParameters, bounds = parameterBounds)
+    
+        K, stress0 = params
+        
+        stressPredict = constitutiveRelation(strainCompr, K, stress0)
+        
+        stressPredict_fit = stressPredict[lowerLimit:upperLimit]
+        stressCompr_fit = stressCompr[lowerLimit:upperLimit]
+        err = dictSelectionCurve['Error']
+        
+        alpha = 0.975
+        dof = len(stressCompr_fit)-len(params)
+        
+        # R2 = jvu.get_R2(strainCompr, stressPredict)
+        
+        Chi2 = jvu.get_Chi2(stressCompr_fit, stressPredict_fit, dof, err)
+        
+        varK = covM[0,0]
+        seK = (varK)**0.5
+        
+        q = st.t.ppf(alpha, dof) # Student coefficient
+        # K, seK = K*1e6, seK*1e6
+        confIntK = [K-q*seK, K+q*seK]
+        confIntKWidth = 2*q*seK
+        
+    except:
+        error = True
+        K, stressPredict, Chi2, confIntK = -1, np.ones(len(strainCompr))*(-1), -1, [-1,-1]
+        
+        
+    return(K, stressPredict, Chi2, confIntK, error)  # R2, Chi2, confIntK,
+
+
+# %%%% Main function 
 
 def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
     plotSmallElements = True
@@ -872,9 +1151,10 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
 
     # Deal with the asymmetric pair case : the diameter can be for instance 4503 (float) or '4503_2691' (string)
     diameters = thisExpDf.at[thisExpDf.index.values[0], 'bead diameter'].split('_')
-    
-    
-    firstActivation = thisExpDf.at[thisExpDf.index.values[0], 'first activation']
+    try:
+        firstActivation = thisExpDf.at[thisExpDf.index.values[0], 'first activation']
+    except:
+        print('First Activation field in ExpDf not found')
     
     if len(diameters) == 2:
         DIAMETER = (int(diameters[0]) + int(diameters[1]))/2.
@@ -932,13 +1212,20 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
         color = 'blue'
         loop_effectiveSize = int(tsDF.shape[0] / Ncomp)
         print(loop_effectiveSize)
-        idxFirstActivation = int(loop_effectiveSize*firstActivation - 1)
-        print(idxFirstActivation)
-        T_firstActivation = tsDF['T'][idxFirstActivation] + 0.05 # 0.05 is the delay between last image of a loop and the fluorescence image being taken, if required.
-        ax1.axvline(x = T_firstActivation, color = 'r', label = 'Activation begins')
+        
+        
         ax1.set_xlabel('t (s)')
         ax1.set_ylabel('h (nm)', color=color)
         ax1.tick_params(axis='y', labelcolor=color)
+        
+        #### Activation parameters for plots
+        try:
+            idxFirstActivation = int(loop_effectiveSize*firstActivation - 1)
+            print(idxFirstActivation)
+            T_firstActivation = tsDF['T'][idxFirstActivation] + 0.05 # 0.05 is the delay between last image of a loop and the fluorescence image being taken, if required.
+            ax1.axvline(x = T_firstActivation, color = 'r', label = 'Activation begins')
+        except:
+            print("NO ACTIVATION PARAMETERS FOUND!")
         
 
         nColsSubplot = 5
@@ -961,11 +1248,23 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
             # 7th plot - fig7 & ax7, gather all the "small elements", and will be completed later in the code
             fig7, ax7 = plt.subplots(nRowsSubplot,nColsSubplot,figsize=(3*nColsSubplot,3*nRowsSubplot))
             
+        alreadyLabeled8 = []
+        # 8th plot - fig8 & ax8 - Gaussian weighted linear fit on the stress-strain curves
+        fig8, ax8 = plt.subplots(nRowsSubplot,nColsSubplot,figsize=(3*nColsSubplot,3*nRowsSubplot))
         
+        # 9th plot - fig9 & ax9 - K3 modulus vs. Sigma plot to see non-linearity
+        fig9, ax9 = plt.subplots(nRowsSubplot,nColsSubplot,figsize=(3*nColsSubplot,3*nRowsSubplot))
+        
+        alreadyLabeled10 = []
+        # 10th plot - fig10 & ax10 - K4 modulus vs. Sigma plot - point-base tangential modulus
+        fig10, ax10 = plt.subplots(nRowsSubplot,nColsSubplot,figsize=(3*nColsSubplot,3*nRowsSubplot))
+        
+        # 11th plot - fig11 & ax11 - K4 modulus vs. Sigma plot to see non-linearity
+        fig11, ax11 = plt.subplots(nRowsSubplot,nColsSubplot,figsize=(3*nColsSubplot,3*nRowsSubplot))
 
 
     for i in range(1, Ncomp+1):#Ncomp+1):
-#### !!! change here to colour code activation points by importing loop number from expdf
+        #### !!! change here to colour code activation points by importing loop number from expdf
         #### (1) Identifiers
         results['date'].append(split_f[0])
         results['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
@@ -1001,10 +1300,10 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
 
         listB = thisCompDf.B.values
         
-        # Test to check if most of the compression have not been deleted due to bad image quality 
+        # Test to check if most of the compression have not been deleted due to bad image quality
         highBvalues = (listB > (maxCompField + minCompField)/2)
         N_highBvalues = np.sum(highBvalues)
-        testHighVal = (N_highBvalues > 20)
+        testHighVal = (N_highBvalues > 15)
 
         # Test to check if the range of B field is large enough
         minB, maxB = min(listB), max(listB)
@@ -1102,8 +1401,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
             results['maxForce'].append(np.max(fCompr))
 
 
-
-
             #### (4) Fit with Chadwick model of the force-thickness curve
             
             #### Classic, all curve, Chadwick fit
@@ -1170,22 +1467,24 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 results['maxStress'].append(np.nan)
                 results['minStrain'].append(np.nan)
                 results['maxStrain'].append(np.nan)
+            
+            #### (4.1) Tangential moduli measurements
+            
+            dictRegionFit = {'regionFitNames' : [], 'K' : [], 'R2' : [],  'K2' : [], 'K3' : [],\
+                             'K3_CIW' : [], 'K4' : [], 'K4_CIW' : [], 'fitErrorK4' : [], 'H0' : [],\
+                             'fitError' : [], 'validatedFit' : [], 'Npts' : [], 'K_CIW' : [], 'fitErrorK3' : [], \
+                                 'validatedFitK3' : [], 'validatedFitK4' : []}
+            
                 
-
-            
-            
-
-
-            #### (4.1) Fits on specific regions of the curve
+            #### (4.1.1) Fits on specific regions of the curve based on predefined stress-ranges
             
             list_strainPredict_fitToPlot = [[] for kk in range(len(fit_toPlot))]
+            list_stressPredictK3_fitToPlot = [[] for kk in range(len(fit_toPlot))]
             
-            dictRegionFit = {'regionFitNames' : [], 'K' : [], 'R2' : [],  'K2' : [], 'H0' : [],
-                             'fitError' : [], 'validatedFit' : [], 'Npts' : [], 'K_CIW' : []} 
             # 'E' : [], 'H0' : []
             
             #### SETTING ! Setting of the region fits
-
+            
             if not findH0_fitError:
                 
                 # fitConditions = []
@@ -1195,15 +1494,19 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 
                 #### >>> OPTION TO LIGHTEN THE COMPUTATION
                 fitConditions = []
+                
+                
+                # Region conditions for fits on the stress
                 for kk in range(len(regionFitsNames)):
                     ftP = regionFitsNames[kk]
                     lowS, highS = int(fitMin[kk]), int(fitMax[kk])
                     fitConditions.append((stressCompr > lowS) & (stressCompr < highS))
-                
                 N_Fits = len(fitConditions)
+            
                 
                 for ii in range(N_Fits):
                     regionFitName = regionFitsNames[ii]
+                    fitCentres_region = fitCenters[ii]
                     mask_region = fitConditions[ii]
                     Npts_region = np.sum(mask_region)
                     
@@ -1217,29 +1520,52 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                         
                         K_region, strainPredict_region, R2_region, Chi2_region, confIntK_region, fitError_region = \
                             compressionFitChadwick_StressStrain(hCompr_region, fCompr_region, maxH0, DIAMETER)
-                            
+
                         confIntWidthK_region = np.abs(confIntK_region[0] - confIntK_region[1])
                             
                         
                     else:
                         fitError_region = True
-                        
+                    
                     if (regionFitName in fit_toPlot) and not fitError_region:
                         kk = np.argmax(np.array(fit_toPlot) == regionFitName)
                         list_strainPredict_fitToPlot[kk] = strainPredict_region
+                    
                     
                     if not fitError_region:
                         R2CRITERION = dictSelectionCurve['R2']
                         CHI2CRITERION = dictSelectionCurve['Chi2']
                         validatedFit_region = ((R2_region > R2CRITERION) and 
                                                 (Chi2_region < CHI2CRITERION))
+                        
                     else:
                         validatedFit_region, fitError_region = False, True
                         K_region, confIntK_region, R2_region  = np.nan, [np.nan, np.nan], np.nan
                         K2_region, H0_region = np.nan, np.nan
                         confIntWidthK_region = np.nan
+    
+                    
+                    #### (4.1.2) Gaussian-weight fits on specific regions of the curve based on predefined stress-ranges
+                    
+                    K3_region, stressPredictK3_region, Chi2_K3, confIntK3, fitErrorK3_region = compressionFitChadwick_weightedLinearFit(hCompr, fCompr, fitCentres_region, maxH0, DIAMETER)
+                    
+                    confIntWidthK3_region = np.abs(confIntK3[0] - confIntK3[1])
+                    
+                    if (regionFitName in fit_toPlot) and not fitErrorK3_region:
+                        kk = np.argmax(np.array(fit_toPlot) == regionFitName)
+                        list_stressPredictK3_fitToPlot[kk] = stressPredictK3_region
                         # E_region  = np.nan
+                    
+                    if not fitErrorK3_region:
+                        validatedFit_region_K3 = (Chi2_K3 < CHI2CRITERION)
                         
+                    else:
+                        validatedFit_region_K3, fitErrorK3_region = False, True
+                        K3_region, confIntK3  = np.nan, [np.nan, np.nan]
+                        confIntWidthK3_region = np.nan
+                        
+                    #End of Gaussian-fits
+                    
                     # Fill dictRegionFit (reinitialized for each cell)
                     dictRegionFit['regionFitNames'].append(regionFitName)
                     dictRegionFit['Npts'].append(Npts_region)
@@ -1247,11 +1573,14 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                     dictRegionFit['K_CIW'].append(confIntWidthK_region)
                     dictRegionFit['R2'].append(R2_region)
                     dictRegionFit['K2'].append(K2_region)
+                    dictRegionFit['K3'].append(K3_region)
+                    dictRegionFit['K3_CIW'].append(confIntWidthK3_region)
                     dictRegionFit['H0'].append(H0_region)
                     # dictRegionFit['E'].append(E_region)
                     dictRegionFit['fitError'].append(fitError_region)
                     dictRegionFit['validatedFit'].append(validatedFit_region)
-
+                    dictRegionFit['fitErrorK3'].append(fitErrorK3_region)
+                    dictRegionFit['validatedFitK3'].append(validatedFit_region_K3)
 
                     # Fill results (memorize everything)
                     rFN = regionFitName
@@ -1260,9 +1589,12 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                     results['K_CIW_'+rFN].append(confIntWidthK_region)
                     results['R2Chadwick_'+rFN].append(R2_region)
                     results['K2Chadwick_'+rFN].append(K2_region)
+                    results['K3Chadwick_'+rFN].append(K3_region)
+                    results['K3_CIW_'+rFN].append(confIntWidthK3_region)
                     results['H0Chadwick_'+rFN].append(H0_region)
                     # results['EChadwick_'+rFN].append(dictRegionFit['E'][ii])
                     results['validatedFit_'+rFN].append(validatedFit_region)
+                    results['validatedFitK3_'+rFN].append(validatedFit_region_K3)
                     
             elif findH0_fitError:
                 for rFN in regionFitsNames:
@@ -1272,23 +1604,81 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                     dictRegionFit['K_CIW'].append(np.nan)
                     dictRegionFit['R2'].append(np.nan)
                     dictRegionFit['K2'].append(np.nan)
+                    dictRegionFit['K3'].append(np.nan)
+                    dictRegionFit['K3_CIW'].append(np.nan)
                     dictRegionFit['H0'].append(np.nan)
                     # dictRegionFit['E'].append(E_region)
                     dictRegionFit['fitError'].append(True)
                     dictRegionFit['validatedFit'].append(False)
+                    dictRegionFit['fitErrorK3'].append(True)
+                    dictRegionFit['validatedFitK3'].append(False)
                                         
                     results['Npts_'+rFN].append(np.nan)
                     results['KChadwick_'+rFN].append(np.nan)
                     results['K_CIW_'+rFN].append(np.nan)
                     results['R2Chadwick_'+rFN].append(np.nan)
                     results['K2Chadwick_'+rFN].append(np.nan)
+                    results['K3Chadwick_'+rFN].append(np.nan)
+                    results['K3_CIW_'+rFN].append(np.nan)
                     results['H0Chadwick_'+rFN].append(np.nan)
                     # results['EChadwick_'+rFN].append(np.nan)
                     results['validatedFit_'+rFN].append(False)    
+                    results['validatedFitK3_'+rFN].append(False)
+            # for k in dictRegionFit.keys():
+            #     dictRegionFit[k] = np.array(dictRegionFit[k])
             
+            
+            #### (4.1.3) Fits on specific regions of the curve based on the number of points
+            
+            list_stressPredictK4_fitToPlot = [[] for kk in range(NbOfTargets)]
+            validTargets = [0 for kk in range(NbOfTargets)]
+            
+            if not findH0_fitError:
+                for int_count in range(1, NbOfTargets):
+                    if int_count == 1:
+                        overlap = 0
+                        
+                    K4_region, stressPredictK4_region, Chi2_K4_region, confIntK4, fitErrorK4_region \
+                        = compressionFitChadwick_pointBased(hCompr, fCompr, NbOfTargets, overlap, int_count, H0, DIAMETER)
+                    
+                    confIntWidthK4_region = np.abs(confIntK4[0] - confIntK4[1])
+                    
+                    if not fitErrorK4_region:
+                        kk = int_count - 1
+                        list_stressPredictK4_fitToPlot[kk] = stressPredictK4_region
+                        validTargets[kk] = int_count
+                    
+                        validatedFitK4_region = (Chi2_K4_region < CHI2CRITERION)
+                                                
+                    else:
+                        validatedFitK4_region, fitErrorK4_region = False, True
+                        K4_region, confIntK4  = np.nan, [np.nan, np.nan]
+                        confIntWidthK4_region = np.nan
+                    
+
+                    
+                    targetPoint = str(int(int_count*NbOfTargets))
+                    dictRegionFit['K4'].append(K4_region)
+                    dictRegionFit['K4_CIW'].append(confIntWidthK4_region)
+                    dictRegionFit['fitErrorK4'].append(fitErrorK4_region)
+                    dictRegionFit['validatedFitK4'].append(validatedFitK4_region)
+                    
+                    results['K4Chadwick_fit='+targetPoint].append(K4_region)
+                    results['validatedFitK4_fit'+targetPoint].append(validatedFitK4_region)
+                    
+            elif findH0_fitError:
+                for int_count in range(1, NbOfTargets):
+                    targetPoint = str(int(int_count*NbOfTargets))
+                    dictRegionFit['K4'].append(np.nan)
+                    dictRegionFit['K4_CIW'].append(np.nan)
+                    dictRegionFit['fitErrorK4'].append(True)
+                    dictRegionFit['validatedFitK4'].append(False)
+                    
+                    results['K4Chadwick_fit='+targetPoint].append(np.nan)
+                    results['validatedFitK4_fit'+targetPoint].append(False)
+                    
             for k in dictRegionFit.keys():
                 dictRegionFit[k] = np.array(dictRegionFit[k])
-            
             
             #### PLOT [2/4]
             # Complete fig 1, 2, 3 with the results of the fit
@@ -1378,9 +1768,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                     for item in ([ax.title, ax.xaxis.label, \
                                   ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
                         item.set_fontsize(9)
-                        
-                        
-                        
+
                         
                 #### fig4 & fig5
                 
@@ -1395,7 +1783,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 
                 if not findH0_fitError:
                     fitConditions_fitToPlot = np.array(fitConditions)[mask_fitToPlot]
-                
                 
                 # ax2[i-1] with the 1 line plot
                 if nRowsSubplot == 1:
@@ -1464,7 +1851,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                     
                     for k in range(len(fit_toPlot)):
                         fit = fit_toPlot[k]
-                        
                         Npts_fit = Npts_fitToPlot[k]
                         K_fit = K_fitToPlot[k]
                         R2_fit = R2_fitToPlot[k]
@@ -1522,7 +1908,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 thisAx6bis.set_ylabel('relative error', color='red')
                 relErrFilter = 0.5
                 
-                
                 relativeError = np.zeros(len(K_fitToPlot))
                 if not fitError and not findH0_fitError:
                     
@@ -1535,8 +1920,8 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                         validatedFit_fit = validatedFit_fitToPlot[k]
                         fitConditions_fit = fitConditions_fitToPlot[k]
                         
-                        stressCompr_fit = stressCompr[fitConditions_fit]
-                        strainPredict_fit = list_strainPredict_fitToPlot[k]
+                        # stressCompr_fit = stressCompr[fitConditions_fit]
+                        # strainPredict_fit = list_strainPredict_fitToPlot[k]
     
                         color = colorList30[k]
                         
@@ -1550,7 +1935,11 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                             thisAx6.errorbar([fitCentersPlot[k]], [K_fit], yerr = [E/2],
                                          color = color, marker = 'o', ms = 5, mec = mec)                           
                             
-                        
+                            # print('ciw')
+                            # print(E)
+                            # print('fit')
+                            # print(K_fit)
+                            
                     relativeError_subset = relativeError[relativeError != 0]
                     fitCenters_subset = fitCentersPlot[relativeError != 0]
                     thisAx6bis.plot([0,1000], [relErrFilter, relErrFilter], ls = '--', color = 'red', lw = 0.5)
@@ -1637,8 +2026,251 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                             for item in ([ax.title, ax.xaxis.label, \
                                           ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
                                 item.set_fontsize(9)
+                                
+                                
+                                
+                #### fig8
+                
+                
+                if nRowsSubplot == 1:
+                    thisAx8 = ax8[colSp]
+                elif nRowsSubplot >= 1:
+                    thisAx8 = ax8[rowSp,colSp]
+                    
+                K_fitToPlot = dictRegionFit['K3'][mask_fitToPlot]
+                K3_CIW_fitToPlot =  dictRegionFit['K3_CIW'][mask_fitToPlot]
+                fitErrorK3_fitToPlot = dictRegionFit['fitErrorK3'][mask_fitToPlot]
+                validatedFitK3_fitToPlot = dictRegionFit['validatedFitK3'][mask_fitToPlot]
+                fitCentersPlot = fitCenters[mask_fitToPlot]
+                
+                thisAx8.set_xlabel('epsilon')
+                thisAx8.set_ylabel('sigma (Pa)')
+                K3Limit = 100
+                allFitConditions = []
+                if not findH0_fitError:
+                    thisAx8.plot(strainCompr, stressCompr, color = main_color, marker = 'o', markersize = 3, ls = '', alpha = 0.8)
+                    for k in range(len(fit_toPlot)):
+                        fit = fit_toPlot[k]
+                        fitCenters_region = fitCentersPlot[k]
+                        fitError_fit = fitErrorK3_fitToPlot[k]
+                        stressPredict_region = np.asarray(list_stressPredictK3_fitToPlot[k])
+                        lowS3, highS3 = int(fitCenters_region - K3Limit),  int(fitCenters_region + K3Limit)
+                        
+                        fitConditions = np.where(np.logical_and(stressPredict_region >= lowS3, \
+                                                                  stressPredict_region <= highS3))
 
+                        allFitConditions.extend(fitConditions)    
+                            
+                        strainPredict_fit = strainCompr[fitConditions]
+                        stressPredict_fit = stressPredict_region[fitConditions]
+                        
+                        color = colorList30[k]
+                        legendText8 = ''
+                        
+                        if not fitError_fit:                        
+                            if fit not in alreadyLabeled8:
+                                alreadyLabeled8.append(fit)
+                                legendText8 += '' + fit + ''
+    
+                                thisAx8.plot(strainPredict_fit, stressPredict_fit,  
+                                             color = color, ls = '-', linewidth = 1.8, label = legendText8)
+                            elif fit in alreadyLabeled8:
+                                thisAx8.plot(strainPredict_fit, stressPredict_fit,  
+                                             color = color, ls = '-', linewidth = 1.8)
 
+                                
+                multiAxes = [thisAx8]
+                            
+                for ax in multiAxes:
+                    ax.title.set_text(titleText)
+                    for item in ([ax.title, ax.xaxis.label, \
+                                  ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+                        item.set_fontsize(9)
+            
+                #### fig9
+            
+                fitCentersPlot = fitCenters[mask_fitToPlot]
+                K3_fitToPlot = dictRegionFit['K3'][mask_fitToPlot]
+                
+                    
+                if nRowsSubplot == 1:
+                    thisAx9 = ax9[colSp]
+                elif nRowsSubplot >= 1:
+                    thisAx9 = ax9[rowSp,colSp]
+                
+                thisAx9bis = thisAx9.twinx()
+                
+                thisAx9.set_xlabel('sigma (Pa)')
+                thisAx9.set_xlim([0,1000])
+                thisAx9.set_yscale('log')
+                thisAx9.set_ylabel('K (Pa)')
+                
+                thisAx9bis.set_yscale('linear')
+                thisAx9bis.set_ylabel('relative error', color='red')
+                relErrFilter = 0.5
+                
+                relativeError = np.zeros(len(list_stressPredictK3_fitToPlot))
+                # if not fitError and not findH0_fitError:
+                    
+                for k in range(len(fit_toPlot)):
+                
+                    fit = fit_toPlot[k]
+                    K3_fit = K3_fitToPlot[k]
+                    fitCenters_region = fitCentersPlot[k]
+                    K3_CIW_fit = K3_CIW_fitToPlot[k]
+                    fitError_fit = fitErrorK3_fitToPlot[k]
+                    validatedFitK3_fit = validatedFitK3_fitToPlot[k]
+
+                    color = colorList30[k]
+                    
+                    thisAx9.plot([fitCentersPlot[k]], [K3_fit], color = color, marker = 'o') 
+                    
+                    if not fitError_fit:
+                        
+                        E = K3_CIW_fit
+                        relativeError[k] = (E/K3_fit)
+                        mec = None
+                        if (E/K3_fit) > relErrFilter:
+                            # print('true')
+                            mec = 'orangered'
+                        
+                        thisAx9.errorbar([fitCentersPlot[k]], [K3_fit], yerr = [E/2],
+                                     color = color, marker = 'o', ms = 5, mec = mec)                           
+                        # print(K3_fit)
+                        # print('ciw')
+                        # print(E)
+                        # print('fit')
+                        # print(K3_fit)
+                # print(fitCentersPlot)
+                relativeError_subset = relativeError[relativeError != 0]
+                fitCenters_subset = fitCentersPlot[relativeError != 0]
+                thisAx9bis.plot([0,1000], [relErrFilter, relErrFilter], ls = '--', color = 'red', lw = 0.5)
+                thisAx9bis.plot(fitCenters_subset, relativeError_subset, marker = 'd', ms = 3, color = 'red', ls = '')
+                
+                thisAx9bis.set_ylim([0,2])
+                thisAx9bis.tick_params(axis='y', labelcolor='red')
+                thisAx9bis.set_yticks([0,0.5,1,1.5,2])
+                                            
+                multiAxes = [thisAx9, thisAx9bis]
+                
+                for ax in multiAxes:
+                    ax.title.set_text(titleText)
+                    for item in ([ax.title, ax.xaxis.label, \
+                                  ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+                        item.set_fontsize(9)
+            
+                #### fig10
+                
+                if nRowsSubplot == 1:
+                    thisAx10 = ax10[colSp]
+                elif nRowsSubplot >= 1:
+                    thisAx10 = ax10[rowSp,colSp]
+                    
+                thisAx10.set_xlabel('epsilon')
+                thisAx10.set_ylabel('sigma (Pa)')
+                K4Limit = 50
+    
+                if not findH0_fitError:
+                    thisAx10.plot(strainCompr, stressCompr, color = main_color, marker = 'o', markersize = 3, ls = '', alpha = 0.8)
+                    for k in range(len(validTargets)):
+                        target = validTargets[k]
+                        # print(target)
+                        if target != 0:
+                            stressPredict_region = np.asarray(list_stressPredictK4_fitToPlot[k])
+                            lowerLimit = (target-1)*NbOfTargets - overlap
+                            upperLimit = target*NbOfTargets + overlap
+                            
+                            strainPredict_region = strainCompr[lowerLimit:upperLimit]
+                            stressPredict_region = stressPredict_region[lowerLimit:upperLimit]
+                        
+                            color = colorList30[k]
+                            legendText10 = ''
+                            
+                        # print('Compression {:.0f}'.format(i))
+
+                            thisAx10.plot(strainPredict_region, stressPredict_region, \
+                                                 color = color, ls = '-', linewidth = 1.8)
+                
+                multiAxes = [thisAx10]
+                            
+                for ax in multiAxes:
+                    ax.title.set_text(titleText)
+                    for item in ([ax.title, ax.xaxis.label, \
+                                  ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+                        item.set_fontsize(9)
+            
+            
+            ####fig11
+            
+            K4_fitToPlot = dictRegionFit['K4']
+            K4_CIW_fitToPlot = dictRegionFit['K4_CIW']
+            fitErrorK4_fitToPlot = dictRegionFit['fitErrorK4']
+            validatedFitK4_fitToPlot = dictRegionFit['validatedFitK4']
+            
+            if nRowsSubplot == 1:
+                thisAx11 = ax11[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx11 = ax11[rowSp,colSp]
+            
+            thisAx11bis = thisAx11.twinx()
+            
+            thisAx11.set_xlabel('Target Point')
+            thisAx11.set_xlim([0,NbOfTargets])
+            thisAx11.set_yscale('log')
+            thisAx11.set_ylabel('K (Pa)')
+            
+            thisAx11bis.set_yscale('linear')
+            thisAx11bis.set_ylabel('relative error', color='red')
+            relErrFilter = 0.5
+            
+            relativeError = np.zeros(len(list_stressPredictK4_fitToPlot))
+            validTargets = np.asarray(validTargets)
+            
+            
+            if not fitError and not findH0_fitError:
+                
+                for k in range(1, NbOfTargets):
+                    color = colorList30[k]
+                    target = k - 1
+                    
+                    if validTargets[target] != 0:
+                        K4_fit = K4_fitToPlot[target]
+                        
+                        K4_CIW_fit = K4_CIW_fitToPlot[target]
+                        fitErrorK4_fit = fitErrorK4_fitToPlot[target]
+                        validatedFitK4_fit = validatedFitK4_fitToPlot[target]
+                        
+                        thisAx11.plot([validTargets[target]], [K4_fit], color = color, marker = 'o') 
+                        if not fitErrorK4_fit:
+                            
+                            E = K4_CIW_fit
+                            relativeError[target] = (E/K4_fit)
+                            mec = None
+                            if (E/K4_fit) > relErrFilter:
+                                # print('true')
+                                mec = 'orangered'
+                            thisAx11.errorbar([validTargets[target]], [K4_fit], yerr = [E/2],
+                                          color = color, marker = 'o', ms = 5, mec = mec)
+                            
+                relativeError_subset = relativeError[relativeError != 0]
+                                 
+                validTargets_subset = validTargets[relativeError != 0]
+                thisAx11bis.plot([0,1000], [relErrFilter, relErrFilter], ls = '--', color = 'red', lw = 0.5)
+                thisAx11bis.plot(validTargets_subset, relativeError_subset, marker = 'd', ms = 3, color = 'red', ls = '')
+                
+                thisAx11bis.set_ylim([0,2])
+                thisAx11bis.tick_params(axis='y', labelcolor='red')
+                thisAx11bis.set_yticks([0,0.5,1,1.5,2])
+                                        
+            multiAxes = [thisAx11, thisAx11bis]
+            
+            for ax in multiAxes:
+                ax.title.set_text(titleText)
+                for item in ([ax.title, ax.xaxis.label, \
+                              ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+                    item.set_fontsize(9)
+            
+            
             #### (5) hysteresis (its definition may change)
             try:
                 results['hysteresis'].append(hCompr[0] - hRelax[-1])
@@ -1694,14 +2326,25 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 results['K_CIW_'+rFN].append(np.nan)
                 results['R2Chadwick_'+rFN].append(np.nan)
                 results['K2Chadwick_'+rFN].append(np.nan)
+                results['K3Chadwick_'+rFN].append(np.nan)
                 results['H0Chadwick_'+rFN].append(np.nan)
                 # results['EChadwick_'+rFN].append(np.nan)
                 results['validatedFit_'+rFN].append(False)
 
         if not doThisCompAnalysis:
             print('Curve not suitable for analysis !')
+
+            # print(testHighVal, testRangeB)
+            # print((maxCompField + minCompField)/2)
+            # print(N_highBvalues)
+            # print(np.sum(listB >= 0))
+            
             print(results['cellID'][-1])
             print('Compression no ' + str(i))
+            
+            # highBvalues = (listB > (maxCompField + minCompField)/2)
+            # N_highBvalues = np.sum(highBvalues)
+            # testHighVal = (N_highBvalues > 20)
 
     
     #### PLOT [3/4]
@@ -1843,6 +2486,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
         #             sMin = thisAx6.get_xlim()[0]
         #         if thisAx6.get_xlim()[1] > sMax:
         #             sMax = thisAx6.get_xlim()[1]
+        
         for i in range(1, Ncomp+1):
             colSp = (i-1) % nColsSubplot
             rowSp = (i-1) // nColsSubplot
@@ -1857,14 +2501,138 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
                 # thisAx6.set_ylim([KMin, KMax])
                 thisAx6.set_ylim([100, 5e4])
                 
+        #### fig8 
+        
+        NL = len(alreadyLabeled8)
+        titleVoid = ' '
+        if NL > 16:
+            titleVoid += '\n '
+        fig8.suptitle(titleVoid)
+        fig8.legend(loc='upper center', bbox_to_anchor=(0.5,1), ncol = min(8, NL))
+        
+        eMin, eMax = 1, 0
+        sMin, sMax = 1000, 0
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx8 = ax8[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx8 = ax8[rowSp,colSp]
+            title = thisAx8.title.get_text()
+            if not 'NON VALIDATED' in title:
+                if thisAx8.get_xlim()[0] < eMin:
+                    eMin = thisAx8.get_xlim()[0]
+                if thisAx8.get_xlim()[1] > eMax:
+                    eMax = thisAx8.get_xlim()[1]
+                if thisAx8.get_ylim()[0] < sMin:
+                    sMin = thisAx8.get_ylim()[0]
+                if thisAx8.get_ylim()[1] > sMax:
+                    sMax = thisAx8.get_ylim()[1]
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx8 = ax8[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx8 = ax8[rowSp,colSp]
+            title = thisAx8.title.get_text()
+            if not 'NON VALIDATED' in title:
+                sMin = max(0, sMin)
+                eMin = max(0, eMin)
+                eMax = min(0.5, eMax)
+                thisAx8.set_ylim([sMin, sMax])
+                thisAx8.set_xlim([eMin, eMax])
+        
+        #### fig9
+        
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx9 = ax9[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx9 = ax9[rowSp,colSp]
+            title = thisAx9.title.get_text()
+            if not 'NON VALIDATED' in title:
+                thisAx9.set_xlim([0,1000])
+                # thisAx6.set_ylim([KMin, KMax])
+                thisAx9.set_ylim([100, 5e4])
+        
+        #### fig10 
+        
+        NL = len(alreadyLabeled10)
+        titleVoid = ' '
+        if NL > 16:
+            titleVoid += '\n '
+        fig10.suptitle(titleVoid)
+        fig10.legend(loc='upper center', bbox_to_anchor=(0.5,1), ncol = min(8, NL))
+        
+        eMin, eMax = 1, 0
+        sMin, sMax = 1000, 0
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx10 = ax10[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx10 = ax10[rowSp,colSp]
+            title = thisAx10.title.get_text()
+            if not 'NON VALIDATED' in title:
+                if thisAx10.get_xlim()[0] < eMin:
+                    eMin = thisAx10.get_xlim()[0]
+                if thisAx10.get_xlim()[1] > eMax:
+                    eMax = thisAx10.get_xlim()[1]
+                if thisAx10.get_ylim()[0] < sMin:
+                    sMin = thisAx10.get_ylim()[0]
+                if thisAx10.get_ylim()[1] > sMax:
+                    sMax = thisAx10.get_ylim()[1]
+                    
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx10 = ax10[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx10 = ax10[rowSp,colSp]
+            title = thisAx10.title.get_text()
+            if not 'NON VALIDATED' in title:
+                sMin = max(0, sMin)
+                eMin = max(0, eMin)
+                eMax = min(0.5, eMax)
+                thisAx10.set_ylim([sMin, sMax])
+                thisAx10.set_xlim([eMin, eMax])
                 
-        Allfigs = [fig1,fig2,fig3,fig4,fig5,fig6,fig7]
+        #### fig11
+        
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
+            if nRowsSubplot == 1:
+                thisAx11 = ax11[colSp]
+            elif nRowsSubplot >= 1:
+                thisAx11 = ax11[rowSp,colSp]
+            title = thisAx11.title.get_text()
+            if not 'NON VALIDATED' in title:
+                thisAx11.set_xlim([0, NbOfTargets])
+                thisAx11.set_ylim([100, 5e4])
+        
+                
+        Allfigs = [fig1,fig2,fig3,fig4,fig5,fig6,fig7,fig8,fig9,fig10,fig11]
+        
         for fig in Allfigs:
             fig.tight_layout()
             # pass
 
-    
-    
+
+
+
     #### PLOT [4/4]
     # Save the figures
     if PLOT:
@@ -1889,8 +2657,11 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
         jvu.archiveFig(fig5, ax5, figDir, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi1)
         jvu.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi1)
         jvu.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi1)
+        jvu.archiveFig(fig8, ax8, figDir, name=results['cellID'][-1] + '_08_sig(eps)_weightedRegionFits', dpi = dpi1)
+        jvu.archiveFig(fig9, ax9, figDir, name=results['cellID'][-1] + '_09_K3(s)', dpi = dpi1)
+        jvu.archiveFig(fig10, ax10, figDir, name=results['cellID'][-1] + '_10_sig(eps)_pointBasedFits', dpi = dpi1)
+        jvu.archiveFig(fig11, ax11, figDir, name=results['cellID'][-1] + '_11_K4(s)', dpi = dpi1)
         
-
         figDir = os.path.join(ownCloudTodayFigDir, 'MecaAnalysis_allCells')
         jvu.archiveFig(fig1, ax1, figDir, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi2)
         jvu.archiveFig(fig2, ax2, figDir, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi2)
@@ -1899,10 +2670,13 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, PLOT, PLOT_SHOW):
         jvu.archiveFig(fig5, ax5, figDir, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi2)
         jvu.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi2)
         jvu.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi2)
-        
+        jvu.archiveFig(fig8, ax8, figDir, name=results['cellID'][-1] + '_08_sig(eps)_weightedRegionFits', dpi = dpi1)
+        jvu.archiveFig(fig9, ax9, figDir, name=results['cellID'][-1] + '_09_K3(s)', dpi = dpi1)
+        jvu.archiveFig(fig10, ax10, figDir, name=results['cellID'][-1] + '_10_sig(eps)_pointBasedFits', dpi = dpi1)
+        jvu.archiveFig(fig10, ax10, figDir, name=results['cellID'][-1] + '_11_K4(s)', dpi = dpi1)
         
         if PLOT_SHOW:
-            Allfigs = [fig1,fig2,fig3,fig4,fig5,fig6,fig7]
+            Allfigs = [fig1,fig2,fig3,fig4,fig5,fig6,fig7,fig8,fig9,fig10,fig11]
             # for fig in Allfigs:
                 # fig.tight_layout()
                 # fig.show()
