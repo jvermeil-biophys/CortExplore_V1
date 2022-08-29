@@ -125,8 +125,6 @@ def getOptoMeta(cellID):
                     optoMetaDatadf = optoMetaDatadf.drop([c], axis=1)
     return(optoMetaDatadf)
 
-#%% Statistical functions
-
 def addStat_df(ax, data, box_pairs, param, cond, test = 'Mann-Whitney', percentHeight = 95):
     refHeight = np.percentile(data[param].values, percentHeight)
     currentHeight = refHeight
@@ -190,7 +188,7 @@ def ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = Fa
     except:
         pass
     
-    expDf = jvu.getExperimentalConditions(experimentalDataDir, save = False, sep = ';') 
+    expDf = jvu.getExperimentalConditions(experimentalDataDir, save = False, sep = ',') 
     files = os.listdir(rawDir+'/Raw/'+date)
 
     if background == 'dark':
@@ -213,7 +211,7 @@ def ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = Fa
             fig = plt.figure(figsize=(20,20))
             plt.rcParams.update({'font.size': 25})
             plt.suptitle(cellID)
-            t = timeSeriesDf['T'].values*1000/60
+            t = timeSeriesDf['T'].values
             
             plt.subplot(3, 1, 1)
             
@@ -587,26 +585,35 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             plt.savefig(todayFigDir+'/MedianThicknessActivationControl15mT_'+kind+'_'+str(parameter)+'.png')
             plt.show()
             
-            ####Plot fluctuations vs. median thickness : Indidivually for diff activation types    
-            lm = sns.lmplot(x ='medianThicknessWhole', y ='fluctuationsWhole', data = summaryDf, \
-                            hue ='magFields', col = 'activationType')
+            ####Plot fluctuations vs. median thickness : Indidivually for diff activation types  
+            
+            palette = sns.color_palette("tab10")
+            sns.set_palette(palette)
+            
+            
+            
+            lm = sns.lmplot(x ='medianThicknessToComp', y ='fluctuationsToComp', data = summaryDf, \
+                            hue ='activationTag', col = 'magField')
                 
             fig2 = lm.fig
             
-            text_x = [0.05, 0.38, 0.7]
+            
+            
+            text_x = [0.08, 0.38, 0.7]
             text1_y = [0.812, 0.812, 0.812]
             text2_y = [0.78, 0.78, 0.78]
             fields = ['3mT', '7mT', '15mT']
+            
             #Calculating correlation coefficient b/w fluctuation and median thickness
             for j in range(len(fields)):
                 dataSpec = summaryDf[summaryDf['magField'] == fields[j]]
-                fluctuationsSpecAfter = dataSpec['fluctuationsWhole'][dataSpec['activationTag'] == 'After'].values
-                thicknessSpecAfter = dataSpec['medianThicknessWhole'][dataSpec['activationTag'] == 'After'].values
+                fluctuationsSpecAfter = dataSpec['fluctuationsToComp'][dataSpec['activationTag'] == 'After'].values
+                thicknessSpecAfter = dataSpec['medianThicknessToComp'][dataSpec['activationTag'] == 'After'].values
                 corrCoefAfter = np.corrcoef(thicknessSpecAfter, fluctuationsSpecAfter)
         
                 
-                fluctuationsSpecBefore = dataSpec['fluctuationsWhole'][dataSpec['activationTag'] == 'Before'].values
-                thicknessSpecBefore = dataSpec['medianThicknessWhole'][dataSpec['activationTag'] == 'Before'].values
+                fluctuationsSpecBefore = dataSpec['fluctuationsToComp'][dataSpec['activationTag'] == 'Before'].values
+                thicknessSpecBefore = dataSpec['medianThicknessToComp'][dataSpec['activationTag'] == 'Before'].values
                 corrCoefBefore = np.corrcoef(thicknessSpecBefore, fluctuationsSpecBefore)
         
                 
@@ -1116,8 +1123,8 @@ for i in cellIDs:
 plt.close('all')
 
 # %% Plotting all three plots (3D, 2D, Dz vs Time) of an experiment
-# date = '22.07.26'
-# ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, background = 'dark')
+date = '22.07.26'
+ctFieldThicknessIndividual(experimentalDataDir, todayFigDir, date, save = True, background = 'dark')
 
 
 # %%
