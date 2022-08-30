@@ -56,7 +56,7 @@ for i in range(5,105,5):
 
                
                     
-# %% (3) TimeSeries functions
+# %% (1) TimeSeries functions
 
 def getCellTimeSeriesData(cellID, fromPython = True):
     if fromPython:
@@ -177,11 +177,13 @@ def getExcludedCells():
         excludedCellsDict[splitLine[0]] = splitLine[1:]
     return(excludedCellsDict)
 
-# %% (4) GlobalTables functions
+# %% (2) GlobalTables functions
 
-# %%% (4.1) Exp conditions
+# %%% (2.1) Exp conditions
 
-# %%% (4.2) Constant Field experiments
+# See UtilityFunctions.py
+
+# %%% (2.2) Constant Field experiments
 
 listColumnsCtField = ['date','cellName','cellID','manipID',\
                       'duration','medianRawB','medianThickness',\
@@ -380,7 +382,7 @@ def getGlobalTable_ctField(fileName = 'Global_CtFieldData'):
 #         mecaDF['ManipID'] = mecaDF['ExpDay'] + '_' + mecaDF['CellName'].apply(lambda x: x.split('_')[0])
     return(CtField_DF)
 
-# %%% (4.3) Compressions experiments
+# %%% (2.3) Compressions experiments
 
 #### Workflow
 # * analyseTimeSeries_meca() analyse 1 file and return the dict (with the results of the analysis)
@@ -396,7 +398,7 @@ listColumnsMeca = ['date','cellName','cellID','manipID',
                    'validatedThickness', 'jumpD3',
                    'minForce', 'maxForce', 'minStress', 'maxStress', 'minStrain', 'maxStrain',
                    'ctFieldThickness','ctFieldFluctuAmpli','ctFieldDX','ctFieldDZ',
-                   'H0_Chadwick15', 
+                   'H0_Chadwick15', 'H0_Dimitriadis15', 
                    'H0Chadwick','EChadwick','R2Chadwick','EChadwick_CIWidth',
                    'hysteresis',
                    'critFit', 'validatedFit','comments'] # 'fitParams', 'H0_Dimitriadis15', 
@@ -504,7 +506,6 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     upperBounds = (np.Inf, np.Inf)
     parameterBounds = [lowerBounds, upperBounds]
 
-
     try:
         params, covM = curve_fit(inversedChadwickModel, fCompr, hCompr, initialParameters, bounds = parameterBounds)
 
@@ -556,13 +557,98 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     return(E, H0, hPredict, R2, Chi2, confIntE, confIntH0, error)
 
 
-def fitH0(hCompr, fCompr, DIAMETER):
+
+
+
+
+
+def compressionFitDimitriadis(hCompr, fCompr, DIAMETER, order = 2):
+    
+    error = False
+    
+    v = 0
+    
+    def dimitriadisModel(h, E, H0):
+        
+        R = DIAMETER/2
+        delta = H0-h
+        X = np.sqrt(R*delta)/h
+        ks = ufun.getDimitriadisCoefs(v, order)
+        
+        poly = np.zeros_like(X)
+        
+        for i in range(order+1):
+            poly = poly + ks[i] * X**i
+            
+        F = ((4 * E * R**0.5 * delta**1.5)/(3 * (1 - v**2))) * poly
+        return(F)
+
+    # some initial parameter values - must be within bounds
+    # E ~ 3*H0*F_max / pi*R*(H0-h_min)²
+    initE = (3*max(hCompr)*max(fCompr))/(np.pi*(DIAMETER/2)*(max(hCompr)-min(hCompr))**2) 
+    # H0 ~ h_max
+    initH0 = max(hCompr) 
+
+    # initH0, initE = initH0*(initH0>0), initE*(initE>0)
+    
+    initialParameters = [initE, initH0]
+
+    # bounds on parameters - initial parameters must be within these
+    lowerBounds = (0, max(hCompr))
+    upperBounds = (np.Inf, np.Inf)
+    parameterBounds = [lowerBounds, upperBounds]
+
+    try:
+        
+        params, covM = curve_fit(dimitriadisModel, hCompr, fCompr, initialParameters, bounds = parameterBounds)
+        E, H0 = params
+        fPredict = dimitriadisModel(hCompr, E, H0)
+        err = 100
+        
+        comprMat = np.array([hCompr, fPredict]).T
+        comprMatSorted = comprMat[comprMat[:, 0].argsort()]
+        hComprSorted, fPredictSorted = comprMatSorted[:, 0], comprMatSorted[:, 1]
+
+        alpha = 0.975
+        dof = len(fCompr)-len(params)
+        q = st.t.ppf(alpha, dof) # Student coefficient
+        R2 = ufun.get_R2(fCompr, fPredict)
+        
+        Chi2 = ufun.get_Chi2(fCompr, fPredict, dof, err)
+
+        varE = covM[0,0]
+        seE = (varE)**0.5
+        E, seE = E*1e6, seE*1e6
+        confIntE = [E-q*seE, E+q*seE]
+        confIntEWidth = 2*q*seE
+
+        varH0 = covM[1,1]
+        seH0 = (varH0)**0.5
+        confIntH0 = [H0-q*seH0, H0+q*seH0]
+        confIntH0Width = 2*q*seH0
+        
+        
+    except:
+        error = True
+        E, H0, fPredict, R2, Chi2, confIntE, confIntH0 = -1, -1, np.ones(len(hCompr))*(-1), -1, -1, [-1,-1], [-1,-1]
+    
+    return(E, H0, fPredict, R2, Chi2, confIntE, confIntH0, error)
+
+
+
+def fitH0_allMethods(hCompr, fCompr, DIAMETER):
     dictH0 = {}
     
     # findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError
     Chadwick15_resultTuple = compressionFitChadwick(hCompr[:15], fCompr[:15], DIAMETER)
     H0_Chadwick15 = Chadwick15_resultTuple[1]
     dictH0['H0_Chadwick15'] = H0_Chadwick15
+    
+    Dimitriadis15_resultTuple = compressionFitDimitriadis(hCompr[:15], fCompr[:15], DIAMETER)
+    H0_Dimitriadis15 = Dimitriadis15_resultTuple[1]
+    dictH0['H0_Dimitriadis15'] = H0_Dimitriadis15
+    
+    return(dictH0)
     
 
 def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
@@ -918,6 +1004,8 @@ def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHO
             findH0_NbPts = 15
             findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError = \
                 compressionFitChadwick(hCompr[:findH0_NbPts], fCompr[:findH0_NbPts], DIAMETER)
+            
+            dictH0 = fitH0_allMethods(hCompr, fCompr, DIAMETER)
                 
             maxH0 = max(H0, H0_Chadwick15)
             if max(hCompr) > maxH0:
@@ -1680,14 +1768,15 @@ def update_uiDf(ui_fileSuffix, mecaDf):
     
     for date in listDates:
         ui_fileName = date + '_' + ui_fileSuffix
+        
         try:
-            print('Imported existing UI table')
-            savePath = os.path.join(cp.DirDataAnalysis, (ui_fileName + '.csv'))
-            uiDf = pd.read_csv(savePath, sep='\t', )
+            savePath = os.path.join(cp.DirDataAnalysisUMS, (ui_fileName + '.csv'))
+            uiDf = pd.read_csv(savePath, sep='\t')
             fromScratch = False
+            print(gs.GREEN + date + ' : imported existing UI table' + gs.NORMAL)
             
         except:
-            print('No existing UI table found with this name')
+            print(gs.DARKGREEN + date + ' : no existing UI table found' + gs.NORMAL)
             fromScratch = True
     
         new_uiDf = mecaDf[mecaDf['date'] == date][listColumnsUI[:5]]
@@ -1849,7 +1938,7 @@ def getGlobalTable_meca(fileName):
         
     return(mecaDf)
 
-# %%% (4.4) Fluorescence data
+# %%% (2.4) Fluorescence data
 
 def getFluoData(save = False):
     # Getting the table
@@ -1874,7 +1963,7 @@ def getFluoData(save = False):
     
     return(fluoDF)
 
-# %%% (4.5) Oscillations
+# %%% (2.5) Oscillations
 
 def analyseTimeSeries_sinus(f, tsDF, expDf, listColumns, PLOT, PLOT_SHOW):
     
@@ -2031,183 +2120,302 @@ def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', sa
 
 
 # %% (5) General import functions
-
-# %%% Utility functions
-
-def removeColumnsDuplicate(df):
-    cols = df.columns.values
-    for c in cols:
-        if c.endswith('_x'):
-            df = df.rename(columns={c: c[:-2]})
-        elif c.endswith('_y'):
-            df = df.drop(columns=[c])
-    return(df)
     
-# %%% Main function
+# %%% Main functions
 
-def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
-    if kind == 'ctField':
-        GlobalTable = getGlobalTable_ctField()
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", on='cellID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-        
-        # print(GlobalTable_ctField.head())
-    
-    elif kind == 'ctField_py':
-        GlobalTable = getGlobalTable_ctField('Global_CtFieldData_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", on='cellID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-        
-        # print(GlobalTable_ctField.head())
-        
-        # return(GlobalTable_ctField)
-
-    elif kind == 'meca_matlab':
-        GlobalTable = getGlobalTable_meca('Global_MecaData')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='CellName', right_on='cellID'
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-        
-        # print(GlobalTable.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        # return(GlobalTable_meca_Matlab)
-
-
-    elif kind == 'meca_py':
-        GlobalTable = getGlobalTable_meca('Global_MecaData_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID'
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-        
-        # print(GlobalTable_meca_Py.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        # return(GlobalTable_meca_Py)
-
-
-    elif kind == 'meca_py2':
-        GlobalTable = getGlobalTable_meca('Global_MecaData_Py2')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-
-        # print(GlobalTable_meca_Py2.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        # return(GlobalTable_meca_Py2)
-    
-    elif kind == 'meca_nonLin':
-        GlobalTable = getGlobalTable_meca('Global_MecaData_NonLin_Py')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-
-        # print(GlobalTable_meca_nonLin.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        # return(GlobalTable_meca_nonLin)
-    
-    elif kind == 'meca_MCA':
-        GlobalTable = getGlobalTable_meca('Global_MecaData_MCA')
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
-        fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
-        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
-        )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
-
-        # print(GlobalTable_meca_nonLin.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
-        # return(GlobalTable)
-    
+def getAnalysisTable(fileName):
+    if not fileName[-4:] == '.csv':
+        ext = '.csv'
     else:
-        GlobalTable = getGlobalTable_meca(kind)
-        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+        ext = ''
+        
+    try:
+        path = os.path.join(cp.DirDataAnalysis, (fileName + ext))
+        df = pd.read_csv(path, sep=';')
+        print(gs.CYAN + 'Analysis table has ' + str(df.shape[0]) + ' lines and ' + \
+              str(df.shape[1]) + ' columns.' + gs.NORMAL)
+    except:
+        print(gs.BRIGHTRED + 'No analysis table found' + gs.NORMAL)
+        return()
+        
+    for c in df.columns:
+        if 'Unnamed' in c:
+            df = df.drop([c], axis=1)
+            
+    if 'CellName' in df.columns and 'CellID' in df.columns:
+        shortCellIdColumn = 'CellID'
+    elif 'cellName' in df.columns and 'cellID' in df.columns:
+        shortCellIdColumn = 'cellName'
+    
+    if 'ExpDay' in df.columns:
+        dateColumn = 'ExpDay'
+    elif 'date' in df.columns:
+        dateColumn = 'date'
+        
+    # try:
+    dateExemple = df.loc[df.index[0],dateColumn]
+    df = ufun.correctExcelDatesInDf(df, dateColumn, dateExemple)
+    # except:
+    #     print(gs.ORANGE + 'Problem in date correction' + gs.NORMAL)
+        
+    try:
+        if not ('manipID' in df.columns):
+            df['manipID'] = df[dateColumn] + '_' + df[shortCellIdColumn].apply(lambda x: x.split('_')[0])
+    except:
+        print(gs.ORANGE + 'Could not infer Manip Ids' + gs.NORMAL)
+        
+    return(df)
+
+
+
+def getMergedTable(fileName, DirDataExp = cp.DirRepoExp, suffix = cp.suffix,
+                   mergeExpDf = True, mergFluo = False, mergeUMS = False):
+    
+    df = getAnalysisTable(fileName)
+    
+    if mergeExpDf:
+        expDf = ufun.getExperimentalConditions(DirDataExp, suffix = suffix)
+        df = pd.merge(expDf, df, how="inner", on='manipID', suffixes=("_x", "_y"),
+        #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+        #     copy=True,indicator=False,validate=None,
+        )
+        
+    df = ufun.removeColumnsDuplicate(df)
+        
+    if mergFluo:
         fluoDf = getFluoData()
-        GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+        df = pd.merge(df, fluoDf, how="left", on='cellID', suffixes=("_x", "_y"),
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+        #     copy=True,indicator=False,validate=None,
         )
-        GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+        
+    df = ufun.removeColumnsDuplicate(df)
+        
+    if mergeUMS:
+        if 'ExpDay' in df.columns:
+            dateColumn = 'ExpDay'
+        elif 'date' in df.columns:
+            dateColumn = 'date'
+        listDates = df[dateColumn].unique()
+        
+        listFiles_UMS = os.listdir(cp.DirDataAnalysisUMS)
+        listFiles_UMS_matching = []
+        # listPaths_UMS = [os.path.join(DirDataAnalysisUMS, f) for f in listFiles_UMS]
+        
+        for f in listFiles_UMS:
+            for d in listDates:
+                if d in f:
+                    listFiles_UMS_matching.append(f)
+            
+        listPaths_UMS_matching = [os.path.join(cp.DirDataAnalysisUMS, f) for f in listFiles_UMS_matching]
+        listDF_UMS_matching = [pd.read_csv(p, sep = '\t') for p in listPaths_UMS_matching]
+        
+        umsDf = pd.concat(listDF_UMS_matching)
+        # f_filterCol = lambda x : x not in ['date', 'cellName', 'manipID']
+        # umsCols = umsDf.columns[np.array([f_filterCol(c) for c in umsDf.columns])]   
+        
+        df = pd.merge(df, umsDf, how="left", on=['cellID', 'compNum'], suffixes=("_x", "_y"),
         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
-        #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+        #     copy=True,indicator=False,validate=None,[umsCols]
         )
-        print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+        
+    df = ufun.removeColumnsDuplicate(df)
     
-        # print(GlobalTable_meca_nonLin.tail())
-        GlobalTable = removeColumnsDuplicate(GlobalTable)
+    print(gs.CYAN + 'Merged table has ' + str(df.shape[0]) + ' lines and ' \
+          + str(df.shape[1]) + ' columns.' + gs.NORMAL)
+        
+    return(df)
+
+
+
+# def getGlobalTable(kind, DirDataExp = cp.DirRepoExp):
+#     if kind == 'ctField':
+#         GlobalTable = getGlobalTable_ctField()
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+        
+#         # print(GlobalTable_ctField.head())
     
-    if 'substrate' in GlobalTable.columns:
-        vals_substrate = GlobalTable['substrate'].values
-        if 'diverse fibronectin discs' in vals_substrate:
-            try:
-                cellIDs = GlobalTable[GlobalTable['substrate'] == 'diverse fibronectin discs']['cellID'].values
-                listFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
-                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
-                for Id in cellIDs:
-                    for f in listFiles:
-                        if Id == ufun.findInfosInFileName(f, 'cellID'):
-                            thisCellSubstrate = ufun.findInfosInFileName(f, 'substrate')
-                            thisCellSubstrate = dictSubstrates[thisCellSubstrate]
-                            if not thisCellSubstrate == '':
-                                GlobalTable.loc[GlobalTable['cellID'] == Id, 'substrate'] = thisCellSubstrate
-                print('Automatic determination of substrate type SUCCEDED !')
+#     elif kind == 'ctField_py':
+#         GlobalTable = getGlobalTable_ctField('Global_CtFieldData_Py')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(expDf, GlobalTable, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+        
+#         # print(GlobalTable_ctField.head())
+        
+#         # return(GlobalTable_ctField)
+
+#     elif kind == 'meca_matlab':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='CellName', right_on='cellID'
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+        
+#         # print(GlobalTable.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # return(GlobalTable_meca_Matlab)
+
+
+#     elif kind == 'meca_py':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData_Py')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID'
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+        
+#         # print(GlobalTable_meca_Py.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # return(GlobalTable_meca_Py)
+
+
+#     elif kind == 'meca_py2':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData_Py2')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+
+#         # print(GlobalTable_meca_Py2.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # return(GlobalTable_meca_Py2)
+    
+#     elif kind == 'meca_nonLin':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData_NonLin_Py')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+
+#         # print(GlobalTable_meca_nonLin.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # return(GlobalTable_meca_nonLin)
+    
+#     elif kind == 'meca_MCA':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData_MCA')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+
+#         # print(GlobalTable_meca_nonLin.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # return(GlobalTable)
+        
+#     elif kind == 'meca_HoxB8':
+#         GlobalTable = getGlobalTable_meca('Global_MecaData_HoxB8')
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         ui_fileName = 'UserManualSelection_MecaData'
+#         # uiDf, success = get_uiDf(ui_fileName)
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         # GlobalTable = pd.merge(GlobalTable, uiDf, 
+#         #                        how="left", left_on=['cellID', 'compNum'], right_on=['cellID', 'compNum'],
+#         # #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         # #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         # )
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+
+#         # return(GlobalTable)
+    
+#     else:
+#         GlobalTable = getGlobalTable_meca(kind)
+#         expDf = ufun.getExperimentalConditions(DirDataExp, suffix = cp.suffix)
+#         fluoDf = getFluoData()
+#         GlobalTable = pd.merge(GlobalTable, expDf, how="inner", on='manipID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         GlobalTable = pd.merge(GlobalTable, fluoDf, how="left", left_on='cellID', right_on='cellID',
+#         #     left_on=None,right_on=None,left_index=False,right_index=False,sort=True,
+#         #     suffixes=("_x", "_y"),copy=True,indicator=False,validate=None,
+#         )
+#         print('Merged table has ' + str(GlobalTable.shape[0]) + ' lines and ' + str(GlobalTable.shape[1]) + ' columns.')
+    
+#         # print(GlobalTable_meca_nonLin.tail())
+#         GlobalTable = ufun.removeColumnsDuplicate(GlobalTable)
+    
+#     if 'substrate' in GlobalTable.columns:
+#         vals_substrate = GlobalTable['substrate'].values
+#         if 'diverse fibronectin discs' in vals_substrate:
+#             try:
+#                 cellIDs = GlobalTable[GlobalTable['substrate'] == 'diverse fibronectin discs']['cellID'].values
+#                 listFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#                               if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
+#                 for Id in cellIDs:
+#                     for f in listFiles:
+#                         if Id == ufun.findInfosInFileName(f, 'cellID'):
+#                             thisCellSubstrate = ufun.findInfosInFileName(f, 'substrate')
+#                             thisCellSubstrate = dictSubstrates[thisCellSubstrate]
+#                             if not thisCellSubstrate == '':
+#                                 GlobalTable.loc[GlobalTable['cellID'] == Id, 'substrate'] = thisCellSubstrate
+#                 print('Automatic determination of substrate type SUCCEDED !')
                 
-            except:
-                print('Automatic determination of substrate type FAILED !')
+#             except:
+#                 print('Automatic determination of substrate type FAILED !')
     
-    return(GlobalTable)
+#     return(GlobalTable)
