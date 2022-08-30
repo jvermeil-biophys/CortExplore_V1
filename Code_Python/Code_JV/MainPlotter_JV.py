@@ -42,8 +42,8 @@ sys.path.append(cp.DirRepoPython)
 
 import GraphicStyles as gs
 import UtilityFunctions as ufun
-# import TrackAnalyser as taka
-import TrackAnalyser_dev_AJ as taka
+import TrackAnalyser as taka
+# import TrackAnalyser_dev_AJ as taka
 
 #### Potentially useful lines of code
 # get_ipython().run_line_magic('load_ext', 'autoreload')
@@ -381,7 +381,7 @@ testTraj(1.5)
 
 # %%% Experimental conditions
 
-ufun.getExperimentalConditions(cp.DirRepoExp, save=True , sep = ';')
+expDf = ufun.getExperimentalConditions(cp.DirRepoExp, save=True , sep = ';')
 
 
 
@@ -509,52 +509,50 @@ df = taka.getFluoData().head()
 
 #### GlobalTable_ctField
 
-GlobalTable_ctField = taka.getGlobalTable(kind = 'ctField')
-GlobalTable_ctField.head()
-
+# GlobalTable_ctField = taka.getGlobalTable(kind = 'ctField')
+GlobalTable_ctField = taka.getMergedTable('Global_CtFieldData')
 
 #### GlobalTable_ctField_Py
 
-GlobalTable_ctField_Py = taka.getGlobalTable(kind = 'ctField_py')
-GlobalTable_ctField_Py.head()
-
+# GlobalTable_ctField_Py = taka.getGlobalTable(kind = 'ctField_py')
+GlobalTable_ctField_Py = taka.getMergedTable('Global_CtFieldData_Py')
 
 #### GlobalTable_meca
 
-GlobalTable_meca = taka.getGlobalTable(kind = 'meca_matlab')
-GlobalTable_meca.tail()
-
+# GlobalTable_meca = taka.getGlobalTable(kind = 'meca_matlab')
+GlobalTable_meca = taka.getMergedTable('Global_MecaData')
 
 #### GlobalTable_meca_Py
 
-GlobalTable_meca_Py = taka.getGlobalTable(kind = 'meca_py')
-GlobalTable_meca_Py.tail()
-
+# GlobalTable_meca_Py = taka.getGlobalTable(kind = 'meca_py')
+GlobalTable_meca_Py = taka.getMergedTable('Global_MecaData_Py')
 
 #### GlobalTable_meca_Py2
 
-GlobalTable_meca_Py2 = taka.getGlobalTable(kind = 'meca_py2')
-GlobalTable_meca_Py2.head()
+# GlobalTable_meca_Py2 = taka.getGlobalTable(kind = 'meca_py2')
+GlobalTable_meca_Py2 = taka.getMergedTable('Global_MecaData_Py2')
 
 
 #### Global_MecaData_NonLin_Py
 
 # GlobalTable_meca_nonLin = taka.getGlobalTable(kind = 'meca_nonLin')
-GlobalTable_meca_nonLin = taka.getGlobalTable(kind = 'Global_MecaData_NonLin2_Py')
-GlobalTable_meca_nonLin.head()
+GlobalTable_meca_nonLin = taka.getMergedTable('Global_MecaData_NonLin2_Py')
 
 
 #### Global_MecaData_MCA
 
 # GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
-GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'Global_MecaData_MCA2')
-GlobalTable_meca_MCA.head()
+GlobalTable_meca_MCA = taka.getMergedTable('Global_MecaData_MCA2')
 
 #### Global_MecaData_MCA
 
 # GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
-GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'Global_MecaData_MCA2')
-GlobalTable_meca_MCA.head()
+GlobalTable_meca_MCA = taka.getMergedTable('Global_MecaData_MCA2')
+
+#### Global_MecaData_HoxB8
+
+# GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
+GlobalTable_meca_HoxB8 = taka.getMergedTable('Global_MecaData_HoxB8', mergeUMS = True)
 
 
 # %%% Custom data export
@@ -938,7 +936,7 @@ def D1PlotPaired(data, Parameters=[], Filters=[], Boxplot=True, cellID='cellID',
     print('Number of values : {:.0f}'.format(NValues))
     
     for i in range(NParms):
-        color = gs.gs.my_default_color_list[i]
+        color = gs.my_default_color_list[i]
         
         ax.plot([posParms[i] for k in range(NValues)], parmsValues[i,:], 
                 color = color, marker = 'o', markeredgecolor = 'k', markersize = markersize,
@@ -2069,7 +2067,7 @@ fig.suptitle('Two sizes of beads\nDictyostelium cortices')
 # ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//BeadSizes', name='BeadSizeDicty_2', dpi = 100)
 plt.show()
 
-# %%% MDA project - Matlab processing
+# %%% MCA project - Matlab processing
 
 # %%%%% 3T3aSFL on patterns: Ct Field
 
@@ -4985,6 +4983,676 @@ plt.show()
 
 
 Kavg_ref, Kste_ref, N_ref, fitCenters_ref = Kavg, Kste, N, fitCenters2
+
+
+
+
+
+
+
+
+# %%% HoxB8 -- (july 2022)
+
+# %%%%% Four conditions first plot
+
+data = GlobalTable_meca_HoxB8
+dates = ['22-05-03', '22-05-04', '22-05-05']
+StressRegion = '_S=300+/-100'
+srs = '_S=300-100'
+
+Filters = [(data['validatedFit'+StressRegion] == True), 
+           (data['validatedThickness'] == True), 
+           (data['UI_Valid'] == True),
+           (data['cell type'] == 'HoxB8-Macro'), 
+           (data['bead type'] == 'M450'),
+           (data['bestH0'] <= 800),
+           (data['date'].apply(lambda x : x in dates))]
+
+
+
+# co_order = makeOrder(['ctrl','tko'],['naked glass','20um fibronectin discs'])
+co_order = makeOrder(['naked glass','20um fibronectin discs'],['ctrl','tko'])
+
+fig, ax = D1Plot(data, CondCol=['substrate','cell subtype'], Parameters=['bestH0', 'KChadwick'+StressRegion],Filters=Filters,
+                 AvgPerCell=False, cellID='cellID', co_order=co_order, stats=True, statMethod='Mann-Whitney', 
+                 box_pairs=[], figSizeFactor = 0.8, markersizeFactor=0.8, orientation = 'v')
+
+renameAxes(ax,renameDict1)
+fig.suptitle('HoxB8 summary plot')
+
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//HoxB8project', name='HoxB8_H0 & K' + srs, dpi = 100)
+
+plt.show()
+
+# %%%%% K(s) for HoxB8
+
+#### making the Dataframe 
+
+data = GlobalTable_meca_HoxB8
+
+data['HoxB8_Co'] = data['substrate'].values + \
+                   np.array([' & ' for i in range(data.shape[0])]) + \
+                   data['cell subtype'].values
+
+dates = ['22-05-03', '22-05-04', '22-05-05'] #['21-12-08', '22-01-12'] ['21-01-18', '21-01-21', '21-12-08']
+
+filterList = [(data['validatedThickness'] == True),
+              (data['cell type'] == 'HoxB8-Macro'), 
+              (data['bead type'] == 'M450'),
+              (data['UI_Valid'] == True),
+              (data['bestH0'] <= 800),
+              (data['date'].apply(lambda x : x in dates))]  # (data['validatedFit'] == True),
+
+globalFilter = filterList[0]
+for k in range(1, len(filterList)):
+    globalFilter = globalFilter & filterList[k]
+
+data_f = data[globalFilter]
+
+# data_f['HoxB8_Co'] = data_f['substrate'].values + \
+#                      np.array([' & ' for i in range(data_f.shape[0])]) + \
+#                      data_f['cell subtype'].values
+
+width = 150 # 200
+fitCenters =  np.array([S for S in range(100, 1100, 50)])
+# fitMin = np.array([int(S-(width/2)) for S in fitCenters])
+# fitMax = np.array([int(S+(width/2)) for S in fitCenters])
+
+# regionFitsNames = [str(fitMin[ii]) + '<s<' + str(fitMax[ii]) for ii in range(len(fitMin))]
+regionFitsNames = ['S={:.0f}+/-{:.0f}'.format(fitCenters[ii], width//2) for ii in range(len(fitCenters))]
+
+listColumnsMeca = []
+
+KChadwick_Cols = []
+KWeight_Cols = []
+
+for rFN in regionFitsNames:
+    listColumnsMeca += ['KChadwick_'+rFN, 'K_CIW_'+rFN, 'R2Chadwick_'+rFN, 'K2Chadwick_'+rFN, 
+                        'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN]
+    KChadwick_Cols += [('KChadwick_'+rFN)]
+
+    K_CIWidth = data_f['K_CIW_'+rFN] #.apply(lambda x : x.strip('][').split(', ')).apply(lambda x : (np.abs(float(x[0]) - float(x[1]))))
+    KWeight = (data_f['KChadwick_'+rFN]/K_CIWidth)**2
+    data_f['K_Weight_'+rFN] = KWeight
+    data_f['K_Weight_'+rFN] *= data_f['KChadwick_'+rFN].apply(lambda x : (x<1e6))
+    data_f['K_Weight_'+rFN] *= data_f['R2Chadwick_'+rFN].apply(lambda x : (x>1e-2))
+    data_f['K_Weight_'+rFN] *= data_f['K_CIW_'+rFN].apply(lambda x : (x!=0))
+    KWeight_Cols += [('K_Weight_'+rFN)]
+    
+
+#### Whole curve
+
+def w_std(x, w):
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    return(std)
+
+def nan2zero(x):
+    if np.isnan(x):
+        return(0)
+    else:
+        return(x)
+
+valStr = 'KChadwick_'
+weightStr = 'K_Weight_'
+
+
+
+# regionFitsNames = [str(fitMin[ii]) + '<s<' + str(fitMax[ii]) for ii in range(len(fitMin))]
+regionFitsNames = ['S={:.0f}+/-{:.0f}'.format(fitCenters[ii], width//2) for ii in range(len(fitCenters))]
+
+fig, axes = plt.subplots(2,1, figsize = (9,12))
+ListDfWhole = []
+
+conditions = np.array(data_f['HoxB8_Co'].unique())
+
+
+cD = {'naked glass & ctrl':[gs.colorList40[10], gs.colorList40[10]],
+      'naked glass & tko':[gs.colorList40[30], gs.colorList40[30]],
+      '20um fibronectin discs & ctrl':[gs.colorList40[12], gs.colorList40[12]],
+      '20um fibronectin discs & tko':[gs.colorList40[32], gs.colorList40[32]]}
+
+# oD = {'none': [-15, 1.02] , 'doxycyclin': [5, 0.97] }
+# lD = {'naked glass & ctrl':', 
+#       'naked glass & tko':'',
+#       '20um fibronectin discs & tko':'',
+#       '20um fibronectin discs & ctrl':''}
+
+for co in conditions:
+    
+    Kavg = []
+    Kstd = []
+    D10 = []
+    D90 = []
+    N = []
+    
+    data_ff = data_f[data_f['HoxB8_Co'] == co]
+    
+    
+    for ii in range(len(fitCenters)):
+        S = fitCenters[ii]
+        rFN = 'S={:.0f}+/-{:.0f}'.format(S, width//2)
+        variable = valStr+rFN
+        weight = weightStr+rFN
+        
+        x = data_ff[variable].apply(nan2zero).values
+        w = data_ff[weight].apply(nan2zero).values
+        
+        if S == 250:
+            d = {'x' : x, 'w' : w}
+        
+        m = np.average(x, weights=w)
+        v = np.average((x-m)**2, weights=w)
+        std = v**0.5
+        
+        d10, d90 = np.percentile(x[x != 0], (10, 90))
+        n = len(x[x != 0])
+        
+        Kavg.append(m)
+        Kstd.append(std)
+        D10.append(d10)
+        D90.append(d90)
+        N.append(n)
+    
+    Kavg = np.array(Kavg)
+    Kstd = np.array(Kstd)
+    D10 = np.array(D10)
+    D90 = np.array(D90)
+    N = np.array(N)
+    Kste = Kstd / (N**0.5)
+    
+    alpha = 0.975
+    dof = N
+    q = st.t.ppf(alpha, dof) # Student coefficient
+    
+    d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D90, 'N' : N}
+    
+    for ax in axes:
+        # Weighted means -- Weighted ste 95% as error
+        ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = cD[co][0], 
+                       ecolor = cD[co][1], elinewidth = 0.8, capsize = 3, label = co)
+        ax.set_ylim([500,2e4])
+        ax.set_xlim([0,1100])
+        ax.set_title('K(s) - All compressions pooled')
+        
+        ax.legend(loc = 'upper left')
+        
+        ax.set_xlabel('Stress (Pa)')
+        ax.set_ylabel('K (Pa)')
+        
+        for kk in range(len(N)):
+            ax.text(x=fitCenters[kk], y=Kavg[kk]**0.9, s='n='+str(N[kk]), fontsize = 8, color = cD[co][1])
+        # for kk in range(len(N)):
+        #     ax[k].text(x=fitCenters[kk]+oD[co][0], y=Kavg[kk]**oD[co][1], 
+        #                s='n='+str(N[kk]), fontsize = 6, color = cD[co][k])
+        
+    axes[0].set_yscale('log')
+    axes[0].set_ylim([500,2e4])
+    
+    axes[1].set_ylim([0,1.4e4])
+    
+    fig.suptitle('K(s)'+'\n(fits width: {:.0f}Pa)'.format(width))    
+    
+    df_val = pd.DataFrame(d_val)
+    ListDfWhole.append(df_val)
+    dftest = pd.DataFrame(d)
+
+plt.show()
+
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//HoxB8project', name='HoxB8_K(s)', dpi = 100)
+
+
+
+
+
+
+#### Local zoom
+
+Sinf, Ssup = 300, 700
+extraFilters = [data_f['minStress'] <= Sinf, data_f['maxStress'] >= Ssup] # >= 800
+fitCenters = fitCenters[(fitCenters>=(Sinf)) & (fitCenters<=Ssup)] # <800
+# fitMin = np.array([int(S-(width/2)) for S in fitCenters])
+# fitMax = np.array([int(S+(width/2)) for S in fitCenters])
+
+data2_f = data_f
+globalExtraFilter = extraFilters[0]
+for k in range(1, len(extraFilters)):
+    globalExtraFilter = globalExtraFilter & extraFilters[k]
+data2_f = data2_f[globalExtraFilter]  
+
+
+fig, axes = plt.subplots(2,1, figsize = (9,12))
+
+conditions = np.array(data_f['HoxB8_Co'].unique())
+print(conditions)
+
+
+cD = {'naked glass & ctrl':[gs.colorList40[10], gs.colorList40[10]],
+      'naked glass & tko':[gs.colorList40[30], gs.colorList40[30]],
+      '20um fibronectin discs & ctrl':[gs.colorList40[12], gs.colorList40[12]],
+      '20um fibronectin discs & tko':[gs.colorList40[32], gs.colorList40[32]]}
+
+listDfZoom = []
+
+for co in conditions:
+    
+    Kavg = []
+    Kstd = []
+    D10 = []
+    D90 = []
+    N = []
+    
+    data_ff = data2_f[data_f['HoxB8_Co'] == co]
+    
+    for ii in range(len(fitCenters)):
+        S = fitCenters[ii]
+        rFN = 'S={:.0f}+/-{:.0f}'.format(S, width//2)
+        S = fitCenters[ii]
+        variable = valStr+rFN
+        weight = weightStr+rFN
+        
+        x = data_ff[variable].apply(nan2zero).values
+        w = data_ff[weight].apply(nan2zero).values
+        
+        print(S)
+        print(np.sum(w))
+        
+        m = np.average(x, weights=w)
+        v = np.average((x-m)**2, weights=w)
+        std = v**0.5
+        
+        d10, d90 = np.percentile(x[x != 0], (10, 90))
+        n = len(x[x != 0])
+        
+        Kavg.append(m)
+        Kstd.append(std)
+        D10.append(d10)
+        D90.append(d90)
+        N.append(n)
+    
+    Kavg = np.array(Kavg)
+    Kstd = np.array(Kstd)
+    D10 = np.array(D10)
+    D90 = np.array(D90)
+    N = np.array(N)
+    Kste = Kstd / (N**0.5)
+    
+    alpha = 0.975
+    dof = N
+    q = st.t.ppf(alpha, dof) # Student coefficient
+    
+    d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D90, 'N' : N}
+    
+    for ax in axes:
+        # Weighted means -- Weighted ste 95% as error
+        ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = cD[co][0], 
+                        ecolor = cD[co][1], elinewidth = 0.8, capsize = 3, label = co)
+        
+        ax.set_xlim([Sinf-50, Ssup+50])
+        ax.set_title('K(s)\nOnly compressions including the [{:.0f},{:.0f}]Pa range'.format(Sinf, Ssup))
+        
+        # Weighted means -- D9-D1 as error
+        # ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = cD[co][1], 
+        #                 ecolor = 'k', elinewidth = 0.8, capsize = 3, label = lD[co]) 
+        # ax[1].set_ylim([500,2e4])
+        # ax[1].set_xlim([200,900])
+        
+        # for k in range(2):
+        ax.legend(loc = 'upper left')
+        
+        ax.set_xlabel('Stress (Pa)')
+        ax.set_ylabel('K (Pa)')
+        for kk in range(len(N)):
+            ax.text(x=fitCenters[kk], y=Kavg[kk]**0.9, s='n='+str(N[kk]), fontsize = 8, color = cD[co][1])
+    
+    axes[0].set_yscale('log')
+    axes[0].set_ylim([500,2e4])
+    
+    axes[1].set_ylim([0,15000])
+    
+    fig.suptitle('K(s)'+' - (fits width: {:.0f}Pa)'.format(width))
+    
+    df_val = pd.DataFrame(d_val)
+    listDfZoom.append(df_val)
+
+plt.show()
+
+ufun.archiveFig(fig, ax, cp.DirDataFigToday + '//HoxB8project', 
+                name='HoxB8_K(s)_localZoom_{:.0f}-{:.0f}Pa'.format(Sinf, Ssup), dpi = 100)
+
+
+
+# %%%%%
+
+
+# print(data_f.head())
+
+# print(fitCenters)
+
+def w_std(x, w):
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    return(std)
+
+def nan2zero(x):
+    if np.isnan(x):
+        return(0)
+    else:
+        return(x)
+
+valStr = 'KChadwick_'
+weightStr = 'K_Weight_'
+
+Kavg = []
+Kstd = []
+D10 = []
+D90 = []
+N = []
+
+for S in fitCenters:
+    rFN = str(S-75) + '<s<' + str(S+75)
+    variable = valStr+rFN
+    weight = weightStr+rFN
+    
+    x = data_f[variable].apply(nan2zero).values
+    w = data_f[weight].apply(nan2zero).values
+    
+    if S == 250:
+        d = {'x' : x, 'w' : w}
+    
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    
+    d10, d90 = np.percentile(x[x != 0], (10, 90))
+    n = len(x[x != 0])
+    
+    Kavg.append(m)
+    Kstd.append(std)
+    D10.append(d10)
+    D90.append(d90)
+    N.append(n)
+
+Kavg = np.array(Kavg)
+Kstd = np.array(Kstd)
+D10 = np.array(D10)
+D90 = np.array(D90)
+N = np.array(N)
+Kste = Kstd / (N**0.5)
+
+alpha = 0.975
+dof = N
+q = st.t.ppf(alpha, dof) # Student coefficient
+
+d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D90, 'N' : N}
+
+fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
+
+# ax[0]
+ax.errorbar(fitCenters, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
+               ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
+ax.set_ylim([500,2e4])
+
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
+#                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
+# ax[1].set_ylim([500,1e6])
+
+# for k in range(1): #2
+#     ax[k].legend(loc = 'upper left')
+#     ax[k].set_yscale('log')
+#     ax[k].set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+#     ax[k].set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+#     for kk in range(len(N)):
+#         ax[k].text(x=fitCenters[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+ax.legend(loc = 'upper left')
+ax.set_yscale('log')
+ax.set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+ax.set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+for kk in range(len(N)):
+    ax.text(x=fitCenters[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+
+fig.suptitle('K(sigma)')
+ax.set_title('From all compressions pooled\n22-02-09 experiment, 36 cells, 232 compression')
+# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_V2', figSubDir = 'NonLin')
+plt.show()
+
+# df_val = pd.DataFrame(d_val)
+# dftest = pd.DataFrame(d)
+
+# df_val
+
+
+# %%%%%
+
+
+# print(data_f.head())
+
+# print(fitCenters)
+
+extraFilters = [data_f['minStress'] <= 100, data_f['maxStress'] >= 800]
+fitCenters2 = fitCenters[fitCenters<850]
+
+data_ff = data_f
+globalExtraFilter = extraFilters[0]
+for k in range(1, len(extraFilters)):
+    globalExtraFilter = globalExtraFilter & extraFilters[k]
+
+data_ff = data_ff[globalExtraFilter]
+data_ff
+def w_std(x, w):
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    return(std)
+
+def nan2zero(x):
+    if np.isnan(x):
+        return(0)
+    else:
+        return(x)
+
+valStr = 'KChadwick_'
+weightStr = 'K_Weight_'
+
+Kavg = []
+Kstd = []
+D10 = []
+D90 = []
+N = []
+
+for S in fitCenters2:
+    rFN = str(S-75) + '<s<' + str(S+75)
+    variable = valStr+rFN
+    weight = weightStr+rFN
+    
+    x = data_ff[variable].apply(nan2zero).values
+    w = data_ff[weight].apply(nan2zero).values
+    
+    if S == 250:
+        d = {'x' : x, 'w' : w}
+    
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    
+    d10, d90 = np.percentile(x[x != 0], (10, 90))
+    n = len(x[x != 0])
+    
+    Kavg.append(m)
+    Kstd.append(std)
+    D10.append(d10)
+    D90.append(d90)
+    N.append(n)
+
+Kavg = np.array(Kavg)
+Kstd = np.array(Kstd)
+D10 = np.array(D10)
+D90 = np.array(D90)
+N = np.array(N)
+Kste = Kstd / (N**0.5)
+
+alpha = 0.975
+dof = N
+q = st.t.ppf(alpha, dof) # Student coefficient
+
+d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D90, 'N' : N}
+
+fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
+
+# ax[0]
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
+               ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
+ax.set_ylim([500,2e4])
+
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
+#                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
+# ax[1].set_ylim([500,1e6])
+
+# for k in range(1): #2
+#     ax[k].legend(loc = 'upper left')
+#     ax[k].set_yscale('log')
+#     ax[k].set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+#     ax[k].set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+#     for kk in range(len(N)):
+#         ax[k].text(x=fitCenters[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+ax.legend(loc = 'upper left')
+ax.set_yscale('log')
+ax.set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+ax.set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+for kk in range(len(N)):
+    ax.text(x=fitCenters2[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+
+fig.suptitle('K(sigma)')
+ax.set_title('Only compressions including the [100, 800]Pa range')
+# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to800', figSubDir = 'NonLin')
+plt.show()
+
+# df_val = pd.DataFrame(d_val)
+# dftest = pd.DataFrame(d)
+
+# df_val
+
+
+# %%%%%
+
+
+# print(data_f.head())
+
+# print(fitCenters)
+
+extraFilters = [data_f['minStress'] <= 100, data_f['maxStress'] >= 600]
+fitCenters2 = fitCenters[fitCenters<650]
+
+data_ff = data_f
+globalExtraFilter = extraFilters[0]
+for k in range(1, len(extraFilters)):
+    globalExtraFilter = globalExtraFilter & extraFilters[k]
+
+data_ff = data_ff[globalExtraFilter]
+data_ff
+def w_std(x, w):
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    return(std)
+
+def nan2zero(x):
+    if np.isnan(x):
+        return(0)
+    else:
+        return(x)
+
+valStr = 'KChadwick_'
+weightStr = 'K_Weight_'
+
+Kavg = []
+Kstd = []
+D10 = []
+D90 = []
+N = []
+
+for S in fitCenters2:
+    rFN = str(S-75) + '<s<' + str(S+75)
+    variable = valStr+rFN
+    weight = weightStr+rFN
+    
+    x = data_ff[variable].apply(nan2zero).values
+    w = data_ff[weight].apply(nan2zero).values
+    
+    if S == 250:
+        d = {'x' : x, 'w' : w}
+    
+    m = np.average(x, weights=w)
+    v = np.average((x-m)**2, weights=w)
+    std = v**0.5
+    
+    d10, d90 = np.percentile(x[x != 0], (10, 90))
+    n = len(x[x != 0])
+    
+    Kavg.append(m)
+    Kstd.append(std)
+    D10.append(d10)
+    D90.append(d90)
+    N.append(n)
+
+Kavg = np.array(Kavg)
+Kstd = np.array(Kstd)
+D10 = np.array(D10)
+D90 = np.array(D90)
+N = np.array(N)
+Kste = Kstd / (N**0.5)
+
+alpha = 0.975
+dof = N
+q = st.t.ppf(alpha, dof) # Student coefficient
+
+d_val = {'S' : fitCenters, 'Kavg' : Kavg, 'Kstd' : Kstd, 'D10' : D10, 'D90' : D90, 'N' : N}
+
+fig, ax = plt.subplots(1,1, figsize = (9,6)) # (2,1, figsize = (9,12))
+
+# ax[0]
+ax.errorbar(fitCenters2, Kavg, yerr = q*Kste, marker = 'o', color = gs.my_default_color_list[0], 
+               ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nWeighted ste 95% as error')
+ax.set_ylim([500,2e4])
+
+# ax[1].errorbar(fitCenters, Kavg, yerr = [D10, D90], marker = 'o', color = gs.my_default_color_list[3], 
+#                ecolor = 'k', elinewidth = 0.8, capsize = 3, label = 'Weighted means\nD9-D1 as error')
+# ax[1].set_ylim([500,1e6])
+
+# for k in range(1): #2
+#     ax[k].legend(loc = 'upper left')
+#     ax[k].set_yscale('log')
+#     ax[k].set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+#     ax[k].set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+#     for kk in range(len(N)):
+#         ax[k].text(x=fitCenters[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+ax.legend(loc = 'upper left')
+ax.set_yscale('log')
+ax.set_xlabel('Stress (Pa) [center of a 150Pa large interval]')
+ax.set_ylabel('K (Pa) [tangeant modulus w/ Chadwick]')
+for kk in range(len(N)):
+    ax.text(x=fitCenters2[kk]+5, y=Kavg[kk]**0.98, s='n='+str(N[kk]), fontsize = 6)
+
+fig.suptitle('K(sigma)')
+ax.set_title('Only compressions including the [100, 600]Pa range')
+# jvu.archiveFig(fig, ax, name='3T3aSFL_Feb22_CompressionsLowStart_K(s)globalAvg_100to600', figSubDir = 'NonLin')
+plt.show()
+
+# df_val = pd.DataFrame(d_val)
+# dftest = pd.DataFrame(d)
+
+# df_val
+
+
+Kavg_ref, Kste_ref, N_ref, fitCenters_ref = Kavg, Kste, N, fitCenters2
+
+
+
+
+
+
 
 
 

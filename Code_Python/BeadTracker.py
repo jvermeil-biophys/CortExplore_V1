@@ -287,7 +287,7 @@ class PincherTimeLapse:
                 j = ((i+1)*self.loop_mainSize) - 1 + offsets[i]
                 checkSum = np.sum(self.I[j])
                 while checkSum == 0:
-                    print('Black images found')
+                    print('Black image found')
     #                 self.dictLog['Black'][j] = True
                     self.dictLog['status_frame'][j] = -1
                     self.dictLog['status_nUp'][j] = -1
@@ -1120,7 +1120,6 @@ class PincherTimeLapse:
         Nct = (self.loop_mainSize-self.loop_rampSize)//2
 
         for iB in range(self.NB):
-            print(iB)
             self.listTrajectories[iB].dict['Zr'] = np.zeros(nT)
             self.listTrajectories[iB].nT = nT
             iField = []
@@ -1168,7 +1167,7 @@ class PincherTimeLapse:
     def importTrajectories(self, path, iB):
         """
         """
-        self.listTrajectories.append(Trajectory(self.I, self.listFrames, self.scale, self.Zstep, iB))
+        self.listTrajectories.append(Trajectory(self.I, self.cellID, self.listFrames, self.scale, self.Zstep, iB))
         traj_df = pd.read_csv(path, sep = '\t')
         cols = traj_df.columns.values
         cols_to_remove = []
@@ -1450,9 +1449,9 @@ class Trajectory:
             
             while iF <= max(self.dict['iF']):
             #### Enable plots of Z detection  here
-                plot = 0
-                if (iF >= 705 and iF <= 750):# or (iF > 400 and iF <= 440):
-                    plot = 1
+                # plot = 0
+                # if (iF >= 705 and iF <= 750):# or (iF > 400 and iF <= 440):
+                #     plot = 1
                     
             # ###################################################################
 
