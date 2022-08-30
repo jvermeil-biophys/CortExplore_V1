@@ -32,7 +32,7 @@ from skimage import io, filters, exposure, measure, transform, util, color
 from scipy.signal import find_peaks, savgol_filter
 from scipy.optimize import linear_sum_assignment
 from matplotlib.gridspec import GridSpec
-from datetime import date
+from datetime import date, datetime
 
 #### Local Imports
 
@@ -263,6 +263,11 @@ def findInfosInFileName(f, infoType):
         manip = 'M' + findInfosInFileName(f, 'M')
         infoString = date + '_' + manip
         
+    elif infoType == 'cellName':
+        infoString = 'M' + findInfosInFileName(f, 'M') + \
+                     '_' + 'P' + findInfosInFileName(f, 'P') + \
+                     '_' + 'C' + findInfosInFileName(f, 'C')
+        
     elif infoType == 'cellID':
         datePos = re.search(r"[\d]{1,2}-[\d]{1,2}-[\d]{2}", f)
         date = f[datePos.start():datePos.end()]
@@ -276,9 +281,9 @@ def findInfosInFileName(f, infoType):
             infoString = f[pos.start():pos.end()]
         except:
             infoString = ''
-                 
                              
     return(infoString)
+
 
 def isFileOfInterest(f, manips, wells, cells):
     """
@@ -761,10 +766,38 @@ def fitLine(X, Y):
 #     print(dir(results))
     return(results.params, results)
 
-
 # %%% Figure & graphic operations
 
-def archiveFig(fig, ax, figDir, name='auto', dpi = 100):
+def simpleSaveFig(fig, name, savePath, ext, dpi):
+    figPath = os.path.join(savePath, name + ext)
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)
+    fig.savefig(figPath, dpi=dpi)
+    
+
+def archiveFig(fig, name = '', ext = '.png', dpi = 100,
+               figDir = '', figSubDir = '', cloudSave = 'flexible'):
+    # Generate unique name if needed
+    if name == '':
+        dt = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        name = 'fig_' + dt
+    # Normal save
+    if figDir == '':
+        figDir = cp.DirDataFigToday
+    savePath = os.path.join(figDir, figSubDir)
+    simpleSaveFig(fig, name, savePath, ext, dpi)
+    # Cloud save if necessary
+    doCloudSave = ((cloudSave == 'strict') or (cloudSave == 'flexible' and cp.CloudSaving != ''))
+    if doCloudSave:
+        if figDir == '':
+            figCloudDir = cp.DirCloudFigToday
+        cloudSavePath = os.path.join(figCloudDir, figSubDir)
+        simpleSaveFig(fig, name, cloudSavePath, ext, dpi)
+        
+   
+    
+
+def archiveFig_V0(fig, ax, figDir, name='auto', dpi = 100):
     
     if not os.path.exists(figDir):
         os.makedirs(figDir)
