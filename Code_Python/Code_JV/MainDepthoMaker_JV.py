@@ -30,6 +30,7 @@ from scipy.optimize import linear_sum_assignment
 import sys
 import CortexPaths as cp
 sys.path.append(cp.DirRepoPython)
+sys.path.append(cp.DirRepoPythonUser)
 
 import GraphicStyles as gs
 import GlobalConstants as gc

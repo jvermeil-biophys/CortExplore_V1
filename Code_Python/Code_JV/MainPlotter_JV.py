@@ -39,6 +39,7 @@ from matplotlib.gridspec import GridSpec
 import sys
 import CortexPaths as cp
 sys.path.append(cp.DirRepoPython)
+sys.path.append(cp.DirRepoPythonUser)
 
 import GraphicStyles as gs
 import UtilityFunctions as ufun
