@@ -161,7 +161,7 @@ taka.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8
 
 MCA2task = '22-07-15' # ' & 22-07-20 & 22-07-27' #' & 22-05-04 & 22-05-05'
 taka.computeGlobalTable_meca(task = MCA2task, fileName = 'Global_MecaData_MCA3', 
-                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+                            save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 # taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 

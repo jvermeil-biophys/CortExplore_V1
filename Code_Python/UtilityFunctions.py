@@ -781,16 +781,18 @@ def archiveFig(fig, name = '', ext = '.png', dpi = 100,
     if name == '':
         dt = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         name = 'fig_' + dt
-    # Normal save
+    # Generate default save path if needed
     if figDir == '':
         figDir = cp.DirDataFigToday
+        figCloudDir = cp.DirCloudFigToday
+    else:
+        figCloudDir = os.path.join(cp.DirCloudFig, os.path.split(figDir)[1])
+    # Normal save
     savePath = os.path.join(figDir, figSubDir)
     simpleSaveFig(fig, name, savePath, ext, dpi)
-    # Cloud save if necessary
+    # Cloud save if specified
     doCloudSave = ((cloudSave == 'strict') or (cloudSave == 'flexible' and cp.CloudSaving != ''))
     if doCloudSave:
-        if figDir == '':
-            figCloudDir = cp.DirCloudFigToday
         cloudSavePath = os.path.join(figCloudDir, figSubDir)
         simpleSaveFig(fig, name, cloudSavePath, ext, dpi)
         
