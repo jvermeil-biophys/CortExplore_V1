@@ -170,7 +170,40 @@ def renamePrefix(DirExt, currentCell, newPrefix):
             split[0] = newPrefix
             newName = '_'.join()
             os.rename(os.path.join(path,i), os.path.join(path, newName))
+            
 
+def renameCells(DirSave):
+    """
+    Used for metamorph created files.
+    Metamorph creates a new folder for each timelapse, within which all images contain a predefined 
+    'prefix' and 'channel' name which can differ between microscopes. Eg.: 'w1TIRF_DIC' or 'w2TIRF_561'
+    
+    If you forget to create a new folder for a new timelapse, Metamorph automatically changes the prefix
+    to distinguish between the old and new timelapse triplets. This can get annoying when it comes to processing 
+    many cells.
+    
+    This function allows you to rename the prefix of all individual triplets in a specific folder. 
+    
+    """
+    
+    allImages = os.listdir(DirSave)
+    for i in allImages:
+        if i.endswith('_active_Field.txt'):
+            split = i.split('_')
+            if split[1] == 'M1':
+                print(i)
+                split[1] = 'M5'
+                newName = '_'.join(split[:5])+'_L40_Field.txt'
+            # elif split[1] == 'M3':
+            #     print(i)
+            #     split[1] = 'M7'
+            #     newName = '_'.join(split[:5])+'_L40_Field.txt'
+            # elif split[1] == 'M4':
+            #     print(i)
+            #     split[1] = 'M8'
+            #     newName = '_'.join(split[:5])+'_L40_Field.txt'
+                os.rename(os.path.join(DirSave,i), os.path.join(DirSave, newName))
+            
 
 def Zprojection(currentCell, microscope, kind = 'min', channel = 'nan', prefix = 'nan'):
     """
@@ -369,6 +402,7 @@ print(gs.BLUE + 'Constructing all Z-Projections...' + gs.NORMAL)
 scaleFactor = 4
 
 for i in range(len(allCellsRaw)):
+    print(i)
     currentCell = allCellsRaw[i]
     currentCellName = currentCell.split('\\')[-1]
     validCell = True
@@ -399,10 +433,10 @@ copyFieldFiles(allCells, DirSave)
 
 instructionText = "Draw the ROIs to crop !\n\n(1) Click on the image to define a rectangular selection\n"
 instructionText += "(2) Press 'a' to accept your selection, 'r' to redraw it, "
-instructionText += "or 's' if you have a second selection to make (don't use 'm' more than once per stack)"
+instructionText += "or 's' if you have a second selection to make (don't use 'm' more than once per stack)\n"
+instructionText += "(3) Make sure to choose the number of files you want to crop at once\nin the variable 'limiter'"
 instructionText += "\n\nC'est parti !\n"
-instructionText += "\n\nMake sure to choose the number of files you want to crop at once\
-    in the variable 'limiter' \n"
+
 
 #Change below the number of stacks you want to crop at once. Run the code again to crop the remaining files. 
 # !!!!!! WARNING: Sometimes choosing too many can make your computer bug!!!!!
@@ -472,7 +506,7 @@ cv2.destroyAllWindows()
 
 print(gs.BLUE + 'Saving all tiff stacks...' + gs.NORMAL)
 
-cropAndCopy(DirExt, DirSave, allRefPoints[:], allCellsToCrop[:], microscope)
+cropAndCopy(DirExt, DirSave, allRefPoints[19:30], allCellsToCrop[19:30], microscope)
 
 
 #%% Creating .tif stacks of 561n recruitment images

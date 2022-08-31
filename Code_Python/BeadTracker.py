@@ -196,7 +196,7 @@ class PincherTimeLapse:
         self.excludedFrames_inward = np.zeros(self.nLoop, dtype = int)
         self.excludedFrames_black = np.zeros(self.nLoop, dtype = int) 
         self.excludedFrames_outward = np.zeros(self.nLoop, dtype = int)
-            
+
         
         #### Import data from the optogen condition columns, if they exist
 
@@ -209,13 +209,15 @@ class PincherTimeLapse:
             # at the end of which the first activ is
             # when you count the loop starting from 1
             
+            
             self.activationFirst = int(manipDict['first activation'])
-            self.activationLast = int(manipDict['last activation'])
+            self.activationLast = (manipDict['last activation'])
             self.activationFreq = int(manipDict['activation frequency'])
             self.activationExp = manipDict['activation exp']
             self.activationType = manipDict['activation type']
             
             if (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and pd.isna(self.activationLast):
+                
                 self.LoopActivations = np.array([k-1 for k in range(self.activationFirst, self.nLoop, self.activationFreq)])
                 # k-1 here cause we counted the loops starting from 1 but python start from 0.
             elif (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and (not pd.isna(self.activationLast)):

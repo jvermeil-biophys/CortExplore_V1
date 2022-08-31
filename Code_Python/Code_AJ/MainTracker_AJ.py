@@ -689,3 +689,100 @@ output = mainTracker(dates, manips, wells, cells, depthoNames, expDf,
                      redoAllSteps = False, MatlabStyle = True, trackAll = False, 
                      sourceField = 'default')
 
+# %% 31/08/26 : Experiment in PMMH Mechanics
+
+# %%%% M1 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 1, 3, 3
+depthoNames = '22.08.26_P3_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M4 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 2, 2, 'all'
+depthoNames = '22.08.26_P2_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M5 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 3, 3, 'all'
+depthoNames = '22.08.26_P2_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+
+# %%%% M7 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 4, 3, 'all'
+depthoNames = '22.08.26_P3_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+  # %%%% M7 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 5, 1, 4
+
+depthoNames = '22.08.26_P2_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% M7 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 6, 2, 'all'
+depthoNames = '22.08.26_P2_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% M7 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 7, 2, 5
+depthoNames = '22.08.26_P3_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
+# %%%% M7 : At beads activation, level 3 fluo intensity, filter 6, initial 500ms 
+# with 50ms activation at the end of every loop
+
+dates = '22.08.26'
+manips, wells, cells = 8, 3, 'all'
+depthoNames = '22.08.26_P3_M450_step20_100X'
+  
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')

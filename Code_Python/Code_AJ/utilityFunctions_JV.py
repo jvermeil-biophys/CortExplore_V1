@@ -39,13 +39,16 @@ if COMPUTERNAME == 'ORDI-JOSEPH':
     mainDir = "C://Users//JosephVermeil//Desktop//ActinCortexAnalysis"
     ownCloudDir = "C://Users//JosephVermeil//ownCloud//ActinCortexAnalysis"
     tempPlot = 'C://Users//JosephVermeil//Desktop//TempPlots'
+    
 elif COMPUTERNAME == 'LARISA':
     mainDir = "C://Users//Joseph//Desktop//ActinCortexAnalysis"
     ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
     tempPlot = 'C://Users//Joseph//Desktop//TempPlots'
+    
 elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
+    mainDir = "C://Users//anumi//OneDrive//Desktop//CortExplore"
     rawDir = "D:/Anumita/MagneticPincherData"  
+    
 elif COMPUTERNAME == '':
     mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
     ownCloudDir = "C://Users//josep//ownCloud//ActinCortexAnalysis"
@@ -106,7 +109,7 @@ dateFormatExcel2 = re.compile(r'\d{2}-\d{2}-\d{4}')
 # def findFirstActivation(cellID):
     
 
-def getExperimentalConditions(experimentalDataDir, save = False, sep = ';', suffix = ''):
+def getExperimentalConditions(experimentalDataDir, save = False, sep = ',', suffix = '_AJ'):
     """"
     Import the table with all the conditions in a clean way.
     It is a tedious function to read because it's doing a boring job:

@@ -42,7 +42,7 @@ elif COMPUTERNAME == 'LARISA':
     rawDir = "F://JosephVermeil//MagneticPincherData"    
     ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
 elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
+    mainDir = "C://Users//anumi//OneDrive//Desktop/CortExplore"
     rawDir = "D:/Anumita/MagneticPincherData"  
 elif COMPUTERNAME == '':
     mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
@@ -109,10 +109,10 @@ for ii in range(2, -1, -1):
 # %% (1) Directories adress
 
 experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
-dataDir = os.path.join(mainDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(dataDir, "TimeSeriesData")
+dataDir = os.path.join(rawDir, "Data_Analysis")
+timeSeriesDataDir = os.path.join(rawDir, "Data_TimeSeries")
 
-figDir = os.path.join(dataDir, "Figures")
+figDir = os.path.join(rawDir, "Figures")
 todayFigDir = os.path.join(figDir, "Historique//" + str(date.today()))
 
 figDirLocal = os.path.join(rawDir, "Figures")
