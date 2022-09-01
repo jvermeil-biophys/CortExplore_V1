@@ -389,10 +389,8 @@ def getGlobalTable_ctField(fileName = 'Global_CtFieldData'):
 # * createMecaDataDict() call the previous function on the given list of files and concatenate the results
 # * computeGlobalTable_meca() call the previous function and convert the dict to a DataFrame
 
-#### H0_bestMethod
 H0_bestMethod = 'H0_Chadwick15'
 
-#### listColumnsMeca
 listColumnsMeca = ['date','cellName','cellID','manipID',
                    'compNum','compDuration','compStartTime','compAbsStartTime','compStartTimeThisDay',
                    'initialThickness','minThickness','maxIndent','previousThickness',
@@ -404,8 +402,6 @@ listColumnsMeca = ['date','cellName','cellID','manipID',
                    'H0Chadwick','EChadwick','R2Chadwick','EChadwick_CIWidth',
                    'hysteresis',
                    'critFit', 'validatedFit','comments'] # 'fitParams', 'H0_Dimitriadis15', 
-
-
 
 #### SETTING ! Fit Selection R2 & Chi2
 dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
@@ -481,80 +477,126 @@ for rFN in regionFitsNames:
                         'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN] 
     # 'H0Chadwick_'+rFN, 'EChadwick_'+rFN
 
+class compression_FH:
+    
+    def __init__(self, hCompr, fCompr, DIAMETER):
+        self.hCompr = hCompr
+        self.fCompr = fCompr
+        self.D = DIAMETER
+        self.R = DIAMETER/2
+        
+        self.v = 0
+        self.dim_order = 2
+        
+        self.H0_methods = ['Chadwick15', 'Dimitriadis15']
+        
+    def chadwickModel(self, h, E, H0):
+        R = self.D/2
+        f = (np.pi*E*R*((H0-h)**2))/(3*H0)
+        return(f)
 
-#### dictColumnsMeca
-dictColumnsMeca = {'date':'',
-                   'cellName':'',
-                   'cellID':'',
-                   'manipID':'',
-                   'compNum':np.nan,
-                   'compDuration':'',
-                   'compStartTime':np.nan,
-                   'compAbsStartTime':np.nan,
-                   'compStartTimeThisDay':np.nan,
-                   'initialThickness':np.nan,
-                   'minThickness':np.nan,
-                   'maxIndent':np.nan,
-                   'previousThickness':np.nan,
-                   'surroundingThickness':np.nan,
-                   'surroundingDx':np.nan,
-                   'surroundingDz':np.nan,
-                   'validatedThickness':np.nan, 
-                   'jumpD3':np.nan,
-                   'minForce':np.nan, 
-                   'maxForce':np.nan, 
-                   'minStress':np.nan, 
-                   'maxStress':np.nan, 
-                   'minStrain':np.nan, 
-                   'maxStrain':np.nan,
-                   'ctFieldThickness':np.nan,
-                   'ctFieldFluctuAmpli':np.nan,
-                   'ctFieldDX':np.nan,
-                   'ctFieldDZ':np.nan,
-                   'bestH0':np.nan,
-                   'validatedFit_bestH0':False,
-                   'H0_Chadwick15':np.nan, 
-                   'H0_Dimitriadis15':np.nan, 
-                   'H0Chadwick':np.nan,
-                   'EChadwick':np.nan,
-                   'R2Chadwick':np.nan,
-                   'EChadwick_CIWidth':np.nan,
-                   'hysteresis':np.nan,
-                   'validatedFit_Chadwick':False,
-                   'critFit':'',
-                   'comments':''
-                   }
+    def inversedChadwickModel(self, f, E, H0):
+        R = self.D/2
+        h = H0 - ((3*H0*f)/(np.pi*E*R))**0.5
+        return(h)
+    
+    def dimitriadisModel(self, h, E, H0):
+        R = self.D/2
+        delta = H0-h
+        X = np.sqrt(R*delta)/h
+        ks = ufun.getDimitriadisCoefs(self.v, self.dim_order)
+        
+        poly = np.zeros_like(X)
+        for i in range(self.dim_order+1):
+            poly = poly + ks[i] * X**i
+        F = ((4 * E * R**0.5 * delta**1.5)/(3 * (1 - self.v**2))) * poly
+        return(F)
+    
+    def fitChadwick(self, h = None, f = None):
+        
+        error = False
+        
+        if h == None or f == None:
+            h = self.hCompr
+            f = self.fCompr
 
+        # some initial parameter values - must be within bounds
+        initH0 = max(h) # H0 ~ h_max
+        initE = (3*max(h)*max(f))/(np.pi*self.R*(max(h)-min(h))**2) # E ~ 3*H0*F_max / pi*R*(H0-h_min)²        
+        initialParameters = [initE, initH0]
 
+        # bounds on parameters - initial parameters must be within these
+        lowerBounds = (0, 0)
+        upperBounds = (np.Inf, np.Inf)
+        parameterBounds = [lowerBounds, upperBounds]
 
-for rfn in regionFitsNames:
-     d = {'KChadwick_'+rfn:np.nan, 
-          'K_CIW_'+rfn:np.nan, 
-          'R2Chadwick_'+rfn:np.nan, 
-          'K2Chadwick_'+rfn:np.nan, 
-          'H0Chadwick_'+rfn:np.nan, 
-          'Npts_'+rfn:np.nan, 
-          'validatedFit_'+rfn:False
-          }
-     
-     dictColumnsMeca = {**dictColumnsMeca, **d}
-     
-     
+        try:
+            params, covM = curve_fit(self.inversedChadwickModel, f, h, 
+                                      p0 = initialParameters, bounds = parameterBounds)
 
+            # Previously I fitted with y=F and x=H, but it didn't work so well cause H(t) isn't monotonous:
+            # params, covM = curve_fit(chadwickModel, hCompr, fCompr, initialParameters, bounds = parameterBounds)
+            # Fitting with the 'inverse Chadwick model', with y=H and x=F is more convenient
 
-dictColumnsRegionFit = {'regionFitNames' : '', 
-                        'K' : np.nan, 
-                        'R2' : np.nan,  
-                        'K2' : np.nan, 
-                        'H0' : np.nan,
-                        'fitError' : True, 
-                        'validatedFit' : False, 
-                        'Npts' : np.nan, 
-                        'K_CIW' : np.nan} 
+            E, H0 = params
+            hPredict = inversedChadwickModel(fCompr, E, H0)
+            err = dictSelectionCurve['Error']
+            
+            comprMat = np.array([hCompr, fCompr]).T
+            comprMatSorted = comprMat[comprMat[:, 0].argsort()]
+            hComprSorted, fComprSorted = comprMatSorted[:, 0], comprMatSorted[:, 1]
+            fPredict = chadwickModel(hComprSorted, E, H0)
+            
+            # Stress and strain
+            deltaCompr = (H0 - hCompr)/1000 # µm
+            stressCompr = fCompr / (np.pi * (DIAMETER/2000) * deltaCompr)
+            strainCompr = deltaCompr / (3*(H0/1000)) 
+            strainPredict = stressCompr / (E*1e6) #((H0 - hPredict)/1000) / (3*(H0/1000))
+            
+            # residuals_h = hCompr-hPredict
+            # residuals_f = fComprSorted-fPredict
 
+            alpha = 0.975
+            dof = len(fCompr)-len(params)
+            q = st.t.ppf(alpha, dof) # Student coefficient
+            R2 = ufun.get_R2(hCompr, hPredict)
+            
+            Chi2 = ufun.get_Chi2(strainCompr, strainPredict, dof, err)
 
-     
-     
+            varE = covM[0,0]
+            seE = (varE)**0.5
+            E, seE = E*1e6, seE*1e6
+            confIntE = [E-q*seE, E+q*seE]
+            confIntEWidth = 2*q*seE
+
+            varH0 = covM[1,1]
+            seH0 = (varH0)**0.5
+            confIntH0 = [H0-q*seH0, H0+q*seH0]
+            confIntH0Width = 2*q*seH0
+            
+            
+        except:
+            error = True
+            E, H0, hPredict, R2, Chi2, confIntE, confIntH0 = -1, -1, np.ones(len(hCompr))*(-1), -1, -1, [-1,-1], [-1,-1]
+        
+        return(E, H0, hPredict, R2, Chi2, confIntE, confIntH0, error)
+    
+    
+    def fit_H0(self, method):
+        if method not in self.H0_methods:
+            print(gs.RED + 'Incorrect method chosen for H0 fit' + gs.NORMAL)
+            
+        else:
+            if method == 'Chadwick15':
+                pass
+            elif method == 'Dimitriadis15':
+                pass
+            
+class fit_FH:
+    def __init__(self):
+        pass
+    
+        
 
 def compressionFitChadwick(hCompr, fCompr, DIAMETER):
     
@@ -711,6 +753,24 @@ def compressionFitDimitriadis(hCompr, fCompr, DIAMETER, order = 2):
     return(E, H0, fPredict, R2, Chi2, confIntE, confIntH0, error)
 
 
+
+def fitH0_allMethods(hCompr, fCompr, DIAMETER):
+    dictH0 = {}
+    
+    # findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError
+    Chadwick15_resultTuple = compressionFitChadwick(hCompr[:15], fCompr[:15], DIAMETER)
+    H0_Chadwick15 = Chadwick15_resultTuple[1]
+    dictH0['H0_Chadwick15'] = H0_Chadwick15
+    dictH0['H0_Chadwick15_resTuple'] = Chadwick15_resultTuple
+    
+    
+    
+    Dimitriadis15_resultTuple = compressionFitDimitriadis(hCompr[:15], fCompr[:15], DIAMETER)
+    H0_Dimitriadis15 = Dimitriadis15_resultTuple[1]
+    dictH0['H0_Dimitriadis15'] = H0_Dimitriadis15
+    dictH0['H0_Dimitriadis15_resTuple'] = Dimitriadis15_resultTuple
+    
+    return(dictH0)
     
 
 def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
@@ -792,27 +852,7 @@ def compressionFitChadwick_StressStrain(hCompr, fCompr, H0, DIAMETER):
 
 
 
-def fitH0_allMethods(hCompr, fCompr, DIAMETER):
-    dictH0 = {}
-    
-    # findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError
-    Chadwick15_resultTuple = compressionFitChadwick(hCompr[:15], fCompr[:15], DIAMETER)
-    H0_Chadwick15 = Chadwick15_resultTuple[1]
-    dictH0['H0_Chadwick15'] = H0_Chadwick15
-    dictH0['H0_Chadwick15_resTuple'] = Chadwick15_resultTuple
-    
-    
-    
-    Dimitriadis15_resultTuple = compressionFitDimitriadis(hCompr[:15], fCompr[:15], DIAMETER)
-    H0_Dimitriadis15 = Dimitriadis15_resultTuple[1]
-    dictH0['H0_Dimitriadis15'] = H0_Dimitriadis15
-    dictH0['H0_Dimitriadis15_resTuple'] = Dimitriadis15_resultTuple
-    
-    return(dictH0)
-
-
-
-def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHOW):
+def analyseTimeSeries_meca(f, tsDF, expDf, listColumnsMeca, task, PLOT, PLOT_SHOW):
     
     plotSmallElements = True
     
@@ -830,20 +870,17 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         DIAMETER = int(diameters[0])
     
     EXPTYPE = str(thisExpDf.at[thisExpDf.index.values[0], 'experimentType'])
+
+    results = {}
+    for c in listColumnsMeca:
+        results[c] = []
+
     Ncomp = max(tsDF['idxAnalysis'])
-    
-    # Field infos
-    normalField = thisExpDf.at[thisExpDf.index.values[0], 'normal field']
-    normalField = int(normalField)
-    if 'compression' in EXPTYPE:
-        compField = thisExpDf.at[thisExpDf.index.values[0], 'ramp field'].split('_')
-        minCompField = float(compField[0])
-        maxCompField = float(compField[1])
-    
-    # Loop structure infos
     loopStruct = thisExpDf.at[thisExpDf.index.values[0], 'loop structure'].split('_')
     nUplet = thisExpDf.at[thisExpDf.index.values[0], 'normal field multi images']
+    
     if 'compression' in EXPTYPE:
+    
         loop_totalSize = int(loopStruct[0])
         if len(loopStruct) >= 2:
             loop_rampSize = int(loopStruct[1])
@@ -854,17 +891,15 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         else:
             loop_excludedSize = 0
         loop_ctSize = int((loop_totalSize - (loop_rampSize+loop_excludedSize))/nUplet)
-        
+
+    Ncomp = max(tsDF['idxAnalysis'])
+    normalField = thisExpDf.at[thisExpDf.index.values[0], 'normal field']
+    normalField = int(normalField)
     
-    # Initialize the results
-    results = {}
-    # for c in listColumnsMeca:
-    #     results[c] = []
-        
-    for k in dictColumnsMeca.keys():
-        results[k] = [dictColumnsMeca[k] for m in range(Ncomp)]
-
-
+    if 'compression' in EXPTYPE:
+        compField = thisExpDf.at[thisExpDf.index.values[0], 'ramp field'].split('_')
+        minCompField = float(compField[0])
+        maxCompField = float(compField[1])
 
     #### (1) Get global values
     # These values are computed once for the whole cell D3 time series, but since the table has 1 line per compression, 
@@ -911,31 +946,19 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
 
 
-    for i in range(Ncomp):#Ncomp+1):
+    for i in range(1, Ncomp+1):#Ncomp+1):
 
         #### (1) Identifiers
-        # results['date'].append(split_f[0])
-        # results['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
-        # results['cellID'].append(split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3])
-        # results['manipID'].append(split_f[0] + '_' + split_f[1])
-        
-        # results['date'].append(ufun.findInfosInFileName(f, 'date'))
-        # results['cellName'].append(ufun.findInfosInFileName(f, 'cellName'))
-        # results['cellID'].append(ufun.findInfosInFileName(f, 'cellID'))
-        # results['manipID'].append(ufun.findInfosInFileName(f, 'manipID'))
-        
-        results['date'][i] = ufun.findInfosInFileName(f, 'date')
-        results['cellName'][i] = ufun.findInfosInFileName(f, 'cellName')
-        results['cellID'][i] = ufun.findInfosInFileName(f, 'cellID')
-        results['manipID'][i] = ufun.findInfosInFileName(f, 'manipID')
-        
-        currentCellID = results['cellID'][i]
+        results['date'].append(split_f[0])
+        results['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
+        results['cellID'].append(split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3])
+        results['manipID'].append(split_f[0] + '_' + split_f[1])
         
         #### Jump correction
         if EXPTYPE == 'compressionsLowStart' or normalField == minCompField:
             colToCorrect = ['dx', 'dy', 'dz', 'D2', 'D3']
-            maskCompAndPrecomp = np.abs(tsDF['idxAnalysis']) == i+1
-            iStart = ufun.findFirst(np.abs(tsDF['idxAnalysis']), i+1)
+            maskCompAndPrecomp = np.abs(tsDF['idxAnalysis']) == i
+            iStart = ufun.findFirst(np.abs(tsDF['idxAnalysis']), i)
             for c in colToCorrect:
                 jump = np.mean(tsDF[c].values[iStart:iStart+3]) - tsDF[c].values[iStart-1]
                 tsDF.loc[maskCompAndPrecomp, c] -= jump
@@ -947,22 +970,16 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             jumpD3 = 0
             
         #### (2) Segment the compression n°i
-        thisCompDf = tsDF.loc[tsDF['idxAnalysis'] == i+1,:]
-        iStart = (ufun.findFirst(tsDF['idxAnalysis'], i+1))
+        thisCompDf = tsDF.loc[tsDF['idxAnalysis'] == i,:]
+        iStart = (ufun.findFirst(tsDF['idxAnalysis'], i))
         iStop = iStart+thisCompDf.shape[0]
 
         # Easy-to-get parameters
-        # results['compNum'].append(i)
-        # results['compDuration'].append(thisExpDf.at[thisExpDf.index.values[0], 'compression duration'])
-        # results['compStartTime'].append(thisCompDf['T'].values[0])
-        # results['compAbsStartTime'].append(thisCompDf['Tabs'].values[0])
-        # results['compStartTimeThisDay'].append(thisCompDf['Tabs'].values[0])
-        
-        results['compNum'][i] = i+1
-        results['compDuration'][i] = thisExpDf.at[thisExpDf.index.values[0], 'compression duration']
-        results['compStartTime'][i] = thisCompDf['T'].values[0]
-        results['compAbsStartTime'][i] = thisCompDf['Tabs'].values[0]
-        results['compStartTimeThisDay'][i] = thisCompDf['Tabs'].values[0]
+        results['compNum'].append(i)
+        results['compDuration'].append(thisExpDf.at[thisExpDf.index.values[0], 'compression duration'])
+        results['compStartTime'].append(thisCompDf['T'].values[0])
+        results['compAbsStartTime'].append(thisCompDf['Tabs'].values[0])
+        results['compStartTimeThisDay'].append(thisCompDf['Tabs'].values[0])
 
         listB = thisCompDf.B.values
         
@@ -1047,47 +1064,25 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             surroundingPointsZ = np.concatenate([tsDF.dz.values[max(0,iStart-(loop_ctSize//2)):iStart],tsDF.dz.values[iStop:iStop+(loop_ctSize//2)]])
             
             # Parameters relative to the thickness ( = D3-DIAMETER)
-            # results['initialThickness'].append(np.mean(hCompr[0:3]))
-            # results['minThickness'].append(np.min(hCompr))
-            # results['maxIndent'].append(results['initialThickness'][-1] - results['minThickness'][-1])
-            # results['previousThickness'].append(np.median(previousPoints))
-            # results['surroundingThickness'].append(np.median(surroundingPoints))
-            # results['surroundingDx'].append(np.median(surroundingPointsX))
-            # results['surroundingDz'].append(np.median(surroundingPointsZ))
-            # results['ctFieldDX'].append(ctFieldDX)
-            # results['ctFieldDZ'].append(ctFieldDZ)
-            # results['ctFieldThickness'].append(ctFieldThickness)
-            # results['ctFieldFluctuAmpli'].append(ctFieldFluctuAmpli)
-            # results['jumpD3'].append(jumpD3)
+            results['initialThickness'].append(np.mean(hCompr[0:3]))
+            results['minThickness'].append(np.min(hCompr))
+            results['maxIndent'].append(results['initialThickness'][-1] - results['minThickness'][-1])
+            results['previousThickness'].append(np.median(previousPoints))
+            results['surroundingThickness'].append(np.median(surroundingPoints))
+            results['surroundingDx'].append(np.median(surroundingPointsX))
+            results['surroundingDz'].append(np.median(surroundingPointsZ))
+            results['ctFieldDX'].append(ctFieldDX)
+            results['ctFieldDZ'].append(ctFieldDZ)
+            results['ctFieldThickness'].append(ctFieldThickness)
+            results['ctFieldFluctuAmpli'].append(ctFieldFluctuAmpli)
+            results['jumpD3'].append(jumpD3)
 
-            # validatedThickness = np.min([results['initialThickness'],results['minThickness'],
-            #                              results['previousThickness'],results['surroundingThickness'],
-            #                              results['ctFieldThickness']]) > 0
+            validatedThickness = np.min([results['initialThickness'],results['minThickness'],results['previousThickness'],\
+                                        results['surroundingThickness'],results['ctFieldThickness']]) > 0
+            results['validatedThickness'].append(validatedThickness)
             
-            # results['validatedThickness'].append(validatedThickness)
-            # results['minForce'].append(np.min(fCompr))
-            # results['maxForce'].append(np.max(fCompr))
-            
-            results['initialThickness'][i] = np.mean(hCompr[0:3])
-            results['minThickness'][i] = np.min(hCompr)
-            results['maxIndent'][i] = results['initialThickness'][i] - results['minThickness'][i]
-            results['previousThickness'][i] = np.median(previousPoints)
-            results['surroundingThickness'][i] = np.median(surroundingPoints)
-            results['surroundingDx'][i] = np.median(surroundingPointsX)
-            results['surroundingDz'][i] = np.median(surroundingPointsZ)
-            results['ctFieldDX'][i] = ctFieldDX
-            results['ctFieldDZ'][i] = ctFieldDZ
-            results['ctFieldThickness'][i] = ctFieldThickness
-            results['ctFieldFluctuAmpli'][i] = ctFieldFluctuAmpli
-            results['jumpD3'][i] = jumpD3
-
-            validatedThickness = np.min([results['initialThickness'][i],results['minThickness'][i],
-                                         results['previousThickness'][i],results['surroundingThickness'][i],
-                                         results['ctFieldThickness'][i]]) > 0
-            
-            results['validatedThickness'][i] = validatedThickness
-            results['minForce'][i] = np.min(fCompr)
-            results['maxForce'][i] = np.max(fCompr)
+            results['minForce'].append(np.min(fCompr))
+            results['maxForce'].append(np.max(fCompr))
 
 
 
@@ -1100,43 +1095,31 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             R2CRITERION = dictSelectionCurve['R2']
             CHI2CRITERION = dictSelectionCurve['Chi2']
             critFit = 'R2 > ' + str(R2CRITERION)
-            
-            # results['critFit'].append(critFit)
-            results['critFit'][i] = critFit
-            
+            results['critFit'].append(critFit)
             validatedFit = ((R2 > R2CRITERION) and (Chi2 < CHI2CRITERION))
 
 
             if not fitError:
-                # results['validatedFit_Chadwick'].append(validatedFit)
-                results['validatedFit_Chadwick'][i] = validatedFit
+                results['validatedFit'].append(validatedFit)
                 if validatedFit:
-                    # results['comments'].append('ok')
-                    results['comments'][i] = 'ok'
+                    results['comments'].append('ok')
                 else:
-                    # results['comments'].append('R2 < ' + str(R2CRITERION))
-                    results['comments'][i] = 'R2 < ' + str(R2CRITERION)
+                    results['comments'].append('R2 < ' + str(R2CRITERION))
 
                 confIntEWidth = abs(confIntE[0] - confIntE[1])
-                # results['H0Chadwick'].append(H0)
-                # results['EChadwick'].append(E)
-                # results['R2Chadwick'].append(R2)
-                # results['EChadwick_CIWidth'].append(confIntEWidth)
-                
-                results['H0Chadwick'][i] = H0
-                results['EChadwick'][i] = E
-                results['R2Chadwick'][i] = R2
-                results['EChadwick_CIWidth'][i] = confIntEWidth
+                results['H0Chadwick'].append(H0)
+                results['EChadwick'].append(E)
+                results['R2Chadwick'].append(R2)
+                results['EChadwick_CIWidth'].append(confIntEWidth)
                 
             elif fitError:
-                # validatedFit = False
-                # results['H0Chadwick'].append(np.nan)
-                # results['EChadwick'].append(np.nan)
-                # results['R2Chadwick'].append(np.nan)
-                # results['EChadwick_CIWidth'].append(np.nan)
-                # results['validatedFit_Chadwick'].append(validatedFit)
-                # results['comments'].append('fitFailure')
-                results['comments'][i] = 'fitFailure'
+                validatedFit = False
+                results['H0Chadwick'].append(np.nan)
+                results['EChadwick'].append(np.nan)
+                results['R2Chadwick'].append(np.nan)
+                results['EChadwick_CIWidth'].append(np.nan)
+                results['validatedFit'].append(validatedFit)
+                results['comments'].append('fitFailure')
                 
                 
             #### (4.0) Find the best H0
@@ -1145,33 +1128,21 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             #     compressionFitChadwick(hCompr[:findH0_NbPts], fCompr[:findH0_NbPts], DIAMETER)
             
             dictH0 = fitH0_allMethods(hCompr, fCompr, DIAMETER)
-            
             H0_Chadwick15 = dictH0['H0_Chadwick15']
-            H0_Dimitriadis15 = dictH0['H0_Dimitriadis15']
-            try:
-                results['H0_Chadwick15'][i] = H0_Chadwick15
-                results['H0_Dimitriadis15'][i] = H0_Dimitriadis15
-            except:
-                pass
+            H0_Dimitriadis15 = dictH0['H0_Dimitriadis15s']
             
             bestH0 = dictH0[H0_bestMethod]
-            resTuple_bestH0 = dictH0[H0_bestMethod + '_resTuple']
-            error_bestH0 = resTuple_bestH0[-1]
-            validatedFit_bestH0 = not error_bestH0
-
-            maxH0 = max(H0, bestH0)
+                
+            maxH0 = max(H0, H0_Chadwick15)
             if max(hCompr) > maxH0:
-                error_bestH0 = True
-                validatedFit_bestH0 = False
+                validatedFit = False
+                findH0_fitError = True
                 
                 
-            #### (4.1) Compute stress and strain based on the best H0
+            #### (4.0) Find the best H0
             
-            if validatedFit_bestH0:
-                # results['bestH0'].append(bestH0)
-                # results['validatedFit_bestH0'].append(validatedFit_bestH0)
-                results['bestH0'][i] = bestH0
-                results['validatedFit_bestH0'][i] = validatedFit_bestH0
+            if not findH0_fitError:
+                results['H0_Chadwick15'].append(H0_Chadwick15)
                 
                 #### Stress-strain computation
                 deltaCompr = (maxH0 - hCompr)/1000
@@ -1180,59 +1151,42 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 # trueStrainCompr = np.log((H0_Chadwick15)/(hCompr*(hCompr>0)))
                 validDelta = (deltaCompr > 0)
                 
-                # results['minStress'].append(np.min(stressCompr))
-                # results['maxStress'].append(np.max(stressCompr))
-                # results['minStrain'].append(np.min(strainCompr))
-                # results['maxStrain'].append(np.max(strainCompr))
+                results['minStress'].append(np.min(stressCompr))
+                results['maxStress'].append(np.max(stressCompr))
+                results['minStrain'].append(np.min(strainCompr))
+                results['maxStrain'].append(np.max(strainCompr))
                 
-                results['minStress'][i] = np.min(stressCompr)
-                results['maxStress'][i] = np.max(stressCompr)
-                results['minStrain'][i] = np.min(strainCompr)
-                results['maxStrain'][i] = np.max(strainCompr)
+            elif findH0_fitError:
+                results['H0_Chadwick15'].append(np.nan)
                 
-            # elif findH0_fitError:
-            #     results['bestH0'].append(np.nan)
-            #     results['minStress'].append(np.nan)
-            #     results['maxStress'].append(np.nan)
-            #     results['minStrain'].append(np.nan)
-            #     results['maxStrain'].append(np.nan)
+                results['minStress'].append(np.nan)
+                results['maxStress'].append(np.nan)
+                results['minStrain'].append(np.nan)
+                results['maxStrain'].append(np.nan)
                 
 
             
             
 
 
-            #### (4.2) Fits on specific regions of the curve
+            #### (4.1) Fits on specific regions of the curve
             
+            list_strainPredict_fitToPlot = [[] for kk in range(len(fit_toPlot))]
             
-            
-            # dictRegionFit = {'regionFitNames' : [], 'K' : [], 'R2' : [],  'K2' : [], 'H0' : [],
-            #                  'fitError' : [], 'validatedFit' : [], 'Npts' : [], 'K_CIW' : []} 
+            dictRegionFit = {'regionFitNames' : [], 'K' : [], 'R2' : [],  'K2' : [], 'H0' : [],
+                             'fitError' : [], 'validatedFit' : [], 'Npts' : [], 'K_CIW' : []} 
             # 'E' : [], 'H0' : []
             
             #### SETTING ! Setting of the region fits
-            
-            #### >>> OPTION TO LIGHTEN THE COMPUTATION
-            # fitConditions = []
-            # for ii in range(len(fit_intervals)-1):
-            #     for jj in range(ii+1, len(fit_intervals)):
-            #         fitConditions.append((stressCompr > fit_intervals[ii]) & (stressCompr < fit_intervals[jj]))
-            
-            
-            # dictRegionFit = {'regionFitNames' : [], 
-            #                  'K' : [], 
-            #                  'R2' : [],  
-            #                  'K2' : [], 
-            #                  'H0' : [],
-            #                  'fitError' : [], 
-            #                  'validatedFit' : [], 
-            #                  'Npts' : [], 
-            #                  'K_CIW' : []}
-            
-            list_strainPredict_fitToPlot = [[] for kk in range(len(fit_toPlot))]
 
-            if validatedFit_bestH0:
+            if not findH0_fitError:
                 
+                # fitConditions = []
+                # for ii in range(len(fit_intervals)-1):
+                #     for jj in range(ii+1, len(fit_intervals)):
+                #         fitConditions.append((stressCompr > fit_intervals[ii]) & (stressCompr < fit_intervals[jj]))
+                
+                #### >>> OPTION TO LIGHTEN THE COMPUTATION
                 fitConditions = []
                 for kk in range(len(regionFitsNames)):
                     ftP = regionFitsNames[kk]
@@ -1241,10 +1195,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 
                 N_Fits = len(fitConditions)
                 
-                dictRegionFit = {}
-                for k in dictColumnsRegionFit.keys():
-                    dictRegionFit[k] = [dictColumnsRegionFit[k] for m in range(N_Fits)]
-            
                 for ii in range(N_Fits):
                     regionFitName = regionFitsNames[ii]
                     mask_region = fitConditions[ii]
@@ -1262,106 +1212,75 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                             compressionFitChadwick_StressStrain(hCompr_region, fCompr_region, maxH0, DIAMETER)
                             
                         confIntWidthK_region = np.abs(confIntK_region[0] - confIntK_region[1])
-            
+                            
+                        
                     else:
                         fitError_region = True
-                        
                         
                     if (regionFitName in fit_toPlot) and not fitError_region:
                         kk = np.argmax(np.array(fit_toPlot) == regionFitName)
                         list_strainPredict_fitToPlot[kk] = strainPredict_region
-                    
-                    # if not fitError_region:
-                    #     R2CRITERION = dictSelectionCurve['R2']
-                    #     CHI2CRITERION = dictSelectionCurve['Chi2']
-                    #     validatedFit_region = ((R2_region > R2CRITERION) and 
-                    #                             (Chi2_region < CHI2CRITERION))
-                        
-                    # else:
-                    #     validatedFit_region, fitError_region = False, True
-                    #     K_region, confIntK_region, R2_region  = np.nan, [np.nan, np.nan], np.nan
-                    #     K2_region, H0_region = np.nan, np.nan
-                    #     confIntWidthK_region = np.nan
-                    #     # E_region  = np.nan
-                        
-                    # Fill dictRegionFit (reinitialized for each cell)
-                    # dictRegionFit['regionFitNames'].append(regionFitName)
-                    # dictRegionFit['Npts'].append(Npts_region)
-                    # dictRegionFit['K'].append(K_region)
-                    # dictRegionFit['K_CIW'].append(confIntWidthK_region)
-                    # dictRegionFit['R2'].append(R2_region)
-                    # dictRegionFit['K2'].append(K2_region)
-                    # dictRegionFit['H0'].append(H0_region)
-                    # # dictRegionFit['E'].append(E_region)
-                    # dictRegionFit['fitError'].append(fitError_region)
-                    # dictRegionFit['validatedFit'].append(validatedFit_region)
-
-                    # Fill results (memorize everything)
-                    # rFN = regionFitName
-                    # results['Npts_'+rFN].append(Npts_region)
-                    # results['KChadwick_'+rFN].append(K_region)
-                    # results['K_CIW_'+rFN].append(confIntWidthK_region)
-                    # results['R2Chadwick_'+rFN].append(R2_region)
-                    # results['K2Chadwick_'+rFN].append(K2_region)
-                    # results['H0Chadwick_'+rFN].append(H0_region)
-                    # # results['EChadwick_'+rFN].append(dictRegionFit['E'][ii])
-                    # results['validatedFit_'+rFN].append(validatedFit_region)
-
                     
                     if not fitError_region:
                         R2CRITERION = dictSelectionCurve['R2']
                         CHI2CRITERION = dictSelectionCurve['Chi2']
                         validatedFit_region = ((R2_region > R2CRITERION) and 
                                                 (Chi2_region < CHI2CRITERION))
+                    else:
+                        validatedFit_region, fitError_region = False, True
+                        K_region, confIntK_region, R2_region  = np.nan, [np.nan, np.nan], np.nan
+                        K2_region, H0_region = np.nan, np.nan
+                        confIntWidthK_region = np.nan
+                        # E_region  = np.nan
                         
-                        # Fill dictRegionFit (reinitialized for each cell)
-                        dictRegionFit['regionFitNames'][ii] = regionFitName
-                        dictRegionFit['Npts'][ii] = Npts_region
-                        dictRegionFit['K'][ii] = K_region
-                        dictRegionFit['K_CIW'][ii] = confIntWidthK_region
-                        dictRegionFit['R2'][ii] = R2_region
-                        dictRegionFit['K2'][ii] = K2_region
-                        dictRegionFit['H0'][ii] = H0_region
-                        # dictRegionFit['E'][ii] = E_region
-                        dictRegionFit['fitError'][ii] = fitError_region
-                        dictRegionFit['validatedFit'][ii] = validatedFit_region
-                        
-                        # Fill results (memorize everything)
-                        rFN = regionFitName
-                        results['Npts_'+rFN][i] = Npts_region
-                        results['KChadwick_'+rFN][i] = K_region
-                        results['K_CIW_'+rFN][i] = confIntWidthK_region
-                        results['R2Chadwick_'+rFN][i] = R2_region
-                        results['K2Chadwick_'+rFN][i] = K2_region
-                        results['H0Chadwick_'+rFN][i] = H0_region
-                        # results['EChadwick_'+rFN][i] = dictRegionFit['E'][ii]
-                        results['validatedFit_'+rFN][i] = validatedFit_region
-                    
-            # elif not validatedFit_bestH0:
-            #     for rFN in regionFitsNames:
-            #         dictRegionFit['regionFitNames'].append(rFN)
-            #         dictRegionFit['Npts'].append(np.nan)
-            #         dictRegionFit['K'].append(np.nan)
-            #         dictRegionFit['K_CIW'].append(np.nan)
-            #         dictRegionFit['R2'].append(np.nan)
-            #         dictRegionFit['K2'].append(np.nan)
-            #         dictRegionFit['H0'].append(np.nan)
-            #         # dictRegionFit['E'].append(E_region)
-            #         dictRegionFit['fitError'].append(True)
-            #         dictRegionFit['validatedFit'].append(False)
-                                        
-            #         results['Npts_'+rFN].append(np.nan)
-            #         results['KChadwick_'+rFN].append(np.nan)
-            #         results['K_CIW_'+rFN].append(np.nan)
-            #         results['R2Chadwick_'+rFN].append(np.nan)
-            #         results['K2Chadwick_'+rFN].append(np.nan)
-            #         results['H0Chadwick_'+rFN].append(np.nan)
-            #         # results['EChadwick_'+rFN].append(np.nan)
-            #         results['validatedFit_'+rFN].append(False)    
-            
+                    # Fill dictRegionFit (reinitialized for each cell)
+                    dictRegionFit['regionFitNames'].append(regionFitName)
+                    dictRegionFit['Npts'].append(Npts_region)
+                    dictRegionFit['K'].append(K_region)
+                    dictRegionFit['K_CIW'].append(confIntWidthK_region)
+                    dictRegionFit['R2'].append(R2_region)
+                    dictRegionFit['K2'].append(K2_region)
+                    dictRegionFit['H0'].append(H0_region)
+                    # dictRegionFit['E'].append(E_region)
+                    dictRegionFit['fitError'].append(fitError_region)
+                    dictRegionFit['validatedFit'].append(validatedFit_region)
 
-                for k in dictRegionFit.keys():
-                    dictRegionFit[k] = np.array(dictRegionFit[k])
+
+                    # Fill results (memorize everything)
+                    rFN = regionFitName
+                    results['Npts_'+rFN].append(Npts_region)
+                    results['KChadwick_'+rFN].append(K_region)
+                    results['K_CIW_'+rFN].append(confIntWidthK_region)
+                    results['R2Chadwick_'+rFN].append(R2_region)
+                    results['K2Chadwick_'+rFN].append(K2_region)
+                    results['H0Chadwick_'+rFN].append(H0_region)
+                    # results['EChadwick_'+rFN].append(dictRegionFit['E'][ii])
+                    results['validatedFit_'+rFN].append(validatedFit_region)
+                    
+            elif findH0_fitError:
+                for rFN in regionFitsNames:
+                    dictRegionFit['regionFitNames'].append(rFN)
+                    dictRegionFit['Npts'].append(np.nan)
+                    dictRegionFit['K'].append(np.nan)
+                    dictRegionFit['K_CIW'].append(np.nan)
+                    dictRegionFit['R2'].append(np.nan)
+                    dictRegionFit['K2'].append(np.nan)
+                    dictRegionFit['H0'].append(np.nan)
+                    # dictRegionFit['E'].append(E_region)
+                    dictRegionFit['fitError'].append(True)
+                    dictRegionFit['validatedFit'].append(False)
+                                        
+                    results['Npts_'+rFN].append(np.nan)
+                    results['KChadwick_'+rFN].append(np.nan)
+                    results['K_CIW_'+rFN].append(np.nan)
+                    results['R2Chadwick_'+rFN].append(np.nan)
+                    results['K2Chadwick_'+rFN].append(np.nan)
+                    results['H0Chadwick_'+rFN].append(np.nan)
+                    # results['EChadwick_'+rFN].append(np.nan)
+                    results['validatedFit_'+rFN].append(False)    
+            
+            for k in dictRegionFit.keys():
+                dictRegionFit[k] = np.array(dictRegionFit[k])
             
             
             #### PLOT [2/4]
@@ -1385,12 +1304,12 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 #     y = np.mean(thisCompDf['D3'].values-DIAMETER) * 1.3
                 #     ax1.text(x, y, '{:.2f}'.format(jumpD3), ha = 'center')
 
-                fig1.suptitle(currentCellID)
+                fig1.suptitle(results['cellID'][-1])
                 
 
                 #### fig2 & fig3
-                colSp = (i) % nColsSubplot
-                rowSp = (i) // nColsSubplot
+                colSp = (i-1) % nColsSubplot
+                rowSp = (i-1) // nColsSubplot
                 # ax2[i-1] with the 1 line plot
                 if nRowsSubplot == 1:
                     thisAx2 = ax2[colSp]
@@ -1401,7 +1320,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
                 thisAx2.plot(hCompr,fCompr,'b-', linewidth = 0.8)
                 thisAx2.plot(hRelax,fRelax,'r-', linewidth = 0.8)
-                titleText = currentCellID + '__c' + str(i+1)
+                titleText = results['cellID'][-1] + '__c' + str(i)
                 legendText = ''
                 thisAx2.set_xlabel('h (nm)')
                 thisAx2.set_ylabel('f (pN)')
@@ -1414,7 +1333,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                     # if not validatedFit:
                     #     titleText += '\nNON VALIDATED'
                         
-                    if validatedFit_bestH0:
+                    if not findH0_fitError:
                         thisAx3.plot(stressCompr, strainCompr, 'go', ms = 3)
                         # thisAx3.plot(stressCompr, trueStrainCompr, 'bo', ms = 2)
                         thisAx3.plot([np.percentile(stressCompr,10), np.percentile(stressCompr,90)], 
@@ -1427,24 +1346,24 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 else:
                     titleText += '\nFIT ERROR'
                     
-                if validatedFit_bestH0:
+                if not findH0_fitError:
                     # Computations to display the fit of the H0_Chadwick15
                     
-                    bestH0_resTuple = dictH0[H0_bestMethod + '_resTuple']
+                    Chadwick15_resTuple = dictH0['H0_Chadwick15_resTuple']
                     # (E, H0, fPredict, R2, Chi2, confIntE, confIntH0, error)
-                    NbPts_bestH0 = 15
-                    E_bestH0 = bestH0_resTuple[0]
-                    hPredict_bestH0 = bestH0_resTuple[2]
+                    NbPts_Chadwick15 = 15
+                    E_Chadwick15 = Chadwick15_resTuple[0]
+                    hPredict_Chadwick15 = Chadwick15_resTuple[2]
                     
                     min_f = np.min(fCompr)
                     low_f = np.linspace(0, min_f, 20)
                     R = DIAMETER/2
-                    low_h = bestH0 - ((3*H0_Chadwick15*low_f)/(np.pi*(E_bestH0/1e6)*R))**0.5
+                    low_h = H0_Chadwick15 - ((3*H0_Chadwick15*low_f)/(np.pi*(E_Chadwick15/1e6)*R))**0.5
 
                     
-                    legendText2 = 'bestH0 = {:.2f}nm'.format(bestH0)
-                    plot_startH = np.concatenate((low_h, hPredict_bestH0[:]))
-                    plot_startF = np.concatenate((low_f, fCompr[:NbPts_bestH0]))
+                    legendText2 = 'H0_Chadwick15 = {:.2f}nm'.format(H0_Chadwick15)
+                    plot_startH = np.concatenate((low_h, hPredict_Chadwick15[:]))
+                    plot_startF = np.concatenate((low_f, fCompr[:NbPts_Chadwick15]))
                     thisAx2.plot(plot_startH[0], plot_startF[0], ls = '', 
                                   marker = 'o', color = 'skyblue', markersize = 5, label = legendText2)
                     thisAx2.plot(plot_startH, plot_startF, ls = '--', color = 'skyblue', linewidth = 1.2, zorder = 1)
@@ -1473,11 +1392,11 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 fitError_fitToPlot = dictRegionFit['fitError'][mask_fitToPlot]
                 validatedFit_fitToPlot = dictRegionFit['validatedFit'][mask_fitToPlot]
                 
-                if validatedFit_bestH0:
+                if not findH0_fitError:
                     fitConditions_fitToPlot = np.array(fitConditions)[mask_fitToPlot]
                 
                 
-                # ax2[i] with the 1 line plot
+                # ax2[i-1] with the 1 line plot
                 if nRowsSubplot == 1:
                     thisAx4 = ax4[colSp]
                     thisAx5 = ax5[colSp]
@@ -1489,7 +1408,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 
                 thisAx4.plot(hCompr,fCompr, color = main_color, marker = 'o', markersize = 2, ls = '', alpha = 0.8) # 'b-'
                 # thisAx4.plot(hRelax,fRelax, color = main_color, ls = '-', linewidth = 0.8, alpha = 0.5) # 'r-'
-                titleText = currentCellID + '__c' + str(i+1)
+                titleText = results['cellID'][-1] + '__c' + str(i)
                 thisAx4.set_xlabel('h (nm)')
                 thisAx4.set_ylabel('f (pN)')
 
@@ -1536,7 +1455,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 
                 thisAx5.set_xlabel('Strain')
                 thisAx5.set_ylabel('Stress (Pa)')
-                if not fitError and validatedFit_bestH0:
+                if not fitError and not findH0_fitError:
                     thisAx5.plot(strainCompr, stressCompr, color = main_color, marker = 'o', markersize = 2, ls = '', alpha = 0.8)
                     
                     for k in range(len(fit_toPlot)):
@@ -1591,7 +1510,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 thisAx6.set_ylabel('K (kPa)')
                 
                 relativeError = np.zeros(len(K_fitToPlot))
-                if not fitError and validatedFit_bestH0:
+                if not fitError and not findH0_fitError:
                     
                     for k in range(len(fit_toPlot)):
                         fit = fit_toPlot[k]
@@ -1649,7 +1568,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                     # secax = thisAx7.secondary_xaxis('top', functions=(def2delta, delta2def))
                     # secax.set_xlabel('delta (nm)')
                     
-                    if not fitError and validatedFit_bestH0:
+                    if not fitError and not findH0_fitError:
                         
                         A = 2* ((deltaCompr*(DIAMETER/2000))**0.5)
                         largeX = A/(maxH0/1000)
@@ -1697,9 +1616,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
             #### (5) hysteresis (its definition may change)
             try:
-                # results['hysteresis'].append(hCompr[0] - hRelax[-1])
-                results['hysteresis'][i] = hCompr[0] - hRelax[-1]
-                
+                results['hysteresis'].append(hCompr[0] - hRelax[-1])
             except:
                 print('hysteresis computation failed, see hCompr and hRelax below:')
                 print(hCompr, hRelax)
@@ -1707,63 +1624,60 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 print(jStart, jMax, jStop, offsetStop, thisCompDf.shape[0])
                 print(offsetStart2)
                 print(thisCompDf.B.values)
-                # results['hysteresis'].append(np.nan)
+                results['hysteresis'].append(np.nan)
         
         #### (6) Deal with the non analysed compressions
         else: # The compression curve was detected as not suitable for analysis
             generalBug = True
-            # validatedThickness = False
-            # results['initialThickness'].append(np.nan)
-            # results['minThickness'].append(np.nan)
-            # results['maxIndent'].append(np.nan)
-            # results['previousThickness'].append(np.nan)
-            # results['surroundingThickness'].append(np.nan)
-            # results['surroundingDx'].append(np.nan)
-            # results['surroundingDz'].append(np.nan)
-            # results['ctFieldDX'].append(np.nan)
-            # results['ctFieldDZ'].append(np.nan)
-            # results['ctFieldThickness'].append(np.nan)
-            # results['ctFieldFluctuAmpli'].append(np.nan)
-            # results['jumpD3'].append(np.nan) 
-            # results['validatedThickness'].append(validatedThickness)
-            # validatedFit = False
-            # results['critFit'].append('Not relevant')
-            # results['H0_Chadwick15'].append(np.nan)
-            # results['H0Chadwick'].append(np.nan)
-            # results['EChadwick'].append(np.nan)
-            # results['R2Chadwick'].append(np.nan)
-            # results['EChadwick_CIWidth'].append(np.nan)
-            # results['validatedFit'].append(validatedFit)
+            validatedThickness = False
+            results['initialThickness'].append(np.nan)
+            results['minThickness'].append(np.nan)
+            results['maxIndent'].append(np.nan)
+            results['previousThickness'].append(np.nan)
+            results['surroundingThickness'].append(np.nan)
+            results['surroundingDx'].append(np.nan)
+            results['surroundingDz'].append(np.nan)
+            results['ctFieldDX'].append(np.nan)
+            results['ctFieldDZ'].append(np.nan)
+            results['ctFieldThickness'].append(np.nan)
+            results['ctFieldFluctuAmpli'].append(np.nan)
+            results['jumpD3'].append(np.nan) 
+            results['validatedThickness'].append(validatedThickness)
+            validatedFit = False
+            results['critFit'].append('Not relevant')
+            results['H0_Chadwick15'].append(np.nan)
+            results['H0Chadwick'].append(np.nan)
+            results['EChadwick'].append(np.nan)
+            results['R2Chadwick'].append(np.nan)
+            results['EChadwick_CIWidth'].append(np.nan)
+            results['validatedFit'].append(validatedFit)
 
-            # results['minForce'].append(np.nan)
-            # results['maxForce'].append(np.nan)
-            # results['minStress'].append(np.nan)
-            # results['maxStress'].append(np.nan)
-            # results['minStrain'].append(np.nan)
-            # results['maxStrain'].append(np.nan)
+            results['minForce'].append(np.nan)
+            results['maxForce'].append(np.nan)
+            results['minStress'].append(np.nan)
+            results['maxStress'].append(np.nan)
+            results['minStrain'].append(np.nan)
+            results['maxStrain'].append(np.nan)
 
-            # results['comments'].append('Unspecified bug in the code')
-            results['comments'][i] = 'Unspecified bug in the code'
-            # results['hysteresis'].append(np.nan)
+            results['comments'].append('Unspecified bug in the code')
+            results['hysteresis'].append(np.nan)
 
             
-            # for rFN in regionFitsNames:
-            #     results['Npts_'+rFN].append(np.nan)
-            #     results['KChadwick_'+rFN].append(np.nan)
-            #     results['K_CIW_'+rFN].append(np.nan)
-            #     results['R2Chadwick_'+rFN].append(np.nan)
-            #     results['K2Chadwick_'+rFN].append(np.nan)
-            #     results['H0Chadwick_'+rFN].append(np.nan)
-            #     # results['EChadwick_'+rFN].append(np.nan)
-            #     results['validatedFit_'+rFN].append(False)
+            for rFN in regionFitsNames:
+                results['Npts_'+rFN].append(np.nan)
+                results['KChadwick_'+rFN].append(np.nan)
+                results['K_CIW_'+rFN].append(np.nan)
+                results['R2Chadwick_'+rFN].append(np.nan)
+                results['K2Chadwick_'+rFN].append(np.nan)
+                results['H0Chadwick_'+rFN].append(np.nan)
+                # results['EChadwick_'+rFN].append(np.nan)
+                results['validatedFit_'+rFN].append(False)
 
         if not doThisCompAnalysis:
             print('Curve not suitable for analysis !')
-            print(currentCellID)
-            print('Compression no ' + str(i+1))
+            print(results['cellID'][-1])
+            print('Compression no ' + str(i))
 
-    for k in results.keys():
-        results[k] = np.array(results[k])
     
     #### PLOT [3/4]
     
@@ -1796,10 +1710,10 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         # Rescale fig3 axes
         eMin, eMax = 1, 0
         sMin, sMax = 1000, 0
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
-            # ax2[i] with the 1 line plot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
             if nRowsSubplot == 1:
                 thisAx3 = ax3[colSp]
             elif nRowsSubplot >= 1:
@@ -1810,10 +1724,10 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             if thisAx3.get_xlim()[1] > sMax:
                 sMax = thisAx3.get_xlim()[1]
                 
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
-            # ax2[i] with the 1 line plot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
+            # ax2[i-1] with the 1 line plot
             if nRowsSubplot == 1:
                 thisAx3 = ax3[colSp]
             elif nRowsSubplot >= 1:
@@ -1845,9 +1759,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         # Rescale fig5 axes
         eMin, eMax = 1, 0
         sMin, sMax = 1000, 0
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
             # ax2[i-1] with the 1 line plot
             if nRowsSubplot == 1:
                 thisAx5 = ax5[colSp]
@@ -1859,9 +1773,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             if thisAx5.get_ylim()[1] > sMax:
                 sMax = thisAx5.get_ylim()[1]
                 
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
             # ax2[i-1] with the 1 line plot
             if nRowsSubplot == 1:
                 thisAx5 = ax5[colSp]
@@ -1879,9 +1793,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         sMax = 0
         Kmax = 0
 
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
             if nRowsSubplot == 1:
                 thisAx6 = ax6[colSp]
             elif nRowsSubplot >= 1:
@@ -1892,9 +1806,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             if thisAx6.get_ylim()[1] > Kmax:
                 Kmax = thisAx6.get_xlim()[1]
         
-        for i in range(Ncomp):
-            colSp = i % nColsSubplot
-            rowSp = i // nColsSubplot
+        for i in range(1, Ncomp+1):
+            colSp = (i-1) % nColsSubplot
+            rowSp = (i-1) // nColsSubplot
             if nRowsSubplot == 1:
                 thisAx6 = ax6[colSp]
             elif nRowsSubplot >= 1:
@@ -1916,18 +1830,29 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
     #### PLOT [4/4]
     # Save the figures
     if PLOT:
-        
-        dpi = 150       
-        
-        figSubDir = 'MecaAnalysis_allCells_' + task
-        ufun.archiveFig(fig1, name = currentCellID + '_01_h(t)', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig2, name = currentCellID + '_02_F(h)', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig3, name = currentCellID + '_03_sig(eps)', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig4, name = currentCellID + '_04_F(h)_regionFits', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig5, name = currentCellID + '_05_sig(eps)_regionFits', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig6, name = currentCellID + '_06_K(s)', figSubDir = figSubDir, dpi = dpi)
-        ufun.archiveFig(fig7, name = currentCellID + '_07_smallElements', figSubDir = figSubDir, dpi = dpi)
+        dpi1 = 150
+        dpi2 = 150        
 
+        figDir = os.path.join(cp.DirDataFigToday, 'MecaAnalysis_allCells_' + task)
+        ufun.archiveFig(fig1, ax1, figDir, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi1)
+        ufun.archiveFig(fig2, ax2, figDir, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi1)
+        ufun.archiveFig(fig3, ax3, figDir, name=results['cellID'][-1] + '_03_sig(eps)', dpi = dpi1)
+        ufun.archiveFig(fig4, ax4, figDir, name=results['cellID'][-1] + '_04_F(h)_regionFits', dpi = dpi1)
+        ufun.archiveFig(fig5, ax5, figDir, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi1)
+        ufun.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi1)
+        ufun.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi1)
+        
+        if not cp.CloudSaving == '':
+            figDir = os.path.join(cp.DirCloudFigToday, 'MecaAnalysis_allCells_' + task)
+            ufun.archiveFig(fig1, ax1, figDir, name=results['cellID'][-1] + '_01_h(t)', dpi = dpi2)
+            ufun.archiveFig(fig2, ax2, figDir, name=results['cellID'][-1] + '_02_F(h)', dpi = dpi2)
+            ufun.archiveFig(fig3, ax3, figDir, name=results['cellID'][-1] + '_03_sig(eps)', dpi = dpi2)
+            ufun.archiveFig(fig4, ax4, figDir, name=results['cellID'][-1] + '_04_F(h)_regionFits', dpi = dpi2)
+            ufun.archiveFig(fig5, ax5, figDir, name=results['cellID'][-1] + '_05_sig(eps)_regionFits', dpi = dpi2)
+            ufun.archiveFig(fig6, ax6, figDir, name=results['cellID'][-1] + '_06_K(s)', dpi = dpi2)
+            ufun.archiveFig(fig7, ax7, figDir, name=results['cellID'][-1] + '_07_smallElements', dpi = dpi2)
+        
+        
         if PLOT_SHOW:
             Allfigs = [fig1,fig2,fig3,fig4,fig5,fig6,fig7]
             # for fig in Allfigs:
@@ -1941,57 +1866,35 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
 
 
-# def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
-#     """
-#     Subfunction of computeGlobalTable_meca
-#     Create the dictionnary that will be converted in a pandas table in the end.
-#     """
-#     expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
-#     tableDict = {}
-#     Nfiles = len(list_mecaFiles)
-#     PLOT_SHOW = (Nfiles==1)
-#     PLOT_SHOW = 0
-#     if not PLOT_SHOW:
-#         plt.ioff()
-#     for c in listColumnsMeca:
-#         tableDict[c] = []
-#     for f in list_mecaFiles: #[:10]:
-#         tS_DataFilePath = os.path.join(cp.DirDataTimeseries, f)
-#         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
-#          # MAIN SUBFUNCTION
-#         current_resultDict = analyseTimeSeries_meca(f, current_tsDF, expDf, 
-#                                                     dictColumnsMeca, task,
-#                                                     PLOT, PLOT_SHOW)
-#         for k in current_resultDict.keys():
-#             tableDict[k] += current_resultDict[k]
-# #     for k in tableDict.keys():
-# #         print(k, len(tableDict[k]))
-#     return(tableDict)
-
-def buildDf_meca(list_mecaFiles, dictColumnsMeca, task, PLOT):
+def createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT):
     """
     Subfunction of computeGlobalTable_meca
     Create the dictionnary that will be converted in a pandas table in the end.
     """
     expDf = ufun.getExperimentalConditions(cp.DirRepoExp, suffix = cp.suffix)
-    list_resultDf = []
+    tableDict = {}
     Nfiles = len(list_mecaFiles)
+    PLOT_SHOW = (Nfiles==1)
     PLOT_SHOW = 0
+    if not PLOT_SHOW:
+        plt.ioff()
+    for c in listColumnsMeca:
+        tableDict[c] = []
     for f in list_mecaFiles: #[:10]:
         tS_DataFilePath = os.path.join(cp.DirDataTimeseries, f)
         current_tsDF = pd.read_csv(tS_DataFilePath, sep = ';')
          # MAIN SUBFUNCTION
         current_resultDict = analyseTimeSeries_meca(f, current_tsDF, expDf, 
-                                                    dictColumnsMeca, task,
+                                                    listColumnsMeca, task,
                                                     PLOT, PLOT_SHOW)
-        current_resultDf = pd.DataFrame(current_resultDict)
-        list_resultDf.append(current_resultDf)
-    mecaDf = pd.concat(list_resultDf)
+        for k in current_resultDict.keys():
+            tableDict[k] += current_resultDict[k]
+#     for k in tableDict.keys():
+#         print(k, len(tableDict[k]))
+    return(tableDict)
 
-    return(mecaDf)
 
-
-def updateUiDf_meca(ui_fileSuffix, mecaDf):
+def update_uiDf(ui_fileSuffix, mecaDf):
     """
     """
     listColumnsUI = ['date','cellName','cellID','manipID','compNum',
@@ -2036,14 +1939,13 @@ def updateUiDf_meca(ui_fileSuffix, mecaDf):
 
 def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData', 
                             save = False, PLOT = False, \
-                            source = 'Matlab', dictColumnsMeca=dictColumnsMeca,
+                            source = 'Matlab', listColumnsMeca=listColumnsMeca,
                             ui_fileSuffix = 'UserManualSelection_MecaData'):
     """
     Compute the GlobalTable_meca from the time series data files.
     Option task='fromScratch' will analyse all the time series data files and construct a new GlobalTable from them regardless of the existing GlobalTable.
     Option task='updateExisting' will open the existing GlobalTable and determine which of the time series data files are new ones, and will append the existing GlobalTable with the data analysed from those new fils.
-    DEPRECATED : listColumnsMeca have to contain all the fields of the table that will be constructed.
-    dictColumnsMeca have to contain all the fields of the table that will be constructed AND their default values !
+    listColumnsMeca have to contain all the fields of the table that will be constructed.
     """
     top = time.time()
     
@@ -2066,15 +1968,13 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
 #     print(list_mecaFiles)
     
     if task == 'fromScratch':
-        # # create a dict containing the data
-        # tableDict = createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
+        # create a dict containing the data
+        tableDict = createDataDict_meca(list_mecaFiles, listColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
         
-        # # create the dataframe from it
-        # mecaDf = pd.DataFrame(tableDict)
+        # create the dataframe from it
+        mecaDf = pd.DataFrame(tableDict)
         
-        mecaDf = buildDf_meca(list_mecaFiles, dictColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
-        
-        updateUiDf_meca(ui_fileSuffix, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
         # last step: now that the dataFrame is complete, one can use "compStartTimeThisDay" col to compute the start time of each compression relative to the first one done this day.
         allDates = list(mecaDf['date'].unique())
@@ -2094,41 +1994,39 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         # find which of the time series files are new
         new_list_mecaFiles = []
         for f in list_mecaFiles:
-            currentCellID = ufun.findInfosInFileName(f, 'cellID')
+            split_f = f.split('_')
+            currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
             if currentCellID not in existing_mecaDf.cellID.values:
                 new_list_mecaFiles.append(f)
                 
-        # # create the dict with new data
-        # new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
-        # # create the dataframe from it
-        # new_mecaDf = pd.DataFrame(new_tableDict)
-        
-        new_mecaDf = buildDf_meca(new_list_mecaFiles, dictColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
+        # create the dict with new data
+        new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
+        # create the dataframe from it
+        new_mecaDf = pd.DataFrame(new_tableDict)
         # fuse the existing table with the new one
         mecaDf = pd.concat([existing_mecaDf, new_mecaDf])
         
-        updateUiDf_meca(ui_fileSuffix, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
         
     else: # If task is neither 'fromScratch' nor 'updateExisting'
     # Then task can be a substring that can be in some timeSeries file !
     # It will create a table with only these files !
-
+        # save = False
         task_list = task.split(' & ')
         new_list_mecaFiles = []
         for f in list_mecaFiles:
-            currentCellID = ufun.findInfosInFileName(f, 'cellID')
+            split_f = f.split('_')
+            currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
             for t in task_list:
                 if t in currentCellID:
                     new_list_mecaFiles.append(f)
                     break
-                
-        # # create the dict with new data
-        # new_tableDict = createDataDict_meca(new_list_mecaFiles, dictColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
-        # # create the dataframe from it
-        # mecaDf = pd.DataFrame(new_tableDict)
+        # create the dict with new data
+        new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
+        # create the dataframe from it
+        mecaDf = pd.DataFrame(new_tableDict)
         
-        mecaDf = buildDf_meca(new_list_mecaFiles, dictColumnsMeca, task, PLOT) # MAIN SUBFUNCTION
-        updateUiDf_meca(ui_fileSuffix, mecaDf)
+        update_uiDf(ui_fileSuffix, mecaDf)
     
     for c in mecaDf.columns:
             if 'Unnamed' in c:
@@ -2139,8 +2037,8 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         savePath = os.path.join(cp.DirDataAnalysis, saveName)
         mecaDf.to_csv(savePath, sep=';')
     
-    duration = time.time() - top
-    print(gs.DARKGREEN + 'Total time: {:.0f}s'.format(duration) + gs.NORMAL)
+    delta = time.time() - top
+    print(delta)
     
     return(mecaDf)
             
@@ -2258,102 +2156,102 @@ def createDataDict_sinus(listFiles, listColumns, PLOT):
 #         print(k, len(tableDict[k]))
     return(tableDict)
 
-# def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', save = False, PLOT = False, \
-#                             source = 'Matlab', listColumns=listColumnsMeca):
-#     """
-#     Compute the GlobalTable_Sinus from the time series data files.
-#     Option task='fromScratch' will analyse all the time series data files and construct a new GlobalTable from them regardless of the existing GlobalTable.
-#     Option task='updateExisting' will open the existing GlobalTable and determine which of the time series data files are new ones, and will append the existing GlobalTable with the data analysed from those new fils.
-#     listColumns have to contain all the fields of the table that will be constructed.
-#     """
-#     top = time.time()
+def computeGlobalTable_sinus(task = 'fromScratch', fileName = 'Global_Sinus', save = False, PLOT = False, \
+                            source = 'Matlab', listColumns=listColumnsMeca):
+    """
+    Compute the GlobalTable_Sinus from the time series data files.
+    Option task='fromScratch' will analyse all the time series data files and construct a new GlobalTable from them regardless of the existing GlobalTable.
+    Option task='updateExisting' will open the existing GlobalTable and determine which of the time series data files are new ones, and will append the existing GlobalTable with the data analysed from those new fils.
+    listColumns have to contain all the fields of the table that will be constructed.
+    """
+    top = time.time()
     
-# #     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
-# #                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
-# #                       and ('R40' in f))] # Change to allow different formats in the future
-    
-#     suffixPython = '_PY'
-#     if source == 'Matlab':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+#     list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
 #                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
-#                       and ('R40' in f) and not (suffixPython in f))]
-        
-#     elif source == 'Python':
-#         list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
-#                       if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
-#                       and ('sin' in f) and (suffixPython in f))]
-#         # print(list_mecaFiles)
+#                       and ('R40' in f))] # Change to allow different formats in the future
     
-# #     print(list_mecaFiles)
+    suffixPython = '_PY'
+    if source == 'Matlab':
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
+                      and ('R40' in f) and not (suffixPython in f))]
+        
+    elif source == 'Python':
+        list_mecaFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                      if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv") \
+                      and ('sin' in f) and (suffixPython in f))]
+        # print(list_mecaFiles)
     
-#     if task == 'fromScratch':
-#         # create a dict containing the data
-#         tableDict = createDataDict_sinus(list_mecaFiles, listColumns, PLOT) # MAIN SUBFUNCTION
-#         # create the dataframe from it
-#         DF = pd.DataFrame(tableDict)
+#     print(list_mecaFiles)
+    
+    if task == 'fromScratch':
+        # create a dict containing the data
+        tableDict = createDataDict_sinus(list_mecaFiles, listColumns, PLOT) # MAIN SUBFUNCTION
+        # create the dataframe from it
+        DF = pd.DataFrame(tableDict)
         
-#         # last step: now that the dataFrame is complete, one can use "compStartTimeThisDay" col to compute the start time of each compression relative to the first one done this day.
-#         allDates = list(DF['date'].unique())
-#         for d in allDates:
-#             subDf = DF.loc[DF['date'] == d]
-#             experimentStartTime = np.min(subDf['compStartTimeThisDay'])
-#             DF['compStartTimeThisDay'].loc[DF['date'] == d] = DF['compStartTimeThisDay'] - experimentStartTime
+        # last step: now that the dataFrame is complete, one can use "compStartTimeThisDay" col to compute the start time of each compression relative to the first one done this day.
+        allDates = list(DF['date'].unique())
+        for d in allDates:
+            subDf = DF.loc[DF['date'] == d]
+            experimentStartTime = np.min(subDf['compStartTimeThisDay'])
+            DF['compStartTimeThisDay'].loc[DF['date'] == d] = DF['compStartTimeThisDay'] - experimentStartTime
         
-#     elif task == 'updateExisting':
-#         # get existing table
-#         try:
-#             savePath = os.path.join(cp.DirDataAnalysis, (fileName + '.csv'))
-#             existing_mecaDf = pd.read_csv(savePath, sep=';')
-#         except:
-#             print('No existing table found')
+    elif task == 'updateExisting':
+        # get existing table
+        try:
+            savePath = os.path.join(cp.DirDataAnalysis, (fileName + '.csv'))
+            existing_mecaDf = pd.read_csv(savePath, sep=';')
+        except:
+            print('No existing table found')
             
-#         # find which of the time series files are new
-#         new_list_mecaFiles = []
-#         for f in list_mecaFiles:
-#             split_f = f.split('_')
-#             currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
-#             if currentCellID not in existing_mecaDf.cellID.values:
-#                 new_list_mecaFiles.append(f)
+        # find which of the time series files are new
+        new_list_mecaFiles = []
+        for f in list_mecaFiles:
+            split_f = f.split('_')
+            currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
+            if currentCellID not in existing_mecaDf.cellID.values:
+                new_list_mecaFiles.append(f)
                 
-#         # create the dict with new data
-#         new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, PLOT) # MAIN SUBFUNCTION
-#         # create the dataframe from it
-#         new_mecaDf = pd.DataFrame(new_tableDict)
-#         # fuse the existing table with the new one
-#         DF = pd.concat([existing_mecaDf, new_mecaDf])
+        # create the dict with new data
+        new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, PLOT) # MAIN SUBFUNCTION
+        # create the dataframe from it
+        new_mecaDf = pd.DataFrame(new_tableDict)
+        # fuse the existing table with the new one
+        DF = pd.concat([existing_mecaDf, new_mecaDf])
         
-#     else: # If task is neither 'fromScratch' nor 'updateExisting'
-#     # Then task can be a substring that can be in some timeSeries file !
-#     # It will create a table with only these files, WITHOUT SAVING IT !
-#     # But it can plot figs from it.
-#         # save = False
-#         task_list = task.split(' & ')
-#         new_list_mecaFiles = []
-#         for f in list_mecaFiles:
-#             split_f = f.split('_')
-#             currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
-#             for t in task_list:
-#                 if t in currentCellID:
-#                     new_list_mecaFiles.append(f)
-#                     break
-#         # create the dict with new data
-#         new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, PLOT) # MAIN SUBFUNCTION
-#         # create the dataframe from it
-#         DF = pd.DataFrame(new_tableDict)
+    else: # If task is neither 'fromScratch' nor 'updateExisting'
+    # Then task can be a substring that can be in some timeSeries file !
+    # It will create a table with only these files, WITHOUT SAVING IT !
+    # But it can plot figs from it.
+        # save = False
+        task_list = task.split(' & ')
+        new_list_mecaFiles = []
+        for f in list_mecaFiles:
+            split_f = f.split('_')
+            currentCellID = split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3]
+            for t in task_list:
+                if t in currentCellID:
+                    new_list_mecaFiles.append(f)
+                    break
+        # create the dict with new data
+        new_tableDict = createDataDict_meca(new_list_mecaFiles, listColumnsMeca, PLOT) # MAIN SUBFUNCTION
+        # create the dataframe from it
+        DF = pd.DataFrame(new_tableDict)
     
-#     for c in DF.columns:
-#             if 'Unnamed' in c:
-#                 DF = DF.drop([c], axis=1)
+    for c in DF.columns:
+            if 'Unnamed' in c:
+                DF = DF.drop([c], axis=1)
     
-#     if save:
-#         saveName = fileName + '.csv'
-#         savePath = os.path.join(cp.DirDataAnalysis, saveName)
-#         DF.to_csv(savePath, sep=';')
+    if save:
+        saveName = fileName + '.csv'
+        savePath = os.path.join(cp.DirDataAnalysis, saveName)
+        DF.to_csv(savePath, sep=';')
     
-#     delta = time.time() - top
-#     print(delta)
+    delta = time.time() - top
+    print(delta)
     
-#     return(DF)
+    return(DF)
 
 
 

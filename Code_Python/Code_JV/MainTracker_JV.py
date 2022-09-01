@@ -31,6 +31,8 @@ from scipy.optimize import linear_sum_assignment
 import sys
 import CortexPaths as cp
 sys.path.append(cp.DirRepoPython)
+sys.path.append(cp.DirRepoPythonUser)
+
 
 import GraphicStyles as gs
 import GlobalConstants as gc
@@ -70,6 +72,56 @@ plt.close('all')
 # %%% Next experiment day
 # %%%% Next manipe
 # %%%% Next manipe
+
+
+
+# %%% 22.07.15, compressionsLowStart of HoxB8 macrophages, M450, M1 = ctrl & 20um discs, M2 = tko & 20um discs, M3 = tko & glass, M4 = ctrl & glass
+# %%%% 22.07.15 one specific cell
+dates = '22.07.15'
+manips, wells, cells = 1, 1, 1
+depthoNames = '22.07.15_M1_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = True, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% 22.07.15_M1
+dates = '22.07.15'
+manips, wells, cells = 1, 1, 'all'
+depthoNames = '22.07.15_M1_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% 22.07.15_M2
+dates = '22.07.15'
+manips, wells, cells = 2, 1, 'all'
+depthoNames = '22.07.15_M2_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% 22.07.15_M3
+dates = '22.07.15'
+manips, wells, cells = 3, 1, 'all'
+depthoNames = '22.07.15_M3_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+# %%%% 22.07.15_M4
+dates = '22.07.15'
+manips, wells, cells = 4, 1, 'all'
+depthoNames = '22.07.15_M4_M450_step20_100X'
+
+output = mainTracker(dates, manips, wells, cells, depthoNames, expDf, 
+                     redoAllSteps = False, MatlabStyle = True, trackAll = False, 
+                     sourceField = 'default')
+
+
 
 # %% HoxB8 macrophages
 

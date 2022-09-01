@@ -32,7 +32,7 @@ from skimage import io, filters, exposure, measure, transform, util, color
 from scipy.signal import find_peaks, savgol_filter
 from scipy.optimize import linear_sum_assignment
 from matplotlib.gridspec import GridSpec
-from datetime import date
+from datetime import date, datetime
 
 #### Local Imports
 
@@ -51,9 +51,11 @@ gs.set_default_options_jv()
 
 # 4. Other settings
 # These regex are used to correct the stupid date conversions done by Excel
-dateFormatExcel = re.compile(r'\d{2}/\d{2}/\d{4}')
-dateFormatExcel2 = re.compile(r'\d{2}-\d{2}-\d{4}')
-dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}')
+# When given a date yy-mm-dd, excel will convert in yy/mm/20dd or yy/mm/19dd if yy >= 30
+dateFormatExcel = re.compile(r'[1-2]\d{1}/\d{2}/(?:19|20)\d{2}') # matches X#/##/YY## where X in {1, 2} and YY in {19, 20}
+dateFormatExcel2 = re.compile(r'[1-2]\d-\d{2}-(?:19|20)\d{2}') # matches X#-##-YY## where X in {1, 2} and YY in {19, 20}
+dateFormatOk = re.compile(r'\d{2}-\d{2}-\d{2}') # Correct format yy-mm-dd we use
+
 
 
 # %% (1) Utility functions
@@ -78,8 +80,8 @@ def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', s
         
     experimentalDataFilePath = os.path.join(DirExp, experimentalDataFile)
     expDf = pd.read_csv(experimentalDataFilePath, sep=sep, header=0)
-    print(gs.BLUE + 'Importing Experimental Conditions' + gs.NORMAL)
-    print(gs.BLUE + 'Extracted a table with ' + str(expDf.shape[0]) + ' lines and ' + str(expDf.shape[1]) + ' columns' + gs.NORMAL)
+    # print(gs.BLUE + 'Importing Experimental Conditions' + gs.NORMAL)
+    print(gs.BLUE + 'Experimental Conditions Table has ' + str(expDf.shape[0]) + ' lines and ' + str(expDf.shape[1]) + ' columns' + gs.NORMAL)
     #### 1. Clean the table
     
     #### 1.1 Remove useless columns
@@ -198,6 +200,28 @@ def getExperimentalConditions(DirExp = cp.DirRepoExp, save = False, sep = ';', s
 
 
 
+def correctExcelDatesInDf(df, dateColumn, dateExample = ''):
+    if dateExample == '':
+        dateExample = df.loc[df.index[1], dateColumn]
+    if re.match(dateFormatExcel, dateExample):
+        print(gs.ORANGE + 'dates : format corrected' + gs.NORMAL)
+        df.loc[:,dateColumn] = df.loc[:,dateColumn].apply(lambda x: x.split('/')[0] + '-' + x.split('/')[1] + '-' + x.split('/')[2][2:])        
+    elif re.match(dateFormatExcel2, dateExample):
+        print(gs.ORANGE + 'dates : format corrected' + gs.NORMAL)
+        df.loc[:,dateColumn] = df.loc[:,dateColumn].apply(lambda x: x.split('-')[0] + '-' + x.split('-')[1] + '-' + x.split('-')[2][2:])
+    return(df)
+
+
+def removeColumnsDuplicate(df):
+    cols = df.columns.values
+    for c in cols:
+        if c.endswith('_x'):
+            df = df.rename(columns={c: c[:-2]})
+        elif c.endswith('_y'):
+            df = df.drop(columns=[c])
+    return(df)
+
+
 def findActivation(fieldDf):
     maxZidx = fieldDf['Z'].argmax() #Finding the index of the max Z
     maxZ = fieldDf['Z'][maxZidx] #To check if the value is correct
@@ -239,6 +263,11 @@ def findInfosInFileName(f, infoType):
         manip = 'M' + findInfosInFileName(f, 'M')
         infoString = date + '_' + manip
         
+    elif infoType == 'cellName':
+        infoString = 'M' + findInfosInFileName(f, 'M') + \
+                     '_' + 'P' + findInfosInFileName(f, 'P') + \
+                     '_' + 'C' + findInfosInFileName(f, 'C')
+        
     elif infoType == 'cellID':
         datePos = re.search(r"[\d]{1,2}-[\d]{1,2}-[\d]{2}", f)
         date = f[datePos.start():datePos.end()]
@@ -252,9 +281,9 @@ def findInfosInFileName(f, infoType):
             infoString = f[pos.start():pos.end()]
         except:
             infoString = ''
-                 
                              
     return(infoString)
+
 
 def isFileOfInterest(f, manips, wells, cells):
     """
@@ -640,6 +669,63 @@ def computeMag_M270(B):
 def computeMag_M450(B):
     M = 1.05*1600 * (0.001991*B**3 + 17.54*B**2 + 153.4*B) / (B**2 + 35.53*B + 158.1)
     return(M)
+
+def chadwickModel(h, E, H0, DIAMETER):
+    R = DIAMETER/2
+    f = (np.pi*E*R*((H0-h)**2))/(3*H0)
+    return(f)
+
+def inversedChadwickModel(f, E, H0, DIAMETER):
+    R = DIAMETER/2
+    h = H0 - ((3*H0*f)/(np.pi*E*R))**0.5
+    return(h)
+
+def getDimitriadisCoefs(v, order):
+    a0 = -0.347*(3 - 2*v)/(1 - v)
+    b0 = 0.056*(5 - 2*v)/(1 - v)
+    
+    ks = []
+    if order >= 0:
+        k0 = 1
+        ks.append(k0)
+        
+        if order >= 1:
+            k1 = - 2*a0/np.pi
+            ks.append(k1)
+        
+            if order >= 2:
+                k2 = + 4*a0**2/np.pi
+                ks.append(k2)
+            
+                if order >= 3:
+                    k3 = - (8/np.pi**3) * (a0**3 + (4*np.pi**2/15)*b0)
+                    ks.append(k3)
+            
+                    if order >= 4:
+                        k4 = + (16*a0/np.pi**4) * (a0**3 + (3*np.pi**2/5)*b0)
+                        ks.append(k4)    
+    return(ks)
+
+
+def dimitriadisModel(h, E, H0):
+    DIAMETER = 4477
+    R = DIAMETER/2
+    
+    v = 0
+    order = 2
+    ks = getDimitriadisCoefs(v, order)
+    
+    delta = H0-h
+    X = np.sqrt(R*delta)/h
+    
+    poly = np.zeros_like(X)
+    
+    for i in range(order+1):
+        poly = poly + ks[i] * X**i
+        
+    F = ((4 * E * R**0.5 * delta**1.5)/(3 * (1 - v**2))) * poly
+    
+    return(F)
  
                     
 # %%% Very general functions
@@ -680,10 +766,40 @@ def fitLine(X, Y):
 #     print(dir(results))
     return(results.params, results)
 
-
 # %%% Figure & graphic operations
 
-def archiveFig(fig, ax, figDir, name='auto', dpi = 100):
+def simpleSaveFig(fig, name, savePath, ext, dpi):
+    figPath = os.path.join(savePath, name + ext)
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)
+    fig.savefig(figPath, dpi=dpi)
+    
+
+def archiveFig(fig, name = '', ext = '.png', dpi = 100,
+               figDir = '', figSubDir = '', cloudSave = 'flexible'):
+    # Generate unique name if needed
+    if name == '':
+        dt = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        name = 'fig_' + dt
+    # Generate default save path if needed
+    if figDir == '':
+        figDir = cp.DirDataFigToday
+        figCloudDir = cp.DirCloudFigToday
+    else:
+        figCloudDir = os.path.join(cp.DirCloudFig, os.path.split(figDir)[1])
+    # Normal save
+    savePath = os.path.join(figDir, figSubDir)
+    simpleSaveFig(fig, name, savePath, ext, dpi)
+    # Cloud save if specified
+    doCloudSave = ((cloudSave == 'strict') or (cloudSave == 'flexible' and cp.CloudSaving != ''))
+    if doCloudSave:
+        cloudSavePath = os.path.join(figCloudDir, figSubDir)
+        simpleSaveFig(fig, name, cloudSavePath, ext, dpi)
+        
+   
+    
+
+def archiveFig_V0(fig, ax, figDir, name='auto', dpi = 100):
     
     if not os.path.exists(figDir):
         os.makedirs(figDir)
