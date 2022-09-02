@@ -54,6 +54,7 @@ for i in range(5,105,5):
     dictSubstrates['disc' + str(i) + 'um'] = str(i) + 'um fibronectin discs'
     dictSubstrates['disc{:02.0f}um'.format(i)] = str(i) + 'um fibronectin discs'
 
+               
                     
 # %% (1) TimeSeries functions
 
@@ -391,20 +392,6 @@ def getGlobalTable_ctField(fileName = 'Global_CtFieldData'):
 #### H0_bestMethod
 H0_bestMethod = 'H0_Chadwick15'
 
-#### listColumnsMeca
-listColumnsMeca = ['date','cellName','cellID','manipID',
-                   'compNum','compDuration','compStartTime','compAbsStartTime','compStartTimeThisDay',
-                   'initialThickness','minThickness','maxIndent','previousThickness',
-                   'surroundingThickness','surroundingDx','surroundingDz',
-                   'validatedThickness', 'jumpD3',
-                   'minForce', 'maxForce', 'minStress', 'maxStress', 'minStrain', 'maxStrain',
-                   'ctFieldThickness','ctFieldFluctuAmpli','ctFieldDX','ctFieldDZ',
-                   'H0_Chadwick15', 'H0_Dimitriadis15', 
-                   'H0Chadwick','EChadwick','R2Chadwick','EChadwick_CIWidth',
-                   'hysteresis',
-                   'critFit', 'validatedFit','comments'] # 'fitParams', 'H0_Dimitriadis15', 
-
-
 
 #### SETTING ! Fit Selection R2 & Chi2
 dictSelectionCurve = {'R2' : 0.6, 'Chi2' : 10, 'Error' : 0.02}
@@ -474,11 +461,6 @@ regionFitsNames = ['S='  + str(fitCenters[ii]) + '+/-' + str(int(fitWidth[ii]//2
 
 fit_toPlot = [regionFitsNames[ii] for ii in range(len(fitC), 2*len(fitC), 2)]
 mask_fitToPlot = np.array(list(map(lambda x : x in fit_toPlot, regionFitsNames)))
-
-for rFN in regionFitsNames:
-    listColumnsMeca += ['KChadwick_'+rFN, 'K_CIW_'+rFN, 'R2Chadwick_'+rFN, 'K2Chadwick_'+rFN, 
-                        'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN] 
-    # 'H0Chadwick_'+rFN, 'EChadwick_'+rFN
 
 
 #### dictColumnsMeca
@@ -550,6 +532,9 @@ dictColumnsRegionFit = {'regionFitNames' : '',
                         'validatedFit' : False, 
                         'Npts' : np.nan, 
                         'K_CIW' : np.nan} 
+
+
+     
      
 
 def compressionFitChadwick(hCompr, fCompr, DIAMETER):
@@ -627,6 +612,11 @@ def compressionFitChadwick(hCompr, fCompr, DIAMETER):
         E, H0, hPredict, R2, Chi2, confIntE, confIntH0 = -1, -1, np.ones(len(hCompr))*(-1), -1, -1, [-1,-1], [-1,-1]
     
     return(E, H0, hPredict, R2, Chi2, confIntE, confIntH0, error)
+
+
+
+
+
 
 
 def compressionFitDimitriadis(hCompr, fCompr, DIAMETER, order = 2):
@@ -808,7 +798,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
     plotSmallElements = True
     
     #### (0) Import experimental infos
-    split_f = f.split('_')
     tsDF.dx, tsDF.dy, tsDF.dz, tsDF.D2, tsDF.D3 = tsDF.dx*1000, tsDF.dy*1000, tsDF.dz*1000, tsDF.D2*1000, tsDF.D3*1000
     thisManipID = ufun.findInfosInFileName(f, 'manipID')
     thisExpDf = expDf.loc[expDf['manipID'] == thisManipID]
@@ -849,8 +838,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
     
     # Initialize the results
     results = {}
-    # for c in listColumnsMeca:
-    #     results[c] = []
         
     for k in dictColumnsMeca.keys():
         results[k] = [dictColumnsMeca[k] for m in range(Ncomp)]
@@ -902,19 +889,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
 
 
-    for i in range(Ncomp):#Ncomp+1):
+    for i in range(Ncomp):
 
         #### (1) Identifiers
-        # results['date'].append(split_f[0])
-        # results['cellName'].append(split_f[1] + '_' + split_f[2] + '_' + split_f[3])
-        # results['cellID'].append(split_f[0] + '_' + split_f[1] + '_' + split_f[2] + '_' + split_f[3])
-        # results['manipID'].append(split_f[0] + '_' + split_f[1])
-        
-        # results['date'].append(ufun.findInfosInFileName(f, 'date'))
-        # results['cellName'].append(ufun.findInfosInFileName(f, 'cellName'))
-        # results['cellID'].append(ufun.findInfosInFileName(f, 'cellID'))
-        # results['manipID'].append(ufun.findInfosInFileName(f, 'manipID'))
-        
         results['date'][i] = ufun.findInfosInFileName(f, 'date')
         results['cellName'][i] = ufun.findInfosInFileName(f, 'cellName')
         results['cellID'][i] = ufun.findInfosInFileName(f, 'cellID')
@@ -942,13 +919,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
         iStart = (ufun.findFirst(tsDF['idxAnalysis'], i+1))
         iStop = iStart+thisCompDf.shape[0]
 
-        # Easy-to-get parameters
-        # results['compNum'].append(i)
-        # results['compDuration'].append(thisExpDf.at[thisExpDf.index.values[0], 'compression duration'])
-        # results['compStartTime'].append(thisCompDf['T'].values[0])
-        # results['compAbsStartTime'].append(thisCompDf['Tabs'].values[0])
-        # results['compStartTimeThisDay'].append(thisCompDf['Tabs'].values[0])
-        
+        # Easy-to-get parameters        
         results['compNum'][i] = i+1
         results['compDuration'][i] = thisExpDf.at[thisExpDf.index.values[0], 'compression duration']
         results['compStartTime'][i] = thisCompDf['T'].values[0]
@@ -1008,13 +979,13 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             except:
                 print(listB)
                 print(testRangeB, thresholdB, thresholdDeltaB)
-            
+
             # Four arrays
             hCompr = (thisCompDf.D3.values[jStart:jMax+1] - DIAMETER)
             hRelax = (thisCompDf.D3.values[jMax+1:jStop] - DIAMETER)
             fCompr = (thisCompDf.F.values[jStart:jMax+1])
             fRelax = (thisCompDf.F.values[jMax+1:jStop])
-            
+
 
             # Refinement of the compression delimitation.
             # Remove the 1-2 points at the begining where there is just the viscous relaxation of the cortex
@@ -1027,9 +998,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             # Better compressions arrays
             hCompr = hCompr[offsetStart2:]
             fCompr = fCompr[offsetStart2:]
-            
-            
-            
+
             # Get the points of constant field preceding and surrounding the current compression
             # Ex : if the labview code was set so that there is 6 points of ct field before and after each compression,
             # previousPoints will contains D3[iStart-12:iStart]
@@ -1040,30 +1009,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             surroundingPointsZ = np.concatenate([tsDF.dz.values[max(0,iStart-(loop_ctSize//2)):iStart],tsDF.dz.values[iStop:iStop+(loop_ctSize//2)]])
             
             # Parameters relative to the thickness ( = D3-DIAMETER)
-            # results['initialThickness'].append(np.mean(hCompr[0:3]))
-            # results['minThickness'].append(np.min(hCompr))
-            # results['maxIndent'].append(results['initialThickness'][-1] - results['minThickness'][-1])
-            # results['previousThickness'].append(np.median(previousPoints))
-            # results['surroundingThickness'].append(np.median(surroundingPoints))
-            # results['surroundingDx'].append(np.median(surroundingPointsX))
-            # results['surroundingDz'].append(np.median(surroundingPointsZ))
-            # results['ctFieldDX'].append(ctFieldDX)
-            # results['ctFieldDZ'].append(ctFieldDZ)
-            # results['ctFieldThickness'].append(ctFieldThickness)
-            # results['ctFieldFluctuAmpli'].append(ctFieldFluctuAmpli)
-            # results['jumpD3'].append(jumpD3)
-
-            # validatedThickness = np.min([results['initialThickness'],results['minThickness'],
-            #                              results['previousThickness'],results['surroundingThickness'],
-            #                              results['ctFieldThickness']]) > 0
-            
-            # results['validatedThickness'].append(validatedThickness)
-            # results['minForce'].append(np.min(fCompr))
-            # results['maxForce'].append(np.max(fCompr))
-            
             results['initialThickness'][i] = np.mean(hCompr[0:3])
             results['minThickness'][i] = np.min(hCompr)
-            results['maxIndent'][i] = results['initialThickness'][i] - results['minThickness'][i]
+            results['maxIndent'][i] = results['initialThickness'][-1] - results['minThickness'][-1]
             results['previousThickness'][i] = np.median(previousPoints)
             results['surroundingThickness'][i] = np.median(surroundingPoints)
             results['surroundingDx'][i] = np.median(surroundingPointsX)
@@ -1074,24 +1022,37 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             results['ctFieldFluctuAmpli'][i] = ctFieldFluctuAmpli
             results['jumpD3'][i] = jumpD3
 
-            validatedThickness = np.min([results['initialThickness'][i],results['minThickness'][i],
-                                         results['previousThickness'][i],results['surroundingThickness'][i],
-                                         results['ctFieldThickness'][i]]) > 0
+            validatedThickness = np.min([results['initialThickness'],results['minThickness'],
+                                         results['previousThickness'],results['surroundingThickness'],
+                                         results['ctFieldThickness']]) > 0
             
             results['validatedThickness'][i] = validatedThickness
             results['minForce'][i] = np.min(fCompr)
             results['maxForce'][i] = np.max(fCompr)
 
-            
-    
 
             #### (4) Fit with Chadwick model of the force-thickness curve
+            
+            #### >>> INVENT
+            R2CRITERION = dictSelectionCurve['R2']
+            CHI2CRITERION = dictSelectionCurve['Chi2']
+            CHI2ERROR = dictSelectionCurve['Error']
+            
+            Comp_hf = Compression_HF(hCompr, fCompr, DIAMETER)
+            fitChadwick = Comp.fit(method = 'backwardChadwick')
+            fitChadwick.validate(R2crit = R2CRITERION,
+                                 Chi2crit = CHI2CRITERION,
+                                 Chi2err = CHI2ERROR)
+            E_Chadwick, H0_Chadwick = fitChadwick.E, fitChadwick.H0
+            Eciw_Chadwick, H0ciw_Chadwick = fitChadwick.Eciw, fitChadwick.H0ciw
+            errorFit_Chadwick, validFit_Chadwick = fitChadwick.error, fitChadwick.valid
+            # FILL RESULTS HERE
+            
             
             #### Classic, all curve, Chadwick fit
             E, H0, hPredict, R2, Chi2, confIntE, confIntH0, fitError = compressionFitChadwick(hCompr, fCompr, DIAMETER) # IMPORTANT SUBFUNCTION
 
-            R2CRITERION = dictSelectionCurve['R2']
-            CHI2CRITERION = dictSelectionCurve['Chi2']
+            
             critFit = 'R2 > ' + str(R2CRITERION)
             
             # results['critFit'].append(critFit)
@@ -1133,6 +1094,15 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                 
                 
             #### (4.0) Find the best H0
+            
+            #### >>> INVENT
+            fitsH0 = Comp_hf.fitH0(method = 'all')
+            fitH0_best = fitsH0[H0_bestMethod]
+            error_bestH0 = fitH0_best.error
+            bestH0 = fitH0_best.H0
+            # FILL RESULTS HERE
+            
+            
             # findH0_NbPts = 15
             # findH0_E, H0_Chadwick15, findH0_hPredict, findH0_R2, findH0_Chi2, findH0_confIntE, findH0_confIntH0, findH0_fitError = \
             #     compressionFitChadwick(hCompr[:findH0_NbPts], fCompr[:findH0_NbPts], DIAMETER)
@@ -1156,10 +1126,15 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             if max(hCompr) > maxH0:
                 error_bestH0 = True
                 validatedFit_bestH0 = False
-            
-            
+                
                 
             #### (4.1) Compute stress and strain based on the best H0
+            
+            #### >>> INVENT
+            Comp_hf.computeStressStrain(method = 'Chadwick')
+            Comp_es = 
+            # FILL RESULTS HERE
+            
             
             if validatedFit_bestH0:
                 # results['bestH0'].append(bestH0)
@@ -1198,7 +1173,7 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
 
             #### (4.2) Fits on specific regions of the curve
             
-            
+            list_strainPredict_fitToPlot = [[] for kk in range(len(fit_toPlot))]
             
             # dictRegionFit = {'regionFitNames' : [], 'K' : [], 'R2' : [],  'K2' : [], 'H0' : [],
             #                  'fitError' : [], 'validatedFit' : [], 'Npts' : [], 'K_CIW' : []} 
@@ -1211,7 +1186,14 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             # for ii in range(len(fit_intervals)-1):
             #     for jj in range(ii+1, len(fit_intervals)):
             #         fitConditions.append((stressCompr > fit_intervals[ii]) & (stressCompr < fit_intervals[jj]))
+            fitConditions = []
+            for kk in range(len(regionFitsNames)):
+                ftP = regionFitsNames[kk]
+                lowS, highS = int(fitMin[kk]), int(fitMax[kk])
+                fitConditions.append((stressCompr > lowS) & (stressCompr < highS))
             
+            
+            N_Fits = len(fitConditions)
             
             # dictRegionFit = {'regionFitNames' : [], 
             #                  'K' : [], 
@@ -1223,22 +1205,11 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             #                  'Npts' : [], 
             #                  'K_CIW' : []}
             
-            
-            list_strainPredict_fitToPlot = [[] for kk in range(len(fit_toPlot))]
+            dictRegionFit = {}
+            for k in dictColumnsRegionFit.keys():
+                dictRegionFit[k] = [dictColumnsRegionFit[k] for m in range(N_Fits)]
 
             if validatedFit_bestH0:
-                
-                fitConditions = []
-                for kk in range(len(regionFitsNames)):
-                    ftP = regionFitsNames[kk]
-                    lowS, highS = int(fitMin[kk]), int(fitMax[kk])
-                    fitConditions.append((stressCompr > lowS) & (stressCompr < highS))
-
-                N_Fits = len(fitConditions)
-                
-                dictRegionFit = {}
-                for k in dictColumnsRegionFit.keys():
-                    dictRegionFit[k] = [dictColumnsRegionFit[k] for m in range(N_Fits)]
             
                 for ii in range(N_Fits):
                     regionFitName = regionFitsNames[ii]
@@ -1354,9 +1325,9 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
             #         # results['EChadwick_'+rFN].append(np.nan)
             #         results['validatedFit_'+rFN].append(False)    
             
-
-                for k in dictRegionFit.keys():
-                    dictRegionFit[k] = np.array(dictRegionFit[k])
+            
+            for k in dictRegionFit.keys():
+                dictRegionFit[k] = np.array(dictRegionFit[k])
             
             
             #### PLOT [2/4]
@@ -1455,24 +1426,21 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                         item.set_fontsize(9)
                         
                         
+                        
+                        
                 #### fig4 & fig5
                 
+                Npts_fitToPlot = dictRegionFit['Npts'][mask_fitToPlot]
+                K_fitToPlot = dictRegionFit['K'][mask_fitToPlot]
+                K_CIW_fitToPlot =dictRegionFit['K_CIW'][mask_fitToPlot]
+                K2_fitToPlot = dictRegionFit['K2'][mask_fitToPlot]
+                H0_fitToPlot = dictRegionFit['H0'][mask_fitToPlot]
+                R2_fitToPlot = dictRegionFit['R2'][mask_fitToPlot]
+                fitError_fitToPlot = dictRegionFit['fitError'][mask_fitToPlot]
+                validatedFit_fitToPlot = dictRegionFit['validatedFit'][mask_fitToPlot]
+                
                 if validatedFit_bestH0:
-                    Npts_fitToPlot = dictRegionFit['Npts'][mask_fitToPlot]
-                    K_fitToPlot = dictRegionFit['K'][mask_fitToPlot]
-                    K_CIW_fitToPlot =dictRegionFit['K_CIW'][mask_fitToPlot]
-                    K2_fitToPlot = dictRegionFit['K2'][mask_fitToPlot]
-                    H0_fitToPlot = dictRegionFit['H0'][mask_fitToPlot]
-                    R2_fitToPlot = dictRegionFit['R2'][mask_fitToPlot]
-                    fitError_fitToPlot = dictRegionFit['fitError'][mask_fitToPlot]
-                    validatedFit_fitToPlot = dictRegionFit['validatedFit'][mask_fitToPlot]
-                    
                     fitConditions_fitToPlot = np.array(fitConditions)[mask_fitToPlot]
-                    
-                    
-                else:
-                    fitError_fitToPlot = np.zeros_like(fit_toPlot, dtype = bool)
-
                 
                 
                 # ax2[i] with the 1 line plot
@@ -1504,7 +1472,6 @@ def analyseTimeSeries_meca(f, tsDF, expDf, dictColumnsMeca, task, PLOT, PLOT_SHO
                         fitError_fit = fitError_fitToPlot[k]
                         validatedFit_fit = validatedFit_fitToPlot[k]
                         fitConditions_fit = fitConditions_fitToPlot[k]
-                    
                         
                         R = DIAMETER/2
                         fCompr_fit = fCompr[fitConditions_fit]
@@ -2138,8 +2105,8 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         savePath = os.path.join(cp.DirDataAnalysis, saveName)
         mecaDf.to_csv(savePath, sep=';')
     
-    duration = time.time() - top
-    print(gs.DARKGREEN + 'Total time: {:.0f}s'.format(duration) + gs.NORMAL)
+    delta = time.time() - top
+    print(gs.DARKGREEN + 'Total time: {:.0f}'.format(delta) + gs.NORMAL)
     
     return(mecaDf)
             

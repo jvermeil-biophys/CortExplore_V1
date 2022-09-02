@@ -368,6 +368,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             
             thicknessBefore = thickness[:500]
             thicknessAfter = thickness[500:]
+            timeBefore = time[:500]
             
             try:
                 ratioThickness = thicknessAfter/thicknessBefore
@@ -427,7 +428,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
                         color = 'blue'
                     elif magField == '15mT':
                         color = 'black'
-                    plt.plot(time, thickness, color = color, label = cellID)
+                    plt.plot(timeBefore, thicknessBefore, color = color, label = cellID)
                     plt.legend(prop={'size': 6})
                     
                 elif len(parameter) == 1 and parameter[0] != 'all':
@@ -455,24 +456,32 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             for patch in ax1.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            
+            try:
+                addStat_df(ax1, summaryDf, [('3mT', '7mT', '15mT')], param = 'medianThicknessWhole', test = 'Mann-Whitney', cond = 'magField')
+            except:
+                pass
+            
             plt.suptitle('Median Thickness | '+str(parameter))
             plt.savefig(todayFigDir+'/medianThickness_'+kind+'_'+str(parameter)+'.png')
             plt.show()
             
+            #### medianThickness for different magnetic fields first 5 mins
             ax1b = plt.figure()
             palette = sns.color_palette("light:b")
             sns.set_palette(palette)
-            
-            y = summaryDf['medianThicknessToComp'][summaryDf['activationTag'] == 'Before']
-            ax1b = sns.boxplot(x = 'magField', y = y, data=summaryDf, palette = palette)
-            ax1b = sns.swarmplot(x = 'magField', y = y, data=summaryDf, color ='black', size = 6)
+            dataSpec = summaryDf[summaryDf['activationTag'] == 'Before']
+            ax1b = sns.boxplot(x = 'magField', y = 'medianThicknessToComp', data=dataSpec, palette = palette)
+            ax1b = sns.swarmplot(x = 'magField', y = 'medianThicknessToComp', data=dataSpec, color ='black', size = 6)
             # ax1.set_ylim(0, 1)
             
             for patch in ax1b.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            
+            # addStat_df(ax1b, dataSpec, [('3mT', '7mT', '15mT')], param = 'medianThicknessToComp', test = 'Mann-Whitney', cond = 'magField')
+            
+            
             plt.suptitle('Median Thickness_5mins | '+str(parameter))
             plt.savefig(todayFigDir+'/medianThickness5mins_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -488,24 +497,29 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             for patch in ax2.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            
+            try:
+                addStat_df(ax2, summaryDf, [('3mT', '7mT', '15mT')], param = 'fluctuationsWhole', test = 'Mann-Whitney', cond = 'magField')
+            except:
+                pass
             plt.suptitle('Fluctuations | '+str(parameter))
             plt.savefig(todayFigDir+'/fluctuations_'+kind+'_'+str(parameter)+'.png')
             plt.show()
             
-            #### fluctuations for different magnetic fields
+            #### fluctuations for different magnetic fields first 5 mins
             ax2b = plt.figure()
             palette = sns.color_palette("light:b")
             sns.set_palette(palette)
-            y = summaryDf['fluctuationsToComp'][summaryDf['activationTag'] == 'Before']
-            ax2b = sns.boxplot(x = 'magField', y = y, data=summaryDf, palette = palette)
-            ax2b = sns.swarmplot(x = 'magField', y = y, data=summaryDf, color ='black', size = 6)
+            dataSpec = summaryDf[summaryDf['activationTag'] == 'Before']
+            ax2b = sns.boxplot(x = 'magField', y = 'fluctuationsToComp', data=dataSpec, palette = palette)
+            ax2b = sns.swarmplot(x = 'magField', y = 'fluctuationsToComp', data=dataSpec, color ='black', size = 6)
             # ax1.set_ylim(0, 1)
             
             for patch in ax2b.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            
+            # addStat_df(ax2b, dataSpec, [('3mT', '7mT', '15mT')], param = 'fluctuationsToComp', test = 'Mann-Whitney', cond = 'magField')
             plt.suptitle('Fluctuations_5mins | '+str(parameter))
             plt.savefig(todayFigDir+'/fluctuations5mins_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -515,7 +529,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             palette = ["orange", "blue", "#000000"]
             sns.set_palette(palette)
             ax3 = sns.scatterplot(x = 'fluctuationsWhole', y ='medianThicknessWhole', data = summaryDf, hue = 'magField', palette = palette, s= 40)
-                
+            
             plt.suptitle('Median Thickness vs. Fluctuations | '+str(parameter))
             plt.savefig(todayFigDir+'/thicknessVfluctuations_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -527,7 +541,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             sns.set_palette(palette)
             dataSpec = summaryDf[summaryDf['activationTag'] == 'Before']
             ax3b = sns.scatterplot(x = 'fluctuationsToComp', y ='medianThicknessToComp', data = dataSpec, hue = 'magField', palette = palette, s= 40)
-                
+            
             plt.suptitle('Median Thickness vs. Fluctuations (5mins)| '+str(parameter))
             plt.savefig(todayFigDir+'/thicknessVfluctuations5mins_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -546,7 +560,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             for patch in ax4a.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            # addStat_df(ax4a, dataSpec, [('After', 'Before')], 'medianThicknessToComp', test = 'Wilcox_greater', cond = 'activationTag')
             plt.suptitle('MedianThicknessControl_3mT | '+str(parameter))
             plt.savefig(todayFigDir+'/MedianThicknessActivationControl3mT_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -563,7 +577,7 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             for patch in ax4a.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            # addStat_df(ax4b, dataSpec, [('After', 'Before')], 'medianThicknessToComp', test = 'Wilcox_greater', cond = 'activationTag')
             plt.suptitle('MedianThicknessControl_7mT | '+str(parameter))
             plt.savefig(todayFigDir+'/MedianThicknessActivationControl7mT_'+kind+'_'+str(parameter)+'.png')
             plt.show()
@@ -580,25 +594,20 @@ def ctFieldThicknessSummary(experimentalDataDir, todayFigDir, parameter, plot = 
             for patch in ax4c.artists:
                 r, g, b, a = patch.get_facecolor()
                 patch.set_facecolor((r, g, b, 0.3))
-                
+            
+            # addStat_df(ax4c, dataSpec, [('After', 'Before')], 'medianThicknessToComp', test = 'Wilcox_greater', cond = 'activationTag')
             plt.suptitle('MedianThicknessControl_15mT | '+str(parameter))
             plt.savefig(todayFigDir+'/MedianThicknessActivationControl15mT_'+kind+'_'+str(parameter)+'.png')
             plt.show()
             
             ####Plot fluctuations vs. median thickness : Indidivually for diff activation types  
-            
             palette = sns.color_palette("tab10")
             sns.set_palette(palette)
-            
-            
             
             lm = sns.lmplot(x ='medianThicknessToComp', y ='fluctuationsToComp', data = summaryDf, \
                             hue ='activationTag', col = 'magField')
                 
             fig2 = lm.fig
-            
-            
-            
             text_x = [0.08, 0.38, 0.7]
             text1_y = [0.812, 0.812, 0.812]
             text2_y = [0.78, 0.78, 0.78]

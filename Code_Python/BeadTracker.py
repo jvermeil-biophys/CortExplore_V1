@@ -196,7 +196,7 @@ class PincherTimeLapse:
         self.excludedFrames_inward = np.zeros(self.nLoop, dtype = int)
         self.excludedFrames_black = np.zeros(self.nLoop, dtype = int) 
         self.excludedFrames_outward = np.zeros(self.nLoop, dtype = int)
-            
+
         
         #### Import data from the optogen condition columns, if they exist
 
@@ -209,13 +209,15 @@ class PincherTimeLapse:
             # at the end of which the first activ is
             # when you count the loop starting from 1
             
+            
             self.activationFirst = int(manipDict['first activation'])
-            self.activationLast = int(manipDict['last activation'])
+            self.activationLast = (manipDict['last activation'])
             self.activationFreq = int(manipDict['activation frequency'])
             self.activationExp = manipDict['activation exp']
             self.activationType = manipDict['activation type']
             
             if (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and pd.isna(self.activationLast):
+                
                 self.LoopActivations = np.array([k-1 for k in range(self.activationFirst, self.nLoop, self.activationFreq)])
                 # k-1 here cause we counted the loops starting from 1 but python start from 0.
             elif (not pd.isna(self.activationFreq)) and self.activationFreq > 0 and (not pd.isna(self.activationLast)):
@@ -287,7 +289,7 @@ class PincherTimeLapse:
                 j = ((i+1)*self.loop_mainSize) - 1 + offsets[i]
                 checkSum = np.sum(self.I[j])
                 while checkSum == 0:
-                    print('Black images found')
+                    print('Black image found')
     #                 self.dictLog['Black'][j] = True
                     self.dictLog['status_frame'][j] = -1
                     self.dictLog['status_nUp'][j] = -1
@@ -1120,7 +1122,6 @@ class PincherTimeLapse:
         Nct = (self.loop_mainSize-self.loop_rampSize)//2
 
         for iB in range(self.NB):
-            print(iB)
             self.listTrajectories[iB].dict['Zr'] = np.zeros(nT)
             self.listTrajectories[iB].nT = nT
             iField = []
@@ -1168,7 +1169,7 @@ class PincherTimeLapse:
     def importTrajectories(self, path, iB):
         """
         """
-        self.listTrajectories.append(Trajectory(self.I, self.listFrames, self.scale, self.Zstep, iB))
+        self.listTrajectories.append(Trajectory(self.I, self.cellID, self.listFrames, self.scale, self.Zstep, iB))
         traj_df = pd.read_csv(path, sep = '\t')
         cols = traj_df.columns.values
         cols_to_remove = []
@@ -1450,9 +1451,9 @@ class Trajectory:
             
             while iF <= max(self.dict['iF']):
             #### Enable plots of Z detection  here
-                plot = 0
-                if (iF >= 705 and iF <= 750):# or (iF > 400 and iF <= 440):
-                    plot = 1
+                # plot = 0
+                # if (iF >= 705 and iF <= 750):# or (iF > 400 and iF <= 440):
+                #     plot = 1
                     
             # ###################################################################
 

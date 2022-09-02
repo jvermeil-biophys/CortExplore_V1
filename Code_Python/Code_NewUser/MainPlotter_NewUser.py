@@ -2,7 +2,7 @@
 """
 Created on Wed Apr  6 21:27:55 2022
 
-@author: JosephVermeil & AnumitaJawahar
+@author: JosephVermeil
 """
 
 #!/usr/bin/env python
@@ -34,62 +34,21 @@ from datetime import date
 from scipy.optimize import curve_fit
 from matplotlib.gridspec import GridSpec
 
-# from statannot import add_stat_annotation
-# pd.set_option('mode.chained_assignment',None)
-# pd.set_option('display.max_columns', None)
+#### Local Imports
+
+import CortexPaths as cp
+sys.path.append(cp.DirRepoPython)
+sys.path.append(cp.DirRepoPythonUser)
 
 
-#### Paths
-
-COMPUTERNAME = os.environ['COMPUTERNAME']
-if COMPUTERNAME == 'ORDI-JOSEPH':
-    mainDir = "C://Users//JosephVermeil//Desktop//ActinCortexAnalysis"
-    rawDir = "D://MagneticPincherData"
-    ownCloudDir = "C://Users//JosephVermeil//ownCloud//ActinCortexAnalysis"
-elif COMPUTERNAME == 'LARISA':
-    mainDir = "C://Users//Joseph//Desktop//ActinCortexAnalysis"
-    rawDir = "F:\JosephVermeil\MagneticPincherData"    
-    ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
-elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//CortExplore"
-    rawDir = "D:/Anumita/MagneticPincherData"    
-elif COMPUTERNAME == '':
-    mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
-    ownCloudDir = "C://Users//josep//ownCloud//ActinCortexAnalysis"
-
-
-experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
-dataDir = os.path.join(rawDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(rawDir, "Data_TimeSeries")
-
-
-figDir = os.path.join(rawDir, "Figures")
-todayFigDir = os.path.join(figDir, "Historique//" + str(date.today()))
-
-
-figDirLocal = os.path.join(rawDir, "Figures")
-todayFigDirLocal = os.path.join(figDirLocal, "Historique//" + str(date.today()))
-
-try:
-    ownCloudFigDir = os.path.join(ownCloudDir, "Data_Analysis", "Figures")
-    ownCloudTodayFigDir = os.path.join(ownCloudFigDir, "Historique//" + str(date.today()))
-except:
-    ownCloudFigDir, ownCloudTodayFigDir = '', ''
-
-#### Local imports
-sys.path.append(mainDir + "//Code_Python")
-# import PincherAnalysis_JV as jva
-import MechanicsAnalysis_AJ as aja
-import utilityFunctions_JV as jvu
-# import TrackAnalyser as tka
-import TrackAnalyser_dev2_AJ as tka
-
+import GraphicStyles as gs
 import UtilityFunctions as ufun
+import TrackAnalyser as taka
 
 #### Potentially useful lines of code
 # get_ipython().run_line_magic('load_ext', 'autoreload')
 # get_ipython().run_line_magic('autoreload', '2')
-# todayFigDirLocal
+# cp.DirDataFigToday
 
 #### Pandas
 pd.set_option('display.max_columns', None)
@@ -100,20 +59,9 @@ pd.reset_option('display.max_rows')
 
 ####  Matplotlib
 matplotlib.rcParams.update({'figure.autolayout': True})
-plt.style.use('default') #Dark layout
 
-#### Fontsizes
-SMALLER_SIZE = 10
-SMALL_SIZE = 25
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 20
-plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=MEDIUM_SIZE)     # fontsize of the axes title
-plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALLER_SIZE)    # legend fontsize
-plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+#### Graphic options
+gs.set_default_options_jv()
 
 #### Bokeh
 from bokeh.io import output_notebook, show
@@ -124,109 +72,6 @@ from bokeh.palettes import Category10
 from bokeh.layouts import gridplot
 output_notebook()
 
-#### Markers
-my_default_marker_list = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
-markerList10 = ['o', 's', 'D', '>', '^', 'P', 'X', '<', 'v', 'p']
-
-#### Colors
-
-# prop_cycle = plt.rcParams['axes.prop_cycle']
-# colors = prop_cycle.by_key()['color']
-my_default_color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
-                         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-my_default_color_cycle = cycler(color=my_default_color_list)
-plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
-
-pairedPalette = sns.color_palette("tab20")
-pairedPalette = pairedPalette.as_hex()
-pairedPalette
-
-# clist = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c', '#98df8a']
-# sns.color_palette(clist)
-colorList10 = my_default_color_list
-sns.color_palette(my_default_color_list)
-
-
-bigPalette1 = sns.color_palette("tab20b")
-bigPalette1_hex = bigPalette1.as_hex()
-bigPalette1
-
-bigPalette2 = sns.color_palette("tab20c")
-bigPalette2_hex = bigPalette2.as_hex()
-bigPalette2
-
-customPalette_hex = []
-for ii in range(2, -1, -1):
-    customPalette_hex.append(bigPalette2_hex[4*0 + ii]) # blue
-    customPalette_hex.append(bigPalette2_hex[4*1 + ii]) # orange
-    customPalette_hex.append(bigPalette2_hex[4*2 + ii]) # green
-    customPalette_hex.append(bigPalette1_hex[4*3 + ii]) # red
-    customPalette_hex.append(bigPalette2_hex[4*3 + ii]) # purple
-    customPalette_hex.append(bigPalette1_hex[4*2 + ii]) # yellow-brown
-    customPalette_hex.append(bigPalette1_hex[4*4 + ii]) # pink
-    customPalette_hex.append(bigPalette1_hex[4*0 + ii]) # navy    
-    customPalette_hex.append(bigPalette1_hex[4*1 + ii]) # yellow-green
-    customPalette_hex.append(bigPalette2_hex[4*4 + ii]) # gray
-    
-# customPalette = sns.color_palette(customPalette_hex)
-colorList30 = customPalette_hex
-
-customPalette_hex = []
-for ii in range(3, -1, -1):
-    customPalette_hex.append(bigPalette2_hex[4*0 + ii]) # blue
-    customPalette_hex.append(bigPalette2_hex[4*1 + ii]) # orange
-    customPalette_hex.append(bigPalette2_hex[4*2 + ii]) # green
-    customPalette_hex.append(bigPalette1_hex[4*3 + ii]) # red
-    customPalette_hex.append(bigPalette2_hex[4*3 + ii]) # purple
-    customPalette_hex.append(bigPalette1_hex[4*2 + ii]) # yellow-brown
-    customPalette_hex.append(bigPalette1_hex[4*4 + ii]) # pink
-    customPalette_hex.append(bigPalette1_hex[4*0 + ii]) # navy    
-    customPalette_hex.append(bigPalette1_hex[4*1 + ii]) # yellow-green
-    customPalette_hex.append(bigPalette2_hex[4*4 + ii]) # gray
-    
-
-# customPalette = sns.color_palette(customPalette_hex)
-colorList40 = customPalette_hex
-
-# TEST to get a darker list
-# colorList40_darker = []
-# for i in range(len(colorList40)):
-#     c = colorList40[i]
-#     print(c)
-#     c_darker = jvu.lighten_color(c, 1.25)
-#     colorList40_darker.append(c_darker)
-
-# colorList40_darker = colorList40_darker.as_hex()
-# %% Test the colors
-
-# N = len(my_default_marker_list)
-# X = np.arange(1, N+1)
-# Y = np.arange(1, N+1)
-# fig, ax = plt.subplots(1, 1, figsize = (3, 3))
-# for i in range(N):
-#     for j in range(N):
-#         ax.plot([X[i]], [Y[-1-j]], color = my_default_color_list[i], marker = my_default_marker_list[j], 
-#                 ls = '', markersize = 10, markeredgecolor = 'k')
-# ax.set_xticks([])
-# ax.set_yticks([])
-# ax.set_xticklabels([])
-# ax.set_yticklabels([])
-# plt.show()
-
-N = len(colorList40)
-M = len(markerList10)
-X = np.arange(1, N+1)
-Y = np.arange(1, M+1)
-fig, ax = plt.subplots(1, 1, figsize = (0.3*N, 0.3*M))
-for i in range(N):
-    for j in range(M):
-        ax.plot([X[i]], [Y[-1-j]], color = colorList40[i], marker = markerList10[j], 
-                ls = '', markersize = 10, markeredgecolor = 'k')
-ax.set_xticks([])
-ax.set_yticks([])
-ax.set_xticklabels([])
-ax.set_yticklabels([])
-plt.show()
 
 # %% Reminders
 
@@ -241,59 +86,326 @@ plt.show()
 
 # ## 
 
+
+
+
 # %% TimeSeries functions
 
 
 # %%% List files
-# allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) \
-#                           if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv"))]
-# print(allTimeSeriesDataFiles)
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) \
+                          if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
+print(allTimeSeriesDataFiles)
 
 
 # %%% Get a time series
 
-# df = aja.getCellTimeSeriesData('22-03-31_M9_P2_C2')
+df = taka.getCellTimeSeriesData('22-02-09_M1_P1_C7')
 
 
-# # %%% Plot a time series
+# %%% Plot a time series
 
-# aja.plotCellTimeSeriesData('22-03-31_M9_P2_C2')
+# taka.plotCellTimeSeriesData('21-02-10_M1_P1_C2')
+taka.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_1Hz')
 
+# %%% Plot a time series
+
+taka.plotCellTimeSeriesData('22-03-21_M3_P1_C1_sin5-3_2Hz')
+
+# %%% Variation on the plotCellTimeSeriesData function
+
+# cellID = '22-02-09_M1_P1_C2'
+# fromPython = True
+
+# X = 'T'
+# Y = np.array(['B', 'F'])
+# units = np.array([' (mT)', ' (pN)'])
+# timeSeriesDataFrame = taka.getCellTimeSeriesData(cellID, fromPython)
+# print(timeSeriesDataFrame.shape)
+# if not timeSeriesDataFrame.size == 0:
+# #         plt.tight_layout()
+# #         fig.show() # figsize=(20,20)
+#     axes = timeSeriesDataFrame.plot(x=X, y=Y, kind='line', ax=None, subplots=True, sharex=True, sharey=False, layout=None, \
+#                     figsize=(4,6), use_index=True, title = cellID + ' - f(t)', grid=None, legend=False, style=None, logx=False, logy=False, \
+#                     loglog=False, xticks=None, yticks=None, xlim=None, ylim=None, rot=None, fontsize=None, colormap=None, \
+#                     table=False, yerr=None, xerr=None, secondary_y=False, sort_columns=False)
+#     plt.gcf().tight_layout()
+#     for i in range(len(Y)):
+#         axes[i].set_ylabel(Y[i] + units[i])
+        
+#     axes[0].set_yticks([0,2,4,6,8,10])
+#     axes[0].grid(axis="y")
+#     axes[1].set_yticks([0,10,20,30,40,50,100,150])
+#     axes[1].grid(axis="y")
+#     plt.gcf().show()
+# else:
+#     print('cell not found')
+    
+#### Nice display for B and F
+
+# cellID = '22-01-12_M2_P1_C3'
+# cellID = '22-01-12_M1_P1_C6'
+cellID = '22-02-09_M1_P1_C9'
+fromPython = True
+
+X = 'T'
+Y = np.array(['B', 'F'])
+units = np.array([' (mT)', ' (pN)'])
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
+
+defaultColorCycle = plt.rcParams['axes.prop_cycle']
+customColorCycle = cycler(color=['purple', 'red'])
+plt.rcParams['axes.prop_cycle'] = customColorCycle
+
+if not tSDF.size == 0:
+#         plt.tight_layout()
+#         fig.show() # figsize=(20,20)
+    axes = tSDF[tSDF['T']<=40].plot(x=X, y=Y, kind='line', 
+                    subplots=True, sharex=True, sharey=False,
+                    figsize=(4,4), use_index=True)
+    
+    plt.gcf().tight_layout()
+    for i in range(len(Y)):
+        axes[i].set_ylabel(Y[i] + units[i])
+        
+    axes[0].set_yticks([0,10,20,30,40,50])
+    axes[0].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    axes[0].grid(axis="y")
+    axes[0].legend().set_visible(False)
+    axes[1].set_yticks([k for k in range(0,1400,200)])
+    axes[1].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    axes[1].grid(axis="y")
+    axes[1].legend().set_visible(False)
+    axes[1].set_xticks([0,10,20,30,40])
+    axes[1].tick_params(axis='x', labelrotation = 0, labelsize = 10)
+    plt.gcf().show()
+else:
+    print('cell not found')
+plt.rcParams['axes.prop_cycle'] = defaultColorCycle
+
+
+# %%% Variation on the plotCellTimeSeriesData -> Sinus
+
+# cellID = '22-01-12_M2_P1_C3'
+# cellID = '22-01-12_M1_P1_C6'
+cellID = '22-03-21_M3_P1_C1_sin5-3_1Hz'
+fromPython = True
+
+X = 'T'
+Y = np.array(['B', 'F'])
+units = np.array([' (mT)', ' (pN)'])
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
+
+# defaultColorCycle = plt.rcParams['axes.prop_cycle']
+# customColorCycle = cycler(color=['green', 'red'])
+# plt.rcParams['axes.prop_cycle'] = customColorCycle
+
+fig, ax = plt.subplots(1,1, figsize = (10,5))
+
+if not tSDF.size == 0:
+#         plt.tight_layout()
+#         fig.show() # figsize=(20,20)
+    tsDFplot = tSDF[(tSDF['T']>=3.04) & (tSDF['T']<=6.05)]
+    
+    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = gs.colorList40[30], label = 'Thickness')
+    ax.set_ylabel('Thickness (nm)', color = gs.colorList40[30])
+    ax.set_ylim([0, 350])
+    ax.set_xlabel('Time (s)')
+
+    axR = ax.twinx()
+    axR.plot(tsDFplot['T'], tsDFplot['F'], color = gs.colorList40[23], label = 'Force')
+    axR.set_ylabel('Force (pN)', color = gs.colorList40[23])
+    axR.set_ylim([0, 150])
+
+    # axes = tSDF[(tSDF['T']>=20) & (tSDF['T']<=60)].plot(x=X, y=Y, kind='line', 
+    #                 subplots=True, sharex=True, sharey=False,
+    #                 figsize=(4,4), use_index=True)
+    
+    # plt.gcf().tight_layout()
+    # for i in range(len(Y)):
+    #     axes[i].set_ylabel(Y[i] + units[i])
+        
+    # axes[0].set_yticks([0,10,20,30,40,50])
+    # axes[0].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    # axes[0].grid(axis="y")
+    # axes[0].legend().set_visible(False)
+    # axes[1].set_yticks([k for k in range(0,1400,200)])
+    # axes[1].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    # axes[1].grid(axis="y")
+    # axes[1].legend().set_visible(False)
+    # axes[1].set_xticks([0,10,20,30,40])
+    # axes[1].tick_params(axis='x', labelrotation = 0, labelsize = 10)
+    plt.gcf().show()
+else:
+    print('cell not found')
+# plt.rcParams['axes.prop_cycle'] = defaultColorCycle
+
+# %%% Variation on the plotCellTimeSeriesData -> Broken Ramp
+
+# cellID = '22-01-12_M2_P1_C3'
+# cellID = '22-01-12_M1_P1_C6'
+cellID = '22-03-21_M4_P1_C3'
+fromPython = True
+
+X = 'T'
+Y = np.array(['B', 'F'])
+units = np.array([' (mT)', ' (pN)'])
+tSDF = taka.getCellTimeSeriesData(cellID, fromPython)
+
+# defaultColorCycle = plt.rcParams['axes.prop_cycle']
+# customColorCycle = cycler(color=['green', 'red'])
+# plt.rcParams['axes.prop_cycle'] = customColorCycle
+
+fig, ax = plt.subplots(1,1, figsize = (6,3))
+
+if not tSDF.size == 0:
+#         plt.tight_layout()
+#         fig.show() # figsize=(20,20)
+    tsDFplot = tSDF[(tSDF['T']>=31) & (tSDF['T']<=34)]
+    
+    ax.plot(tsDFplot['T'], 1000*(tsDFplot['D3']-4.503), color = gs.colorList40[30], label = 'Thickness')
+    ax.set_ylabel('Thickness (nm)', color = gs.colorList40[30])
+    ax.set_ylim([0, 1200])
+    ax.set_xlabel('Time (s)')
+
+    axR = ax.twinx()
+    axR.plot(tsDFplot['T'], tsDFplot['F'], color = gs.colorList40[23], label = 'Force')
+    axR.set_ylabel('Force (pN)', color = gs.colorList40[23])
+    axR.set_ylim([0, 1500])
+
+    # axes = tSDF[(tSDF['T']>=20) & (tSDF['T']<=60)].plot(x=X, y=Y, kind='line', 
+    #                 subplots=True, sharex=True, sharey=False,
+    #                 figsize=(4,4), use_index=True)
+    
+    # plt.gcf().tight_layout()
+    # for i in range(len(Y)):
+    #     axes[i].set_ylabel(Y[i] + units[i])
+        
+    # axes[0].set_yticks([0,10,20,30,40,50])
+    # axes[0].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    # axes[0].grid(axis="y")
+    # axes[0].legend().set_visible(False)
+    # axes[1].set_yticks([k for k in range(0,1400,200)])
+    # axes[1].tick_params(axis='y', labelrotation = 0, labelsize = 10)
+    # axes[1].grid(axis="y")
+    # axes[1].legend().set_visible(False)
+    # axes[1].set_xticks([0,10,20,30,40])
+    # axes[1].tick_params(axis='x', labelrotation = 0, labelsize = 10)
+    plt.gcf().show()
+else:
+    print('cell not found')
+# plt.rcParams['axes.prop_cycle'] = defaultColorCycle
 
 # %%% Plot multiple time series
 
-# allTimeSeriesDataFiles = [f for f in os.listdir(timeSeriesDataDir) if (os.path.isfile(os.path.join(timeSeriesDataDir, f)) and f.endswith(".csv"))]
-# for f in allTimeSeriesDataFiles:
-#     if '22-04-12_M2' in f:
-#         aja.plotCellTimeSeriesData(f[:-4])
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
+for f in allTimeSeriesDataFiles:
+    if '22-02-09_M3' in f:
+        taka.plotCellTimeSeriesData(f[:-4])
+
+allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) and f.endswith(".csv"))]
+for f in allTimeSeriesDataFiles:
+    if '22-02-09_M2' in f:
+        taka.plotCellTimeSeriesData(f[:-4])
 
 
-# # %%% Close all
+# %%% Close all
 
-# plt.close('all')
+plt.close('all')
+
+
+# %%% Functions acting on the trajectories
+
+listeTraj = taka.getCellTrajData('21-12-16_M1_P1_C10', Ntraj = 2)
+listeTraj[1]['pos']
+
+def testTraj(D0):
+    trajDir = os.path.join(cp.DirDataTimeseries, 'Trajectories')
+    allTimeSeriesDataFiles = [f for f in os.listdir(cp.DirDataTimeseries) 
+                              if (os.path.isfile(os.path.join(cp.DirDataTimeseries, f)) 
+                                  and f.endswith(".csv"))]
+    cellIDList = []
+    for f in allTimeSeriesDataFiles:
+        cellID = ufun.findInfosInFileName(f, 'cellID')
+        if '21-12-08' in cellID:
+            cellIDList.append(cellID)
+
+    print(cellIDList)
+
+    fig, ax = plt.subplots(1,2, figsize = (8,4))
+    width = 15
+    ax[0].set_title('Inside bead')
+    ax[0].axis([-width,width,-width,width])
+    ax[1].set_title('Outside bead')
+    ax[1].axis([-width,width,-width,width])
+
+    for C in (cellIDList):
+        listeTraj = taka.getCellTrajData(C)
+        iOut = (listeTraj[1]['pos'] == 'out')
+        iIn = 1 - iOut
+        dfIn, dfOut = listeTraj[iIn]['df'], listeTraj[iOut]['df']
+        Xin = dfIn.X.values - dfIn.X.values[0]
+        Yin = dfIn.Y.values - dfIn.Y.values[0]
+        Xout = dfOut.X.values - dfOut.X.values[0]
+        Yout = dfOut.Y.values - dfOut.Y.values[0]
+        npts = len(Xin)
+        for iii in range(1, npts):
+            D2in = ((Xin[iii]-Xin[iii-1])**2 + (Yin[iii]-Yin[iii-1])**2) ** 0.5
+            D2out = ((Xout[iii]-Xout[iii-1])**2 + (Yout[iii]-Yout[iii-1])**2) ** 0.5
+            if D2in > D0 and D2out > D0:
+                dxCorrIn = Xin[iii-1]-Xin[iii]
+                dyCorrIn = Yin[iii-1]-Yin[iii]
+                dxCorrOut = Xout[iii-1]-Xout[iii]
+                dyCorrOut = Yout[iii-1]-Yout[iii]
+                Xin[iii:] += dxCorrIn
+                Yin[iii:] += dyCorrIn
+                Xout[iii:] += dxCorrOut
+                Yout[iii:] += dyCorrOut
+        if np.max(np.abs(Xin)) < width and np.max(np.abs(Yin)) < width and np.max(np.abs(Xout)) < width and np.max(np.abs(Yout)) < width:
+            ax[0].plot(Xin, Yin)
+            ax[1].plot(Xout, Yout)
+
+    plt.show()
+    
+testTraj(1)
+    
+testTraj(1.5)
+
+
+
+
+# #############################################################################
+# %% GlobalTables functions
+
 
 
 # %%% Experimental conditions
 
-expDf = ufun.getExperimentalConditions(experimentalDataDir, save=True , sep = ',')
+expDf = ufun.getExperimentalConditions(cp.DirRepoExp, save=True , sep = ';')
+
+
+
+
 
 # =============================================================================
 # %%% Constant Field
 
 # %%%% Update the table
 
-# aja.computeGlobalTable_ctField(task='updateExisting', fileName = '', save=False, source = 'Python')
-
+# taka.computeGlobalTable_ctField(task='updateExisting', save=False)
 
 
 # %%%% Refresh the whole table
 
-# aja.computeGlobalTable_ctField(task = 'fromScratch', fileName = '', save = True, source = 'Python')
+# taka.computeGlobalTable_ctField(task = 'updateExisting', fileName = 'Global_CtFieldData_Py', save = True, source = 'Python') # task = 'updateExisting'
 
 
-# # %%%% Display
+# %%%% Display
 
-# df = aja.getGlobalTable_ctField().head()
+df = taka.getGlobalTable_ctField().head()
+
+
+
 
 
 
@@ -302,40 +414,82 @@ expDf = ufun.getExperimentalConditions(experimentalDataDir, save=True , sep = ',
 
 # %%%% Update the table
 
-tka.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_AJ', 
-                            save = True, PLOT = True, source = 'Python')
+# taka.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py', 
+#                             save = False, PLOT = False, source = 'Matlab') # task = 'updateExisting'
 
 
 # %%%% Refresh the whole table
 
-# aja.computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData_AJ', 
-#                             save = True, PLOT = True, source = 'Python')
+# taka.computeGlobalTable_meca(task = 'updateExisting', fileName = 'Global_MecaData_Py2', 
+#                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
-# %%%% Specific experiments
+# %%%% Drugs
 
-Task = '22-08-26_M5_P1_C2' # For instance '22-03-30 & '22-03-31'
-tka.computeGlobalTable_meca(task = Task, fileName = 'Global_MecaData_AJ', 
-                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+drugTask = '22-03-30'
+# taka.computeGlobalTable_meca(task = drugTask, fileName = 'Global_MecaData_Drugs_Py', 
+#                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+
+
+# %%%% Non-Lin
+
+nonLinTask = '21-12-08 & 22-01-12 & 22-02-09'
+# taka.computeGlobalTable_meca(task = nonLinTask, fileName = 'Global_MecaData_NonLin_Py', 
+#                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+# %%%% MCA
+
+MCAtask = '21-01-18 & 21-01-21'
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA', 
+#                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+#                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+
+# %%%% HoxB8
+
+HoxB8task = '22-05-03 & 22-05-04 & 22-05-05' #' & 22-05-04 & 22-05-05'
+taka.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8', 
+                            save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+#                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+# %%%% Demo for Duya
+
+Demo = '22-06-16' #' & 22-05-04 & 22-05-05'
+# taka.computeGlobalTable_meca(task = Demo, fileName = 'Global_MecaData_Demo', 
+#                             save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+#                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Precise dates (to plot)
 
-date = '22-08-26' # For instance '22-03-30 & '22-03-31'
-tka.computeGlobalTable_meca(task = date, fileName = 'Global_MecaData_AJ', 
-                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '22-02-09', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '21-01-18', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '21-01-21', fileName = 'Global_MecaData_Py2', save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '22-02-09_M1', fileName = 'Global_MecaData_NonLin2_Py', 
+#                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = '21-01-18_M2_P1_C3', fileName = 'Global_MecaData_NonLin2_Py', 
+#                             save = False, PLOT = True, source = 'Python') # task = 'updateExisting'
+taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
+                            save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Display
 
-# df = aja.getGlobalTable_meca('Global_MecaData_Py2').tail()
+df = taka.getGlobalTable_meca('Global_MecaData_Py2').tail()
 
+# %%%% Test of Numi's CRAZY GOOD NEW STUFF :D
+
+taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
+                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
 
 # =============================================================================
 # %%% Fluorescence
 
 # %%%% Display
 
-df = aja.getFluoData().head()
+df = taka.getFluoData().head()
 
 
 
@@ -343,274 +497,26 @@ df = aja.getFluoData().head()
 # #############################################################################
 # %% > Data import & export
 
-#### Data import
+# %%% Examples
 
-#### Display
+#### GlobalTable_ctField_Py
+# GlobalTable_ctField_Py = taka.getMergedTable('Global_CtFieldData_Py')
 
-# df1 = ufun.getExperimentalConditions().head()
-# df2 = aja.getGlobalTable_ctField().head()
-# df3 = aja.getGlobalTable_meca().head()
-# df4 = aja.getFluoData().head()
+#### GlobalTable_meca_Py2
+# GlobalTable_meca_Py2 = taka.getMergedTable('Global_MecaData_Py2')
 
+# GlobalTable_meca_MCA = taka.getGlobalTable(kind = 'meca_MCA')
+# GlobalTable_meca_MCA = taka.getMergedTable('Global_MecaData_MCA2', mergeFluo = True)
 
-# #### GlobalTable_ctField
-
-# GlobalTable_ctField = aja.getGlobalTable(kind = 'ctField')
-# GlobalTable_ctField.head()
-
-
-# #### GlobalTable_ctField_Py
-
-# GlobalTable_ctField_Py = aja.getGlobalTable(kind = 'ctField_py')
-# GlobalTable_ctField_Py.head()
-
-
-# #### GlobalTable_meca
-
-# GlobalTable_meca = aja.getGlobalTable(kind = 'meca_matlab')
-# GlobalTable_meca.tail()
-
-
-#### GlobalTable_meca_Py
-
-GlobalTable_meca = aja.getGlobalTable(kind = 'Global_MecaData_AJ')
-GlobalTable_meca.head()
-
-
-# #### GlobalTable_meca_Py2
-
-# GlobalTable_meca_Py2 = aja.getGlobalTable(kind = 'meca_py2')
-# GlobalTable_meca_Py2.head()
-
-
-# #### Global_MecaData_NonLin_Py
-
-# # GlobalTable_meca_nonLin = aja.getGlobalTable(kind = 'meca_nonLin')
-# GlobalTable_meca_nonLin = aja.getGlobalTable(kind = 'Global_MecaData_NonLin2_Py')
-# GlobalTable_meca_nonLin.head()
-
-
-# %%% Custom data export
-
-# %%%% 21-06-28 Export of E - h data for Julien
-
-# GlobalTable_meca_Py_expJ = GlobalTable_meca_Py.loc[GlobalTable_meca_Py['validatedFit'] & GlobalTable_meca_Py['validatedThickness']]\
-#                                                [['cell type', 'cell subtype', 'bead type', 'drug', 'substrate', 'compNum', \
-#                                                  'EChadwick', 'H0Chadwick', 'surroundingThickness', 'ctFieldThickness']]
-# GlobalTable_meca_Py_expJ = GlobalTable_meca_Py_expJ.reset_index()
-# GlobalTable_meca_Py_expJ = GlobalTable_meca_Py_expJ.drop('index', axis=1)
-# savePath = os.path.join(dataDir, 'mecanicsData_3T3.csv')
-# GlobalTable_meca_Py_expJ.to_csv(savePath, sep=';')
+#### Global_MecaData_HoxB8
+# GlobalTable_meca_HoxB8 = taka.getMergedTable('Global_MecaData_HoxB8', mergeUMS = True)
 
 
 # %% > Plotting Functions
 
-def TmodulusVsCompression(GlobalTable_meca, dates, selectedStressRange, activationType = 'all'):
-    sns.set_style('darkgrid')
-    stressRanges = ['100+/-100', '150+/-100', '200+/-100', '250+/-100', \
-                   '300+/-100', '350+/-100', '400+/-100', '450+/-100', \
-                   '500+/-100', '550+/-100', '600+/-100', '650+/-100', \
-                   '700+/-100', '750+/-100', '800+/-100', '850+/-100', \
-                   '950+/-100', '1000+/-100', '1050+/-100', '1100+/-100']
-    
-    if not dates == 'all':
-        GlobalTable_meca = GlobalTable_meca[GlobalTable_meca['manipID'].str.contains(dates)]
-        
-    if not activationType == 'all':
-        GlobalTable_meca = GlobalTable_meca[GlobalTable_meca['activation type'] == activationType]
-    
-    
-    allFiles = np.unique(GlobalTable_meca['cellID'])
-    # print(allFiles)
-    lenSubplots = len(allFiles)
-    rows= int(np.floor(np.sqrt(lenSubplots)))
-    cols= int(np.ceil(lenSubplots/rows))
-    fontsize = 15
-    
-    if selectedStressRange == 'all':
-       for selectedStressRange in stressRanges:
-           print(selectedStressRange)
-           fig, axes = plt.subplots(nrows = rows, ncols = cols, figsize = (15,15))
-           _axes = []
-           for ax_array in axes:
-               for ax in ax_array:
-                   _axes.append(ax)
-                   
-           for cellID, ax in zip(allFiles, _axes):
-               GlobalTable_meca_spec = GlobalTable_meca[(GlobalTable_meca['cellID'] == cellID)]
-               KChadwick = GlobalTable_meca_spec['KChadwick_S='+selectedStressRange].values
-               compNum = GlobalTable_meca_spec['compNum'].values
-               firstActivation = GlobalTable_meca['first activation'].values[0] + 1
-               categories = (GlobalTable_meca_spec['validatedFit_S='+selectedStressRange] == True).values
-               activationTag = GlobalTable_meca['activation type'][GlobalTable_meca['cellID'] == cellID].values[0]
-               if activationTag == 'global':
-                   markerColor = 'orange'
-               elif activationTag == 'at beads':
-                   markerColor = 'blue'
-               elif activationTag == 'away from beads':   
-                   markerColor = 'green'
-               categories = np.asarray(categories*1)
-               colormap = np.asarray(['r', markerColor])
-               labels = np.asarray(['Not valid', activationTag])
-               ax.scatter(compNum, KChadwick, c = colormap[categories], label = labels[categories])
-               ax.set_title(cellID+'-'+activationTag, fontsize = 15)
-               
-               
-               ax.set_ylim(0, 40000)
-               ax.set_xlim(0, len(compNum)+1)
-               ax.axvline(x = firstActivation, color = 'r')
-               
-               plt.setp(ax.get_xticklabels(), fontsize=fontsize)
-               plt.setp(ax.get_yticklabels(), fontsize=fontsize)
-               fig.suptitle('KChadwick_S='+selectedStressRange+' vs. CompNum_'+activationType)
-               try:
-                   os.mkdir(todayFigDir)
-               except:
-                   pass
-               
-               plt.savefig(todayFigDir+'/'+dates+'TModulusVsComp_'+(selectedStressRange[:-6])+'_'+activationType+'.png')
-           plt.show()
-           plt.clf()
-    else:
-        fig, axes = plt.subplots(nrows = rows, ncols = cols, figsize = (15,15))
-        _axes = []
-        for ax_array in axes:
-            for ax in ax_array:
-                _axes.append(ax)
-        for cellID, ax in zip(allFiles, _axes):
-            print(cellID)
-            GlobalTable_meca_spec = GlobalTable_meca[(GlobalTable_meca['cellID'] == cellID)]
-            KChadwick = GlobalTable_meca_spec['KChadwick_S='+selectedStressRange].values
-            compNum = GlobalTable_meca_spec['compNum'].values
-            firstActivation = GlobalTable_meca['first activation'].values[0] + 1
-            categories = (GlobalTable_meca_spec['validatedFit_S='+selectedStressRange] == True).values
-            c = GlobalTable_meca['activation type'][GlobalTable_meca['cellID'] == cellID].values[0]
-            activationTag = GlobalTable_meca['activation type'][GlobalTable_meca['cellID'] == cellID].values[0]
-            if activationTag == 'global':
-                markerColor = 'orange'
-            elif activationTag == 'at beads':
-                markerColor = 'blue'
-            elif activationTag == 'away from beads':   
-                markerColor = 'green'
-            categories = np.asarray(categories*1)
-            colormap = np.asarray(['r', markerColor])
-            labels = np.asarray(['Not valid', activationTag])
-            ax.scatter(compNum, KChadwick, c = colormap[categories], label = labels[categories])
-            ax.set_title(cellID+'-'+activationTag, fontsize = 15)
-            
-            
-            ax.set_ylim(0,40000)
-            ax.set_xlim(0, len(compNum)+1)
-            ax.axvline(x = firstActivation, color = 'r')
-            
-            plt.setp(ax.get_xticklabels(), fontsize=fontsize)
-            plt.setp(ax.get_yticklabels(), fontsize=fontsize)
-            fig.suptitle('KChadwick_S='+selectedStressRange+' vs. CompNum_'+activationType)
-            try:
-                os.mkdir(todayFigDir)
-            except:
-                pass
-            
-            plt.savefig(todayFigDir+'/'+dates+'TModulusVsComp_'+(selectedStressRange[:-6])+'_'+activationType+'.png')
-        plt.show()
-    
-def bestH0vsCompression(GlobalTable_meca, dates, activationType = 'all'):
-    
-    allFiles = np.unique(GlobalTable_meca['cellID'])
-    lenSubplots = len(allFiles)
-    rows= int(np.floor(np.sqrt(lenSubplots)))
-    cols= int(np.ceil(lenSubplots/rows))
-    fontsize = 15
-    
-    if not dates == 'all':
-        GlobalTable_meca = GlobalTable_meca[GlobalTable_meca['manipID'].str.contains(dates)]
-        
-    if not activationType == 'all':
-        GlobalTable_meca = GlobalTable_meca[GlobalTable_meca['activation type'] == activationType]
-    
-    fig, axes = plt.subplots(nrows = rows, ncols = cols, figsize = (15,15))
-    _axes = []
-    for ax_array in axes:
-        for ax in ax_array:
-            _axes.append(ax)
-            
-    for cellID, ax in zip(allFiles, _axes):
-        print(cellID)
-        GlobalTable_meca_spec = GlobalTable_meca[(GlobalTable_meca['cellID'] == cellID)]
-        firstActivation = GlobalTable_meca['first activation'].values[0] + 1
-        c = GlobalTable_meca['activation type'][GlobalTable_meca['cellID'] == cellID].values[0]
-        activationTag = GlobalTable_meca['activation type'][GlobalTable_meca['cellID'] == cellID].values[0]
-        if activationTag == 'global':
-            markerColor = 'orange'
-        elif activationTag == 'at beads':
-            markerColor = 'blue'
-        elif activationTag == 'away from beads':   
-            markerColor = 'green'
-        
-        bestH0 = GlobalTable_meca_spec['bestH0'].values
-        compNum = GlobalTable_meca_spec['compNum'].values
-        
-        ax.scatter(compNum, bestH0, color = markerColor)
-        ax.set_title(cellID+'-'+activationTag, fontsize = 15)
-        
-        
-        ax.set_ylim(0,2000)
-        ax.set_xlim(0, len(compNum)+1)
-        ax.axvline(x = firstActivation, color = 'r')
-        
-        plt.setp(ax.get_xticklabels(), fontsize=fontsize)
-        plt.setp(ax.get_yticklabels(), fontsize=fontsize)
-        fig.suptitle('bestH0 vs. CompNum_'+activationType)
-        try:
-            os.mkdir(todayFigDir)
-        except:
-            pass
-        
-        plt.savefig(todayFigDir+'/'+dates+'H0VsComp_'+activationType+'.png')
-    plt.show()
-    
-
-#%%%% Plotting TModulus vs. Compression Number
-selectedStressRange = 'all'
-dates = '22.05.31'
-activationType = 'at beads'
-TmodulusVsCompression(GlobalTable_meca, dates, selectedStressRange, activationType)
-
-#%%%% Plotting best H0 vs. Compression Number
-
-dates = '22.05.31'
-activationType = 'at beads'
-bestH0vsCompression(GlobalTable_meca, dates, activationType)
-
-#%%%%
-# # %%% Tests
-
-# # H0 vs Compression Number
-# expt = '20220331_100xoil_3t3optorhoa_4.5beads_15mT_Mechanics'
-# f = '22-03-31_M8_P2_C2_disc20um_L40'
-# date = '22.03.31'
-
-# file = 'C:/Users/anumi/OneDrive/Desktop/ActinCortexAnalysis/Data_Analysis/TimeSeriesData/'+f+'_PY.csv'
-# tsDF = pd.read_csv(file, sep=';')
-
-
-# indices = GlobalTable_meca[GlobalTable_meca['cellID'] == ufun.findInfosInFileName(f, 'cellID')].index.tolist() 
-
-# plt.figure(figsize=(20,10))
-# plt.rcParams.update({'font.size': 35})
-# plt.plot(GlobalTable_meca['compNum'][indices].values, GlobalTable_meca['bestH0'][indices].values)
-# plt.axvline(x = 5.5, color = 'r', marker='.')
-# plt.xlabel('Compression Number')
-# plt.ylabel('bestH0 (nm)')
-# plt.title('bestH0 vs Compression No. | '+f)
-# plt.savefig('D:/Anumita/MagneticPincherData/Figures/Historique/2022-04-20/MecaAnalysis_allCells/'+f+'_H0vT.png')
-# plt.show()
-
-
 # %%% Objects declaration
 
-
-Styles = {''} # Project of automatic formatting according to the type of data
+# Fill these according to your plots
 
 renameDict1 = {'SurroundingThickness':'Thickness (nm) [b&a]',
                'surroundingThickness':'Thickness (nm) [b&a]',
@@ -621,28 +527,7 @@ renameDict1 = {'SurroundingThickness':'Thickness (nm) [b&a]',
                'meanFluoPeakAmplitude' : 'Fluo Intensity (a.u.)',               
                'none':'control',               
                'doxycyclin':'expressing iMC linker',               
-               'none & BSA coated glass':'control & non adherent',               
-               'doxycyclin & BSA coated glass':'iMC & non adherent',               
-               'none & 20um fibronectin discs':'control & adherent on fibro',               
-               'doxycyclin & 20um fibronectin discs':'iMC & adherent on fibro',               
-               'BSA coated glass & none':'control & non adherent',               
-               'BSA coated glass & doxycyclin':'iMC & non adherent',               
-               '20um fibronectin discs & none':'control & adherent on fibro',               
-               '20um fibronectin discs & doxycyclin':'iMC & adherent on fibro',               
-               'aSFL & none':'aSFL control',
-               'aSFL & doxycyclin':'aSFL iMC',
-               'aSFL-6FP & none':'aSFL-6FP control',               
-               'aSFL-6FP & doxycyclin':'aSFL-6FP long-iMC',               
-               'aSFL-6FP-2 & none':'aSFL-6FP-2 control',               
-               'aSFL-6FP-2 & doxycyclin':'aSFL-6FP-2 long-iMC',               
-               'aSFL-A8 & none':'aSFL-A8 control',               
-               'aSFL-A8 & doxycyclin':'aSFL-A8 iMC',               
-               'aSFL-A8-2 & none':'aSFL-A8-2 control',               
-               'aSFL-A8-2 & doxycyclin':'aSFL-A8-2 iMC',               
-               'dmso' : 'DMSO, no linker', 
-               'smifh2' : 'SMIFH2, no linker', 
-               'dmso, doxycyclin' : 'DMSO, iMC linker', 
-               'smifh2, doxycyclin' : 'SMIFH2, iMC linker'}
+               }
 
 styleDict1 =  {'none & BSA coated glass':{'color':'#ff9896','marker':'^'},               
                'doxycyclin & BSA coated glass':{'color':'#d62728','marker':'^'},               
@@ -650,29 +535,14 @@ styleDict1 =  {'none & BSA coated glass':{'color':'#ff9896','marker':'^'},
                'doxycyclin & 20um fibronectin discs':{'color':'#1f77b4','marker':'o'},               
                'none':{'color':'#aec7e8','marker':'o'},               
                'doxycyclin':{'color':'#1f77b4','marker':'o'},               
-               'BSA coated glass & none':{'color':'#ff9896','marker':'^'},               
-               'BSA coated glass & doxycyclin':{'color':'#d62728','marker':'^'},               
-               '20um fibronectin discs & none':{'color':'#aec7e8','marker':'o'},               
-               '20um fibronectin discs & doxycyclin':{'color':'#1f77b4','marker':'o'},               
-               'aSFL':{'color':'colorList40[10]','marker':'o'},               
-               'aSFL-6FP':{'color':'#2ca02c','marker':'o'},               
-               'aSFL-A8':{'color':'#ff7f0e','marker':'o'},                
-               'aSFL & none':{'color':'colorList40[10]','marker':'o'},               
-               'aSFL & doxycyclin':{'color':'colorList40[30]','marker':'o'},               
-               'aSFL-6FP & none':{'color':'#98df8a','marker':'o'},               
-               'aSFL-6FP & doxycyclin':{'color':'#2ca02c','marker':'o'},               
-               'aSFL-A8 & none':{'color':'#ffbb78','marker':'o'},              
-               'aSFL-A8 & doxycyclin':{'color':'#ff7f0e','marker':'o'},
-               'DictyDB_M270':{'color':'lightskyblue','marker':'o'}, 
-               'DictyDB_M450':{'color': 'maroon','marker':'o'},
-               'M270':{'color':'lightskyblue','marker':'o'}, 
-               'M450':{'color': 'maroon','marker':'o'}}
+               }
 
 
-# These functions use matplotlib.pyplot and seaborn libraries to display 1D categorical or 2D plots
+
 
 # %%% Main functions
 
+# These functions use matplotlib.pyplot and seaborn libraries to display 1D categorical or 2D plots
 
 def D1Plot(data, fig = None, ax = None, CondCol=[], Parameters=[], Filters=[], 
            Boxplot=True, AvgPerCell=False, cellID='cellID', co_order=[],
@@ -684,6 +554,8 @@ def D1Plot(data, fig = None, ax = None, CondCol=[], Parameters=[], Filters=[],
     for fltr in Filters:
         data_filtered = data_filtered.loc[fltr]    
     NCond = len(CondCol)
+    
+    print(data_filtered.shape)
     
     if NCond == 1:
         CondCol = CondCol[0]
@@ -783,7 +655,7 @@ def D1Plot(data, fig = None, ax = None, CondCol=[], Parameters=[], Filters=[],
         ax[k].tick_params(axis='x', labelrotation = 10)
         ax[k].yaxis.grid(True)           
     
-    plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+    plt.rcParams['axes.prop_cycle'] = gs.my_default_color_cycle
     return(fig, ax)
 
 
@@ -833,11 +705,11 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
     # Colors and markers
     if len(co_order) > 0:
         Conditions = co_order
-        colorList, mL = getStyleLists(co_order, styleDict1)
+        gs.colorList, mL = getStyleLists(co_order, styleDict1)
     else:
         co_order = Conditions
-        colorList = colorList10
-    markerList = markerList10
+        gs.colorList = gs.colorList10
+    markerList = gs.markerList10
         
         
     for k in range(NPlots):
@@ -851,7 +723,7 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
             sub_data_f_agg = data_f_agg.loc[data_f_agg[CondCol] == c]
             Ncells = sub_data_f_agg.shape[0]
             
-            color = colorList[i]
+            color = gs.colorList[i]
             
             if showManips:
                 allManipID = list(sub_data_f_agg['manipID'].unique())
@@ -926,7 +798,7 @@ def D1PlotDetailed(data, CondCol=[], Parameters=[], Filters=[], Boxplot=True, ce
             addStat_df(ax[k], data_f_agg.rename(columns = renameDict), 
                     box_pairs, Parameters[k], CondCol, test = statMethod)
         
-    plt.rcParams['axes.prop_cycle'] = my_default_color_cycle
+    plt.rcParams['axes.prop_cycle'] = gs.my_default_color_cycle
     return(fig, ax)
 
 
@@ -971,7 +843,7 @@ def D1PlotPaired(data, Parameters=[], Filters=[], Boxplot=True, cellID='cellID',
     print('Number of values : {:.0f}'.format(NValues))
     
     for i in range(NParms):
-        color = my_default_color_list[i]
+        color = gs.my_default_color_list[i]
         
         ax.plot([posParms[i] for k in range(NValues)], parmsValues[i,:], 
                 color = color, marker = 'o', markeredgecolor = 'k', markersize = markersize,
@@ -1124,12 +996,14 @@ def D2Plot_wFit(data, fig = None, ax = None,
     
     if len(co_order) > 0:
         try:
-            colorList, markerList = getStyleLists(co_order, styleDict1)
+            gs.colorList, markerList = getStyleLists(co_order, styleDict1)
         except:
-            colorList, markerList = colorList30, markerList10
+            gs.colorList, markerList = gs.colorList30, gs.markerList10
     else:
         co_order = Conditions
-        colorList, markerList = colorList30, markerList10
+        gs.colorList, markerList = gs.colorList30, gs.markerList10
+        
+    gs.colorList = [gs.colorList40[32]]
     
     if fig == None:
         fig, ax = plt.subplots(1, 1, figsize = (8*figSizeFactor,5))
@@ -1158,7 +1032,7 @@ def D2Plot_wFit(data, fig = None, ax = None,
     
     for i in range(len(co_order)):
         c = co_order[i]
-        color = colorList[i]
+        color = gs.colorList[i]
 #         marker = my_default_marker_list[i]
         Xraw = data_filtered[data_filtered[CondCol] == c][XCol].values
         Yraw = data_filtered[data_filtered[CondCol] == c][YCol].values
@@ -1178,35 +1052,43 @@ def D2Plot_wFit(data, fig = None, ax = None,
             if modelFit:
                 print('Fitting condition ' + c + ' with model ' + modelType)
                 if modelType == 'y=ax+b':
-                    params, results = jvu.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(X, Y) # Y=a*X+b ; params[0] = b,  params[1] = a
                     pval = results.pvalues[1] # pvalue on the param 'a'
                     eqnText += " ; Y = {:.1f} X + {:.1f}".format(params[1], params[0])
                     eqnText += " ; p-val = {:.3f}".format(pval)
                     print("Y = {:.5} X + {:.5}".format(params[1], params[0]))
                     print("p-value on the 'a' coefficient: {:.4e}".format(pval))
-                    fitY = params[1]*X + params[0]
-                    imin = np.argmin(X)
-                    imax = np.argmax(X)
-                    ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1',
+                    # fitY = params[1]*X + params[0]
+                    # imin = np.argmin(X)
+                    # imax = np.argmax(X)
+                    # ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1',
+                    #         color = color, zorder = 4)
+                    fitX = np.linspace(np.min(X), np.max(X), 100)
+                    fitY = params[1]*fitX + params[0]
+                    ax.plot(fitX, fitY, '--', lw = '1', 
                             color = color, zorder = 4)
 
                 elif modelType == 'y=A*exp(kx)':
-                    params, results = jvu.fitLine(X, np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(X, np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
                     pval = results.pvalues[1] # pvalue on the param 'k'
                     eqnText += " ; Y = {:.1f}*exp({:.1f}*X)".format(params[0], params[1])
                     eqnText += " ; p-val = {:.3f}".format(pval)
                     print("Y = {:.5}*exp({:.5}*X)".format(np.exp(params[0]), params[1]))
                     print("p-value on the 'k' coefficient: {:.4e}".format(pval))
-                    fitY = np.exp(params[0])*np.exp(params[1]*X)
-                    imin = np.argmin(X)
-                    imax = np.argmax(X)
-                    ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1',
+                    # fitY = np.exp(params[0])*np.exp(params[1]*X)
+                    # imin = np.argmin(X)
+                    # imax = np.argmax(X)
+                    # ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1',
+                    #         color = color, zorder = 4)
+                    fitX = np.linspace(np.min(X), np.max(X), 100)
+                    fitY = np.exp(params[0])*np.exp(params[1]*fitX)
+                    ax.plot(fitX, fitY, '--', lw = '1', 
                             color = color, zorder = 4)
                     
                 elif modelType == 'y=k*x^a':
                     posValues = ((X > 0) & (Y > 0))
                     X, Y = X[posValues], Y[posValues]
-                    params, results = jvu.fitLine(np.log(X), np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
+                    params, results = ufun.fitLine(np.log(X), np.log(Y)) # Y=a*X+b ; params[0] = b,  params[1] = a
                     k = np.exp(params[0])
                     a = params[1]
                     R2 = results.rsquared
@@ -1217,10 +1099,14 @@ def D2Plot_wFit(data, fig = None, ax = None,
                     print("Y = {:.4e} * X^{:.4f}".format(k, a))
                     print("p-value on the 'a' coefficient: {:.4e}".format(pval))
                     print("R2 of the fit: {:.4f}".format(R2))
-                    fitY = k * X**a
-                    imin = np.argmin(X)
-                    imax = np.argmax(X)
-                    ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1', 
+                    # fitY = k * X**a
+                    # imin = np.argmin(X)
+                    # imax = np.argmax(X)
+                    # ax.plot([X[imin],X[imax]], [fitY[imin],fitY[imax]], '--', lw = '1', 
+                    #         color = color, zorder = 4)
+                    fitX = np.linspace(np.min(X), np.max(X), 100)
+                    fitY = k * fitX**a
+                    ax.plot(fitX, fitY, '--', lw = '1', 
                             color = color, zorder = 4)
                 
                 print('Number of values : {:.0f}'.format(len(Y)))
@@ -1800,237 +1686,12 @@ def getStyleLists(co_order, styleDict):
     return(colors, markers)
 
 
-def buildStyleDictMCA():
-    # TBC
-    styleDict = {}
-    return(styleDict)
-
-
-# %%% Tests of plotting functions
-
-
-#### Test getAggDf_weightedAvg(df, cellID, CondCol, Variables, WeightCols)
-
-# data = GlobalTable_meca_nonLin
-
-# dates = ['22-02-09'] #['21-12-08', '22-01-12'] ['21-01-18', '21-01-21', '21-12-08']
-
-# filterList = [(data['validatedThickness'] == True),
-#               (data['cell subtype'] == 'aSFL'), 
-#               (data['bead type'].apply(lambda x : x == list(['M450']))),
-#               (data['substrate'] == '20um fibronectin discs'),
-#               (data['date'].apply(lambda x : x in dates))]  # (data['validatedFit'] == True), 
-# globalFilter = filterList[0]
-# for k in range(1, len(filterList)):
-#     globalFilter = globalFilter & filterList[k]
-
-# data_f = data[globalFilter]
-
-# fitMin = [S for S in range(25,1225,50)]
-# fitMax = [S+150 for S in fitMin]
-# fitCenters = np.array([S+75 for S in fitMin])
-# regionFitsNames = [str(fitMin[ii]) + '<s<' + str(fitMax[ii]) for ii in range(len(fitMin))]
-
-# listColumnsMeca = []
-
-# KChadwick_Cols = []
-# KWeight_Cols = []
-
-# for rFN in regionFitsNames:
-#     listColumnsMeca += ['KChadwick_'+rFN, 'K_CIW_'+rFN, 'R2Chadwick_'+rFN, 'K2Chadwick_'+rFN, 
-#                         'H0Chadwick_'+rFN, 'Npts_'+rFN, 'validatedFit_'+rFN]
-#     KChadwick_Cols += [('KChadwick_'+rFN)]
-
-#     K_CIWidth = data_f['K_CIW_'+rFN] #.apply(lambda x : x.strip('][').split(', ')).apply(lambda x : (np.abs(float(x[0]) - float(x[1]))))
-#     KWeight = (data_f['KChadwick_'+rFN]/K_CIWidth) # **2
-#     data_f['K_Weight_'+rFN] = KWeight
-#     data_f['K_Weight_'+rFN] *= data_f['KChadwick_'+rFN].apply(lambda x : (x<1e6))
-#     data_f['K_Weight_'+rFN] *= data_f['R2Chadwick_'+rFN].apply(lambda x : (x>1e-2))
-#     data_f['K_Weight_'+rFN] *= data_f['K_CIW_'+rFN].apply(lambda x : (x!=0))
-#     KWeight_Cols += [('K_Weight_'+rFN)]
-    
-
-# # dictWeights = {}
-# # for i in range(len(Variables)):
-# #     v = Variables[i]
-# #     w = WeightCols[i]
-# #     dictWeights[v] = w
-# # def nan2zero(x):
-# #     if np.isnan(x):
-# #         return(0)
-# #     else:
-# #         return(x)
-
-# # for v in Variables:
-# #     df[v] = df[v].apply(nan2zero)
-# #     df[dictWeights[v]] = df[dictWeights[v]].apply(nan2zero)
-# # cellIDvals = df['cellID'].unique()
-# # for v in Variables:
-# #     for c in cellIDvals:
-# #         if np.sum(df.loc[df['cellID'] == c, v].values) == 0:
-# #             df.loc[df['cellID'] == c, dictWeights[v]].apply(lambda x: 1)
-            
-# # df
-
-# CondCol = 'date'
-# Variables = KChadwick_Cols
-# WeightCols = KWeight_Cols
-# data_f_agg = getAggDf_weightedAvg(data_f, 'cellID', CondCol, Variables, WeightCols)
-# data_f_agg
-
-
-#### Test getAggDf(df, cellID, CondCol, Variables)
-
-# data = GlobalTable_meca_Py2
-
-# Filters = [(data['validatedFit'] == True), (data['validatedThickness'] == True)]
-
-# data_f = data
-# for fltr in Filters:
-#     data_f = data_f.loc[fltr]
-
-# # dfA = getAggDf(data_f, 'cellID', 'bead type', ['surroundingThickness', 'EChadwick'])
-# dfA = getAggDf(data_f, 'cellID', 'bead type', ['ctFieldThickness', 'EChadwick'])
-# dfA
-
-
-#### Test the D2Plot_wFit
-# data = GlobalTable_meca_Py2
-
-# Filters = [(data['validatedFit'] == True), 
-#            (data['validatedThickness'] == True), 
-#            (data['substrate'] == '20um fibronectin discs'),
-#            (data['date'].apply(lambda x : x in ['21-12-16','21-12-08']))]
-
-# fig, ax = D2Plot_wFit(data, XCol='ctFieldThickness', YCol='EChadwick', CondCol = ['bead type'],
-#            Filters=Filters, cellID = 'cellID', AvgPerCell=True, xscale = 'log', yscale = 'log', 
-#            modelFit=True, modelType = 'y=k*x^a')
-
-# ax.set_ylabel('EChadwick (Pa)')
-# ax.set_xlabel('Thickness at low force (nm)')
-# fig.suptitle('3T3aSFL: E(h)')
-# ax.legend(loc = 'upper right')
-
-# # jvu.archiveFig(fig, ax, name='E(h)_3T3aSFL_Dec21_M450-5-13_vs_M270-14-54', figDir = todayFigDirLocal + '//' + figSubDir)
-# plt.show()
-
-
-#### Test of the averaging per cell routine
-
-# data = GlobalTable_meca
-# CondCol='drug'
-# Parameters=['SurroundingThickness','EChadwick']
-# Filters = [(GlobalTable_meca['Validated'] == 1)]
-# AvgPerCell=True
-# cellID='CellName'
-
-# data_filtered = data
-# for fltr in Filters:
-#     data_filtered = data_filtered.loc[fltr]
-
-# group = data_filtered.groupby(cellID)
-# dictAggMean = getDictAggMean(data_filtered)
-# data_filtered = group.agg(dictAggMean.pop(cellID)) #.reset_index(level=0, inplace=True)
-# data_filtered.reset_index(level=0, inplace=True)
-# data_filtered=data_filtered[[cellID]+[CondCol]+Parameters]
-# print(data_filtered)
-
-
-#### Test of a routine to remove points of a list of XY positions where at least 1 of the coordinates is 'nan'
-
-# XYraw = np.array([[np.nan, 2, 3, np.nan, 5], [10,20,30,40,50]])
-# XYraw = XYraw.T
-# XY = XYraw[~np.isnan(XYraw).any(axis=1), :]
-# X, Y = XY[:,0], XY[:,1]
-# X, Y
-
-
-#### Test of a routine to double each element in a list ; example [1, 2, 3] -> [1, 1, 2, 2, 3, 3]
-
-# newnew_color_list = np.array([new_color_list, new_color_list])
-# custom_color_list = list(np.array([new_color_list, new_color_list]).flatten(order='F'))
-# custom_color_list
-
-
-#### Test of makeOrder function
-
-# print(makeOrder(['none','doxycyclin'],['BSA coated glass','20um fibronectin discs']))
-# print(makeOrder(['A','B']))
-# print(makeOrder(['A','B'], ['C','D']))
-# print(makeOrder(['A','B'], ['C','D'], ['E','F']))
-
-
-#### Test of makeBoxPairs function
-
-# O = makeOrder(['none','doxycyclin'],['BSA coated glass','20um fibronectin discs'])
-# makeBoxPairs(O)
-
-
-#### Test of custom cycles
-
-# cc = (cycler(color=list('rgb')) +
-#       cycler(linestyle=['', '', '']) +
-#       cycler(marker=['o','*','<']) +
-#      cycler(linewidth=[1,1,1]))
-# cc
-
-# plt.rcParams['axes.prop_cycle'] = cc
-
-# fig, ax = plt.subplots()
-# for i in range(10):
-#     ax.plot([0,1], [0,i])
-# plt.show()
-
-
-
 
 # %% Plots
 
+# %%% Run here scripts to make plots
 
 
-
-
-
-
-
-
-
-
-# %% Useful scripts
-
-# %%% Experiment counter
-
-
-# Experiment counter - Python table 2
-cellID = 'cellID'
-data = GlobalTable_meca_Py2
-
-data_f = data[data['date'].apply(lambda x : x in ['21-12-08', '22-01-12'])]
-
-# count meca compressions
-
-GlobalTable_meca_CountComp = data_f.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountComp = GlobalTable_meca_CountComp.loc[:, [cellID]].rename(columns={cellID : 'Count compressions'})
-
-# count valid meca compressions
-
-GlobalTable_meca_CountCompOK = data_f[data_f['validatedThickness'] == True].groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCompOK = GlobalTable_meca_CountCompOK.loc[:, [cellID]].rename(columns={cellID : 'Count OK compressions'})
-
-# count meca cells
-
-group = data_f.groupby(cellID)
-dictAggMean = getDictAggMean(data_f)
-GlobalTable_meca_perCell = group.agg(dictAggMean)
-GlobalTable_meca_CountCell = GlobalTable_meca_perCell.groupby(['cell type', 'cell subtype', 'bead type', 'drug', 'substrate']).count()
-GlobalTable_meca_CountCell = GlobalTable_meca_CountCell.loc[:, [cellID]].rename(columns={cellID : 'Count cells - meca'})
-
-
-# Fuse all the previous tables
-GlobalTable_CountAll = pd.concat([GlobalTable_meca_CountCell, GlobalTable_meca_CountComp, GlobalTable_meca_CountCompOK], axis=1)
-GlobalTable_CountAll = GlobalTable_CountAll.fillna(0)
-GlobalTable_CountAll = GlobalTable_CountAll.loc[:,:].astype(int)
-GlobalTable_CountAll
 
 
 

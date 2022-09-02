@@ -31,21 +31,22 @@ import UtilityFunctions as ufun
 
 #%% Define parameters # Numi
 
-# DirSave = 'D:/Anumita/MagneticPincherData/Raw/22.06.09'
-# DirExt = 'F:/Cortex Experiments/OptoPincher Experiments/20220906_100xoil_3t3optorhoa_4.5beads_15mT/22.06.09/'
+date = '22.08.26'
+DirSave = os.path.join(cp.DirDataRaw, date)
+DirExt = 'G:/20220826_100xoil_3t3optorhoa_4.5beadsStrept_Mechanics/22.08.26'
 # prefix = 'cell'
 # channel = 'w1TIRF DIC'
-# microscope = 'metamorph'
+microscope = 'labview'
 
 #%% Define parameters # Jojo
 
-date = '22.07.27'
-DirExt = 'G:/22.07.27_longLinker' #'/M4_patterns_ctrl'
-DirSave = os.path.join(cp.DirDataRaw, date)
+# date = '22.07.27'
+# DirExt = 'G:/22.07.27_longLinker' #'/M4_patterns_ctrl'
+# DirSave = os.path.join(cp.DirDataRaw, date)
 
-prefix = ''
-channel = ''
-microscope = 'labview'
+# prefix = ''
+# channel = ''
+# microscope = 'labview'
 
 
 # %% Functions
@@ -89,6 +90,7 @@ def copyFieldFiles(ListDirSrc, DirDst, suffix = '_Field.txt'):
     """
     Import the Field.txt files from the relevant folders.
     Calls the copyFilesWithString from ufun with suffix = '_Field.txt'
+    
     """
     
     for DirSrc in ListDirSrc:
@@ -97,8 +99,11 @@ def copyFieldFiles(ListDirSrc, DirDst, suffix = '_Field.txt'):
 
 def removeFrames(DirSave):
     """
-    Used for metamorph created files
-    Description TBC
+    Remove some extra frames from all files that can sometimes (quite rarely) arise from Labview 
+    bugging out and interfere with tracking in MainTracker.
+    Can even be used for metamorph files.
+    Example: an incomplete triplet
+    
     """
     
     allFiles = os.listdir(DirSave)
@@ -113,8 +118,11 @@ def removeFrames(DirSave):
 
 def AllMMTriplets2Stack(DirExt, DirSave, prefix, channel):
     """
-    Used for metamorph created files
-    Description TBC
+    Used for metamorph created files.
+    Metamoprh does not save images in stacks but individual triplets. These individual triplets take time
+    to open in FIJI.
+    This function takes images of a sepcific channel and creates .tif stacks from them.
+       
     """
     
     allCells = os.listdir(DirExt)
@@ -142,8 +150,16 @@ def AllMMTriplets2Stack(DirExt, DirSave, prefix, channel):
         
 def renamePrefix(DirExt, currentCell, newPrefix):
     """
-    Used for metamorph created files
-    Description TBC
+    Used for metamorph created files.
+    Metamorph creates a new folder for each timelapse, within which all images contain a predefined 
+    'prefix' and 'channel' name which can differ between microscopes. Eg.: 'w1TIRF_DIC' or 'w2TIRF_561'
+    
+    If you forget to create a new folder for a new timelapse, Metamorph automatically changes the prefix
+    to distinguish between the old and new timelapse triplets. This can get annoying when it comes to processing 
+    many cells.
+    
+    This function allows you to rename the prefix of all individual triplets in a specific folder. 
+    
     """
     
     path = os.path.join(DirExt, currentCell)
@@ -154,13 +170,51 @@ def renamePrefix(DirExt, currentCell, newPrefix):
             split[0] = newPrefix
             newName = '_'.join()
             os.rename(os.path.join(path,i), os.path.join(path, newName))
+            
 
+def renameCells(DirSave):
+    """
+    Used for metamorph created files.
+    Metamorph creates a new folder for each timelapse, within which all images contain a predefined 
+    'prefix' and 'channel' name which can differ between microscopes. Eg.: 'w1TIRF_DIC' or 'w2TIRF_561'
+    
+    If you forget to create a new folder for a new timelapse, Metamorph automatically changes the prefix
+    to distinguish between the old and new timelapse triplets. This can get annoying when it comes to processing 
+    many cells.
+    
+    This function allows you to rename the prefix of all individual triplets in a specific folder. 
+    
+    """
+    
+    allImages = os.listdir(DirSave)
+    for i in allImages:
+        if i.endswith('_active_Field.txt'):
+            split = i.split('_')
+            if split[1] == 'M1':
+                print(i)
+                split[1] = 'M5'
+                newName = '_'.join(split[:5])+'_L40_Field.txt'
+            # elif split[1] == 'M3':
+            #     print(i)
+            #     split[1] = 'M7'
+            #     newName = '_'.join(split[:5])+'_L40_Field.txt'
+            # elif split[1] == 'M4':
+            #     print(i)
+            #     split[1] = 'M8'
+            #     newName = '_'.join(split[:5])+'_L40_Field.txt'
+                os.rename(os.path.join(DirSave,i), os.path.join(DirSave, newName))
+            
 
-def Zprojection(currentCell, microscope, kind = 'min'):
+def Zprojection(currentCell, microscope, kind = 'min', channel = 'nan', prefix = 'nan'):
     """
     From an image stack contained in 'currentCell' folder,
     does a scaled-down (by 'scaleFactor') Z-projection (minimum by default)
     to display the best image for cropping boundary selection.
+    
+    If you are using Metamorph for imaging, you will have to update the 'prefix' and 'channel'
+    variables depending on the names of your images. 
+    It follows the usual, default metamorph naming system: 'Prefix_Channel_Timepoint0.tif'
+    If you are using labview, the default will be 'nan' for both variables.
     """
     
     scaleFactor = 4
@@ -252,10 +306,16 @@ def shape_selection_V2(event, x, y, flags, param):
         cv2.rectangle(img,(ix,iy),(x,y),(0,255,0),1)
         
 
-def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope):
+def cropAndCopy(DirSrc, DirDst, allRefPoints, allCellPaths, microscope, channel = 'nan', prefix = 'nan'):
     """
     Using user specified rectangular coordinates from the previous functions,
     Crop cells stack and copy them onto the destination file.
+    
+    If you are using Metamorph for imaging, you will have to update the 'prefix' and 'channel'
+    variables depending on the names of your images. 
+    It follows the usual, default metamorph naming system: 'Prefix_Channel_Timepoint0.tif'
+    If you are using labview, the default will be 'nan' for both variables.
+    
     """
     
     count = 0
@@ -342,6 +402,7 @@ print(gs.BLUE + 'Constructing all Z-Projections...' + gs.NORMAL)
 scaleFactor = 4
 
 for i in range(len(allCellsRaw)):
+    print(i)
     currentCell = allCellsRaw[i]
     currentCellName = currentCell.split('\\')[-1]
     validCell = True
@@ -372,8 +433,15 @@ copyFieldFiles(allCells, DirSave)
 
 instructionText = "Draw the ROIs to crop !\n\n(1) Click on the image to define a rectangular selection\n"
 instructionText += "(2) Press 'a' to accept your selection, 'r' to redraw it, "
-instructionText += "or 's' if you have a second selection to make (don't use 'm' more than once per stack)"
+instructionText += "or 's' if you have a second selection to make (don't use 'm' more than once per stack)\n"
+instructionText += "(3) Make sure to choose the number of files you want to crop at once\nin the variable 'limiter'"
 instructionText += "\n\nC'est parti !\n"
+
+
+#Change below the number of stacks you want to crop at once. Run the code again to crop the remaining files. 
+# !!!!!! WARNING: Sometimes choosing too many can make your computer bug!!!!!
+limiter = 24
+
 print(gs.YELLOW + instructionText + gs.NORMAL)
 
 # if reset == 1:
@@ -383,7 +451,7 @@ print(gs.YELLOW + instructionText + gs.NORMAL)
 
 count = 0
 # for i in range(len(allZimg)):
-for i in range(min(len(allZimg), 24)):
+for i in range(min(len(allZimg), limiter)):
     if count%24 == 0:
         count = 0
         
@@ -438,10 +506,7 @@ cv2.destroyAllWindows()
 
 print(gs.BLUE + 'Saving all tiff stacks...' + gs.NORMAL)
 
-cropAndCopy(DirExt, DirSave, allRefPoints[:], allCellsToCrop[:], microscope)
-
-
-
+cropAndCopy(DirExt, DirSave, allRefPoints[19:30], allCellsToCrop[19:30], microscope)
 
 
 #%% Creating .tif stacks of 561n recruitment images
