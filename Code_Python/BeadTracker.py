@@ -1276,6 +1276,7 @@ class PincherTimeLapse:
 
             # Forces
             F00 = 3e5*anglefactor * (f_Mag_L(B0[i])* 1e-9*V_L) * (f_Mag_R(B0[i])*1e-9*V_R) / (D3nm[i]**4)
+            
             F0 = 3e5*anglefactor*m_L*m_R/D3nm[i]**4
             dF_L = deltaF_neighbour(m_L, B0[i], D_L, D_R, Neighbours_BR[1,i])
             dF_R = deltaF_neighbour(m_R, B0[i], D_R, D_L, Neighbours_BL[0,i])
