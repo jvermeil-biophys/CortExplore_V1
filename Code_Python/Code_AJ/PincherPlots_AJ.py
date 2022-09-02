@@ -51,19 +51,19 @@ elif COMPUTERNAME == 'LARISA':
     rawDir = "F:\JosephVermeil\MagneticPincherData"    
     ownCloudDir = "C://Users//Joseph//ownCloud//ActinCortexAnalysis"
 elif COMPUTERNAME == 'DESKTOP-K9KOJR2':
-    mainDir = "C://Users//anumi//OneDrive//Desktop//ActinCortexAnalysis"
+    mainDir = "C://Users//anumi//OneDrive//Desktop//CortExplore"
     rawDir = "D:/Anumita/MagneticPincherData"    
 elif COMPUTERNAME == '':
     mainDir = "C://Users//josep//Desktop//ActinCortexAnalysis"
     ownCloudDir = "C://Users//josep//ownCloud//ActinCortexAnalysis"
 
 
-experimentalDataDir = os.path.join(mainDir, "Data_Experimental")
-dataDir = os.path.join(mainDir, "Data_Analysis")
-timeSeriesDataDir = os.path.join(dataDir, "TimeSeriesData")
+experimentalDataDir = os.path.join(mainDir, "Data_Experimental_AJ")
+dataDir = os.path.join(rawDir, "Data_Analysis")
+timeSeriesDataDir = os.path.join(rawDir, "Data_TimeSeries")
 
 
-figDir = os.path.join(dataDir, "Figures")
+figDir = os.path.join(rawDir, "Figures")
 todayFigDir = os.path.join(figDir, "Historique//" + str(date.today()))
 
 
@@ -270,7 +270,7 @@ plt.show()
 
 # %%% Experimental conditions
 
-expDf = jvu.getExperimentalConditions(experimentalDataDir, save=True , sep = ',')
+expDf = jvu.getExperimentalConditions(experimentalDataDir, save=False , sep = ',')
 
 # =============================================================================
 # %%% Constant Field
@@ -308,14 +308,14 @@ expDf = jvu.getExperimentalConditions(experimentalDataDir, save=True , sep = ','
 
 # %%%% Specific experiments
 
-# Task = '22-03-31_M9_P2_C2' # For instance '22-03-30 & '22-03-31'
-# aja.computeGlobalTable_meca(task = Task, fileName = 'Global_MecaData_AJ', 
-#                             save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
+Task = '22-08-26_M7_P2_C5' # For instance '22-03-30 & '22-03-31'
+aja.computeGlobalTable_meca(task = Task, fileName = 'Global_MecaData_AJ', 
+                            save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% Precise dates (to plot)
 
-date = '22-05-31' # For instance '22-03-30 & '22-03-31'
+date = '22-08-26' # For instance '22-03-30 & '22-03-31'
 aja.computeGlobalTable_meca(task = date, fileName = 'Global_MecaData_AJ', 
                             save = True, PLOT = True, source = 'Python') # task = 'updateExisting'
 
