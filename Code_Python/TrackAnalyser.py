@@ -2131,13 +2131,13 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         updateUiDf_meca(ui_fileSuffix, mecaDf)
     
     for c in mecaDf.columns:
-            if 'Unnamed' in c:
-                mecaDf = mecaDf.drop([c], axis=1)
+        if 'Unnamed' in c:
+            mecaDf = mecaDf.drop([c], axis=1)
     
     if save:
         saveName = fileName + '.csv'
         savePath = os.path.join(cp.DirDataAnalysis, saveName)
-        mecaDf.to_csv(savePath, sep=';')
+        mecaDf.to_csv(savePath, sep=';', index = False)
     
     duration = time.time() - top
     print(gs.DARKGREEN + 'Total time: {:.0f}s'.format(duration) + gs.NORMAL)
@@ -2463,6 +2463,46 @@ def getMergedTable(fileName, DirDataExp = cp.DirRepoExp, suffix = cp.suffix,
           + str(df.shape[1]) + ' columns.' + gs.NORMAL)
         
     return(df)
+
+def concatAnalysisTables(fileNames, save = False, saveName = ''):
+    listTables = []
+    listShapes = []
+    for fileName in fileNames:
+        if not fileName[-4:] == '.csv':
+            ext = '.csv'
+        else:
+            ext = ''
+        try:
+            path = os.path.join(cp.DirDataAnalysis, (fileName + ext))
+            df = pd.read_csv(path, sep=';')
+            print(gs.CYAN + 'Analysis table ' + fileName  + ' has ' + str(df.shape[0]) + ' lines and ' + \
+                  str(df.shape[1]) + ' columns.' + gs.NORMAL)
+            listTables.append(df)
+            listShapes.append(df.shape)
+        except:
+            print(gs.BRIGHTRED + fileName + ' not found !' + gs.NORMAL)
+    shapeCheck = np.array([s[1] == listShapes[0][1] for s in listShapes])
+    if not np.all(shapeCheck):
+        print(gs.BRIGHTRED + 'ERROR: non-matching df shapes' + gs.NORMAL)
+    else:
+        cdf = pd.concat(listTables)
+        for c in cdf.columns:
+            if 'Unnamed' in c:
+                cdf = cdf.drop([c], axis=1)
+                
+        if save:
+            if not saveName[-4:] == '.csv':
+                ext = '.csv'
+            else:
+                ext = ''
+            savePath = os.path.join(cp.DirDataAnalysis, (saveName + ext))
+            cdf.to_csv(savePath, index=False, sep = ';')
+            
+
+        return(cdf)
+    
+    
+    
 
 
 
