@@ -137,8 +137,8 @@ drugTask = '22-03-30'
 # %%%% Non-Lin
 
 nonLinTask = '21-12-08 & 22-01-12 & 22-02-09'
-# taka.computeGlobalTable_meca(task = nonLinTask, fileName = 'Global_MecaData_NonLin_Py', 
-#                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+taka.computeGlobalTable_meca(task = nonLinTask, fileName = 'Global_MecaData_NonLin_Py', 
+                            save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 # %%%% MCA
 
@@ -147,6 +147,21 @@ MCAtask = '21-01-18 & 21-01-21'
 #                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
 # taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
 #                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+
+# %%%% HoxB8
+
+HoxB8task = '22-05-03 & 22-05-04 & 22-05-05' #' & 22-05-04 & 22-05-05'
+# taka.computeGlobalTable_meca(task = HoxB8task, fileName = 'Global_MecaData_HoxB8', 
+#                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+# taka.computeGlobalTable_meca(task = MCAtask, fileName = 'Global_MecaData_MCA2', 
+#                             save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+# %%%% MCA & HoxB8
+
+MCA_and_HoxB8_task = MCAtask + ' & ' + HoxB8task
+taka.computeGlobalTable_meca(task = MCA_and_HoxB8_task, fileName = 'Global_MecaData_MCA-HoxB8', 
+                            save = True, PLOT = False, source = 'Python') # task = 'updateExisting'
 
 
 # %%%% HoxB8
@@ -195,6 +210,12 @@ df = taka.getGlobalTable_meca('Global_MecaData_Py2').tail()
 
 taka.computeGlobalTable_meca(task = '22-02-09_M1_P1_C3', fileName = 'aaa', 
                             save = False, PLOT = False, source = 'Python') # task = 'updateExisting'
+
+# %%%% Concat dataframes
+
+fileNames = ['Global_MecaData_NonLin_Py', 'Global_MecaData_MCA-HoxB8']
+cdf = taka.concatAnalysisTables(fileNames, save = True, saveName = 'Global_MecaData_MCA-HoxB8_2')
+
 
 # =============================================================================
 # %%% Fluorescence
