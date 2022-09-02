@@ -2130,13 +2130,13 @@ def computeGlobalTable_meca(task = 'fromScratch', fileName = 'Global_MecaData',
         updateUiDf_meca(ui_fileSuffix, mecaDf)
     
     for c in mecaDf.columns:
-            if 'Unnamed' in c:
-                mecaDf = mecaDf.drop([c], axis=1)
+        if 'Unnamed' in c:
+            mecaDf = mecaDf.drop([c], axis=1)
     
     if save:
         saveName = fileName + '.csv'
         savePath = os.path.join(cp.DirDataAnalysis, saveName)
-        mecaDf.to_csv(savePath, sep=';')
+        mecaDf.to_csv(savePath, sep=';', index = False)
     
     duration = time.time() - top
     print(gs.DARKGREEN + 'Total time: {:.0f}s'.format(duration) + gs.NORMAL)
